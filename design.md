@@ -44,7 +44,7 @@ Because of these features, Substrate uses a WebAssembly environment. The Move la
 
 The first group of commits that were added by Pontem after forking the original Move
 repository deal with making all MoveVM crates [`no_std`][1]. `no_std` means that the crate
-does not depend on the Rust standard library . This is important because the Rust standard library may not be available in the Wasm environment. This means that any crate that depends on the Rust standard library cannot be used in a Substrate pallet.
+does not depend on the Rust standard library. This is important because the Rust standard library may not be available in the Wasm environment. This means that any crate that depends on the Rust standard library cannot be used in a Substrate pallet.
 
 Apart from adding the crate-level `no_std` attribute, the following changes were made to the code:
 * substituted the use of `std` with [`sp-std`][2] crate. `sp-std` is a Substrate crate that provides a subset of the Rust standard library that is compatible with the Substrate runtime.
