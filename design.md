@@ -25,7 +25,7 @@
 # Pontem Move fork
 
 ## Introduction
-The Pontem Network has [adapted the Move language][0] to work with the Substrate framework. To do this, some changes were made to Move's Virtual Machine (MoveVM). This document discusses why these changes were necessary and provides an overview of them. The changes are available in the Pontem fork of MoveVM, which can be found here: 
+The Pontem Network has [adapted the Move language][0] to work with the Substrate framework. In order to do this, some adjustments were made to Move's Virtual Machine (MoveVM). This document provides an overview of all the necessary changes.
 
 [0]: https://github.com/pontem-network/sp-move-vm
 
@@ -99,6 +99,6 @@ This crate defines the runtime RPC made available by this pallet.
 
 ## `runtime` crate
 
-Declares the `MVMApiRuntime` trait that is placed inside of the [`sp_api::decl_runtime_apis!`][9] macro. The macro creates two declarations, one for using on the client side and one for using on the runtime side.
+Declares the `MVMApiRuntime` trait placed inside the [`sp_api::decl_runtime_apis!`][9] macro. The macro creates two declarations, one for use on the client side and one on the runtime side.
 
 [9]: https://paritytech.github.io/substrate/master/sp_api/macro.decl_runtime_apis.html
