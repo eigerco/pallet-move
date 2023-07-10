@@ -8,6 +8,10 @@
     - [Making all MoveVM crates build for the `wasm32-unknown-unknown` target.](#making-all-movevm-crates-build-for-the-wasm32-unknown-unknown-target)
     - [Changing address length from 20 to 32 bytes.](#changing-address-length-from-20-to-32-bytes)
 - [Pontem MoveVM pallet](#pontem-movevm-pallet)
+  - [`GenesisConfig` and storage](#genesisconfig-and-storage)
+  - [`SubstrateWeight`](#substrateweight)
+  - [`rpc` crate](#rpc-crate)
+  - [`runtime` crate](#runtime-crate)
 
 
 
@@ -21,7 +25,9 @@
 # Pontem Move fork
 
 ## Introduction
-The Pontem Network has adapted the Move language to work with the Substrate framework. To do this, some changes were made to Move's Virtual Machine (MoveVM). This document discusses why these changes were necessary and provides an overview of them.
+The Pontem Network has [adapted the Move language][0] to work with the Substrate framework. To do this, some changes were made to Move's Virtual Machine (MoveVM). This document discusses why these changes were necessary and provides an overview of them. The changes are available in the Pontem fork of MoveVM, which can be found here: 
+
+[0]: https://github.com/pontem-network/sp-move-vm
 
 ## Why The Changes Were Needed
 Move, originally developed for the Libra project, is known for its safety and efficiency. But, to make it work with Substrate, adjustments to MoveVM were needed. Substrate uses a WebAssembly (Wasm) environment, and this is key to understanding why changes to MoveVM were necessary.
@@ -65,5 +71,34 @@ Move address length had to be changed from 20 to 32 bytes to match the [Substrat
 
 # Pontem MoveVM pallet
 
-The Pontem MoveVM pallet has a form of a Cargo crate. It depends on the Pontem's MoveVM form located here: https://github.com/pontem-network/sp-move-vm and wraps it into a Substrate pallet using the `frame-support` crate.
+The [Pontem MoveVM pallet][4] has a form of a Cargo crate. It depends on the Pontem's MoveVM fork described in the previous section and wraps it into a Substrate pallet using the `frame-support` crate.
 
+The crate exposes 3 main entry points: [`execute`][5], [`publish_module`][6], and [`publish_package`][7]. Each of them expects bytecode and `gas_limit` arguments.
+
+
+[4]: https://github.com/pontem-network/pontem/tree/master/pallets/sp-mvm.
+[5]: https://github.com/pontem-network/pontem/blob/master/pallets/sp-mvm/src/lib.rs#L188
+[6]: https://github.com/pontem-network/pontem/blob/master/pallets/sp-mvm/src/lib.rs#L220
+[7]: https://github.com/pontem-network/pontem/blob/master/pallets/sp-mvm/src/lib.rs#L252
+
+## `GenesisConfig` and storage
+
+Substrate allows you to configure the initial state of the blockchain by providing a [`GenesisConfig`][8]. The Pontem MoveVM pallet uses this to
+set up its storage.
+
+
+[8]: https://docs.substrate.io/build/genesis-configuration
+
+## `SubstrateWeight`
+
+Defines the weight of the pallet's functions. This is used by the `pallet::weight` macro to specify the weight of the extrinsics.
+
+## `rpc` crate
+
+This crate defines the runtime RPC made available by this pallet.
+
+## `runtime` crate
+
+Declares the `MVMApiRuntime` trait that is placed inside of the [`sp_api::decl_runtime_apis!`][9] macro. The macro creates two declarations, one for using on the client side and one for using on the runtime side.
+
+[9]: https://paritytech.github.io/substrate/master/sp_api/macro.decl_runtime_apis.html
