@@ -1,5 +1,6 @@
 - [Introduction](#introduction)
-- [Move language](#move-language)
+  - [Move language](#move-language)
+  - [Substrate framework](#substrate-framework)
 - [Pontem Move fork](#pontem-move-fork)
   - [Introduction](#introduction-1)
   - [Why The Changes Were Needed](#why-the-changes-were-needed)
@@ -12,15 +13,20 @@
   - [`SubstrateWeight`](#substrateweight)
   - [`rpc` crate](#rpc-crate)
   - [`runtime` crate](#runtime-crate)
-
-
+- [The present state of Move VMs](#the-present-state-of-move-vms)
+  - [Official repository](#official-repository)
+  - [Available forks](#available-forks)
+  - [Is forking needed?](#is-forking-needed)
+  - [Forking challenges - VM and the toolchain](#forking-challenges---vm-and-the-toolchain)
+- [The way forward](#the-way-forward)
+  - [Proposed solution - the architecture](#proposed-solution---the-architecture)
+  - [Deliverables](#deliverables)
 
 # Introduction
 
+## Move language
 
-
-
-# Move language
+## Substrate framework
 
 # Pontem Move fork
 
@@ -102,3 +108,21 @@ This crate defines the runtime RPC made available by this pallet.
 Declares the `MVMApiRuntime` trait placed inside the [`sp_api::decl_runtime_apis!`][9] macro. The macro creates two declarations, one for use on the client side and one on the runtime side.
 
 [9]: https://paritytech.github.io/substrate/master/sp_api/macro.decl_runtime_apis.html
+
+# The present state of Move VMs
+
+## Official repository
+
+## Available forks
+
+## Is forking needed?
+
+## Forking challenges - VM and the toolchain
+
+# The way forward
+
+## Proposed solution - the architecture
+
+## Deliverables
+
+
