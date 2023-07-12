@@ -1,0 +1,8 @@
+[package]
+name = "substrate-movevm-pallet"
+version = "0.1.0"
+authors = ["Eiger <hello@eiger.co>"]
+edition = "2021"
+
+repository = "https://github.com/eigerco/substrate-movevm-pallet"
+description = "MoveVM support pallet"
