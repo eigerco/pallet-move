@@ -1,6 +1,9 @@
 - [Introduction](#introduction)
   - [Move language](#move-language)
   - [Substrate framework](#substrate-framework)
+- [The present state of Move VMs](#the-present-state-of-move-vms)
+  - [Official repository](#official-repository)
+  - [Available forks](#available-forks)
 - [Pontem Move fork](#pontem-move-fork)
   - [Introduction](#introduction-1)
   - [Why The Changes Were Needed](#why-the-changes-were-needed)
@@ -13,13 +16,12 @@
   - [`SubstrateWeight`](#substrateweight)
   - [`rpc` crate](#rpc-crate)
   - [`runtime` crate](#runtime-crate)
-- [The present state of Move VMs](#the-present-state-of-move-vms)
-  - [Official repository](#official-repository)
-  - [Available forks](#available-forks)
+- [The way forward](#the-way-forward)
   - [Is forking needed?](#is-forking-needed)
   - [Forking challenges - VM and the toolchain](#forking-challenges---vm-and-the-toolchain)
-- [The way forward](#the-way-forward)
   - [Proposed solution - the architecture](#proposed-solution---the-architecture)
+  - [MoveVM changes](#movevm-changes)
+  - [Substrate MoveVM pallet](#substrate-movevm-pallet)
   - [Deliverables](#deliverables)
 
 # Introduction
@@ -27,6 +29,12 @@
 ## Move language
 
 ## Substrate framework
+
+# The present state of Move VMs
+
+## Official repository
+
+## Available forks
 
 # Pontem Move fork
 
@@ -109,19 +117,17 @@ Declares the `MVMApiRuntime` trait placed inside the [`sp_api::decl_runtime_apis
 
 [9]: https://paritytech.github.io/substrate/master/sp_api/macro.decl_runtime_apis.html
 
-# The present state of Move VMs
-
-## Official repository
-
-## Available forks
+# The way forward
 
 ## Is forking needed?
 
 ## Forking challenges - VM and the toolchain
 
-# The way forward
-
 ## Proposed solution - the architecture
+
+## MoveVM changes
+
+## Substrate MoveVM pallet
 
 ## Deliverables
 
