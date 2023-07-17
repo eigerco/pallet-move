@@ -30,7 +30,7 @@ This article describes the ability to incorporate Move Virtual Machine into Subs
 ## Move language
 Move is a programming language originally developed at Facebook to power the Diem blockchain. Its main aim was to give the ability to write smart contracts that can be run on the specialized virtual machine (Move VM) inside the blockchain. 
 
-Move is a statically-typed language with a syntax that is similar to Rust. It introduces different from usual resource handling. Resources can never be copied or implicitly discarded - they can be moved (as the language name states) between program storage locations.
+Move is a statically-typed language with a syntax that is similar to Rust. It introduces a slightly different resource handling concept where resources can never be copied or implicitly discarded - they can be moved (as the language name states) between program storage locations.
 
 There were 4 main design goals for the Move language:
 * First-Class Resources - one of the key features of Move is the ability to create custom resource types that can be handled safely which is enforced by the static type system and move semantics.
@@ -49,11 +49,13 @@ More information about the Move language can be found:
 * [Move examples and papers](https://github.com/MystenLabs/awesome-move)
 
 ## Substrate framework
-Substrate is a framework (SDK) which allows building custom blockchains. Its main goal is to provide an environment that allows to build blockchains with your own logic and features without the need to write everything from scratch. It's written in Rust and provides extensive documentation and usage samples.
+Substrate is a framework (SDK) which provides building tools for custom blockchains. Its main goal is to provide an environment that allows building blockchains with your own logic and features without the need to write everything from scratch. It's written in Rust and provides extensive documentation and usage samples.
 
-Substrate is a modular framework which means it's possible to use only parts of it that are needed for the project. It provides a set of ready-to-use modules that can be used to build a blockchain. Substrate node consists of two general parts: a core client with node services (peer discovery, managing transaction requests, responding to RPC calls) and a runtime, which contains all the business logic of the blockchain.
+Substrate is a modular framework which means it's possible to use only parts of it that are needed for the project. It provides a set of ready-to-use modules that can be used to build a blockchain. Substrate node consists of two general parts:
+- a core client with node services (peer discovery, managing transaction requests, responding to RPC calls),
+- a runtime which contains all the business logic of the blockchain.
 
-From this project perspective, the more interesting is the runtime part. It is responsible for determining the state of the blockchain and processing all the changes that are requested, including validation. The runtime module is designed to compile to WebAssembly and allows it to be extended by modules called pallets which are developed for the FRAME (Framework for Runtime Aggregation of Modularized Entities) subsystem. As the Move Virtual Machine gives the ability to change blockchain state it should be definitely working on the Runtime level, therefore be a pallet that can be loaded as a module.
+The runtime is responsible for determining the state of the blockchain and processing all requested changes, including validation. The runtime module is designed to compile to WebAssembly and allows it to be extended by modules called pallets developed for the FRAME (Framework for Runtime Aggregation of Modularized Entities) subsystem. Since Move Virtual Machine updates a blockchain state, it should be part of the Substrate's runtime execution. Therefore, it should be provided as a pallet that can be loaded as a module.
 
 More information about the Substrate framework can be found:
 * [Official webpage](https://substrate.io/)
