@@ -25,10 +25,40 @@
   - [Deliverables](#deliverables)
 
 # Introduction
+This article describes the ability to incorporate Move Virtual Machine into Substrate-based chains as a runtime module. It also describes the current state of the Move VM (with available forks including Pontem work) and the challenges that need to be overcome to make it work with Substrate.
 
 ## Move language
+Move is a programming language originally developed at Facebook to power the Diem blockchain. Its main aim was to give the ability to write smart contracts that can be run on the specialized virtual machine (Move VM) inside the blockchain. 
+
+Move is a statically-typed language with a syntax that is similar to Rust. It introduces a slightly different resource handling concept where resources can never be copied or implicitly discarded - they can be moved (as the language name states) between program storage locations.
+
+There were 4 main design goals for the Move language:
+* First-Class Resources - one of the key features of Move is the ability to create custom resource types that can be handled safely which is enforced by the static type system and move semantics.
+* Flexibility - language introduces transaction scripts, which allow to execute procedures with Move code which allows customizable transactions.
+* Safety - Move is designed to be safe by default. It rejects all programs that violate Move's key properties such as resource safety, memory safety, and type safety. It's achieved by checking the Move bytecode on-chain for safety by bytecode verifier and if passed, executed directly by the bytecode interpreter.
+* Verifiability - there is an approach to perform as much lightweight on-chain verification as possible but support more complex verification off-chain which can be performed by static verification tools. There have been several decisions made that make Move static verification friendly like no dynamic dispatch, limited mutability and modularity support.
+
+Programs (smart contracts) written in Move language are deployed as a bytecode and executed by the Move VM which is a stack-based virtual machine. It has been designed to be simple, efficient and platform-agnostic which means it's possible to integrate with custom blockchains or even run it separately and interact using a command line interface.
+
+Move has been used as the smart-contract language for many blockchains like Sui, Starcoin, Aptos or Diem.
+
+More information about the Move language can be found:
+* [Move language whitepaper](https://diem-developers-components.netlify.app/papers/diem-move-a-language-with-programmable-resources/2020-05-26.pdf)
+* [Move official repository](https://github.com/move-language/move)
+* [The Move book](https://move-language.github.io/move/)
+* [Move examples and papers](https://github.com/MystenLabs/awesome-move)
 
 ## Substrate framework
+Substrate is a framework (SDK) which provides building tools for custom blockchains. Its main goal is to provide an environment that allows building blockchains with your own logic and features without the need to write everything from scratch. It's written in Rust and provides extensive documentation and usage samples.
+
+Substrate is a modular framework which means it's possible to use only parts of it that are needed for the project. It provides a set of ready-to-use modules that can be used to build a blockchain. Substrate node consists of two general parts:
+- a core client with node services (peer discovery, managing transaction requests, responding to RPC calls),
+- a runtime which contains all the business logic of the blockchain.
+
+The runtime is responsible for determining the state of the blockchain and processing all requested changes, including validation. The runtime module is designed to compile to WebAssembly and allows it to be extended by modules called pallets developed for the FRAME (Framework for Runtime Aggregation of Modularized Entities) subsystem. Since Move Virtual Machine updates a blockchain state, it should be part of the Substrate's runtime execution. Therefore, it should be provided as a pallet that can be loaded as a module.
+
+More information about the Substrate framework can be found:
+* [Official webpage](https://substrate.io/)
 
 # The present state of Move VMs
 
