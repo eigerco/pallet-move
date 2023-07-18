@@ -37,6 +37,15 @@ yarn start
 
 5. Your browser should be opened automatically at `http://localhost:8000/` and you should see the information about the node.
 
+Alternatively, there is possibility to use polkadot frontend:
+```bash
+git clone https://github.com/polkadot-js/apps
+cd apps
+yarn install
+yarn start
+```
+and open `http://localhost:3000/` in your browser. Then switch on the left-side to the local development chain. Now you can do the same things as with the substrate frontend.
+
 Congratulations. You've spinned up your first Substrate node.
 
 ## Adding MoveVM pallet to the node
