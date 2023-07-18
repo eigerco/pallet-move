@@ -2,7 +2,6 @@
   - [Move language](#move-language)
   - [Substrate framework](#substrate-framework)
 - [The present state of Move VMs](#the-present-state-of-move-vms)
-  - [Official repository](#official-repository)
   - [Available forks](#available-forks)
 - [Pontem Move fork](#pontem-move-fork)
   - [Introduction](#introduction-1)
@@ -25,7 +24,7 @@
   - [Deliverables](#deliverables)
 
 # Introduction
-This article describes the ability to incorporate Move Virtual Machine into Substrate-based chains as a runtime module. It also describes the current state of the Move VM (with available forks including Pontem work) and the challenges that need to be overcome to make it work with Substrate.
+This article describes the ability to incorporate Move Virtual Machine into Substrate-based chains as a runtime module. It also describes the current state of the Move VM (with available forks, including Pontem work) and the challenges that need to be overcome to make it work with Substrate.
 
 ## Move language
 Move is a programming language originally developed at Facebook to power the Diem blockchain. Its main aim was to give the ability to write smart contracts that can be run on the specialized virtual machine (Move VM) inside the blockchain. 
@@ -33,12 +32,12 @@ Move is a programming language originally developed at Facebook to power the Die
 Move is a statically-typed language with a syntax that is similar to Rust. It introduces a slightly different resource handling concept where resources can never be copied or implicitly discarded - they can be moved (as the language name states) between program storage locations.
 
 There were 4 main design goals for the Move language:
-* First-Class Resources - one of the key features of Move is the ability to create custom resource types that can be handled safely which is enforced by the static type system and move semantics.
-* Flexibility - language introduces transaction scripts, which allow to execute procedures with Move code which allows customizable transactions.
-* Safety - Move is designed to be safe by default. It rejects all programs that violate Move's key properties such as resource safety, memory safety, and type safety. It's achieved by checking the Move bytecode on-chain for safety by bytecode verifier and if passed, executed directly by the bytecode interpreter.
-* Verifiability - there is an approach to perform as much lightweight on-chain verification as possible but support more complex verification off-chain which can be performed by static verification tools. There have been several decisions made that make Move static verification friendly like no dynamic dispatch, limited mutability and modularity support.
+* First-Class Resources - one of the key features of Move is the ability to create custom resource types that can be handled safely, which is enforced by the static type system and move semantics.
+* Flexibility - language introduces transaction scripts, which allow executing procedures with Move code which allows customizable transactions.
+* Safety - Move is designed to be safe by default. It rejects all programs that violate Move's key properties, such as resource safety, memory safety, and type safety. It's achieved by checking the Move bytecode on-chain for safety by the bytecode verifier and, if passed, executed directly by the bytecode interpreter.
+* Verifiability - there is an approach to perform as much lightweight on-chain verification as possible but support more complex verification off-chain, which can be performed by static verification tools. There have been several decisions made that make Move static verification friendly, like no dynamic dispatch, limited mutability and modularity support.
 
-Programs (smart contracts) written in Move language are deployed as a bytecode and executed by the Move VM which is a stack-based virtual machine. It has been designed to be simple, efficient and platform-agnostic which means it's possible to integrate with custom blockchains or even run it separately and interact using a command line interface.
+Programs (smart contracts) written in Move language are deployed as a bytecode and executed by the Move VM, which is a stack-based virtual machine. It has been designed to be simple, efficient and platform-agnostic, which means it's possible to integrate with custom blockchains or even run it separately and interact using a command line interface.
 
 Move has been used as the smart-contract language for many blockchains like Sui, Starcoin, Aptos or Diem.
 
@@ -62,9 +61,26 @@ More information about the Substrate framework can be found:
 
 # The present state of Move VMs
 
-## Official repository
+The official repository for the Move language in the [move-language](https://github.com/move-language/move/tree/main/language) repo ([move-vm](https://github.com/move-language/move/tree/main/language/move-vm)). The open-source community maintains it, and also other Move forks keep it up to date.
 
 ## Available forks
+
+The most important move-lang forks are:
+
+ - [Aptos](https://github.com/aptos-labs/aptos-core/tree/main/third_party/move) ([move-vm](https://github.com/aptos-labs/aptos-core/tree/main/third_party/move/move-vm))
+ - [Starcoin](https://github.com/starcoinorg/starcoin/tree/master/vm) ([move-vm](https://github.com/starcoinorg/starcoin/tree/master/vm/vm-runtime))
+ - [0L](https://github.com/0LNetworkCommunity/libra/tree/v6/diem-move) ([move-vm](https://github.com/0LNetworkCommunity/libra/tree/v6/diem-move/diem-vm))
+ - [Sui](https://github.com/MystenLabs/sui/tree/main/external-crates/move) ([move-vm](https://github.com/MystenLabs/sui/tree/main/external-crates/move/move-vm))
+
+Maybe the most important of the above is the Sui's fork, a special dialect of the Move language called Sui Move. The key differences with the Diem-style Move language are:
+
+- Sui uses its own object-centric global storage
+- Addresses represent Object IDs
+- Sui objects have globally unique IDs
+- Sui has module initializers (init)
+- Sui entry points take object references as input
+
+The main constraint of Sui Move is that it is tightly coupled with the Sui blockchain - it's less flexible and not so platform agnostic, so it is currently not a candidate fork to be ported to a Substrate pallet.
 
 # Pontem Move fork
 
@@ -82,7 +98,7 @@ There are a few reasons why Substrate uses WebAssembly:
 
 2. Works Everywhere: WebAssembly code can run on different platforms without change. This is great for ensuring Substrate-based blockchains can operate on various systems.
 
-3. Efficient: WebAssembly is fast and lightweight. This is important for blockchain as you want things to run as efficiently as possible.
+3. Efficient: WebAssembly is fast and lightweight. This is important for blockchain, as you want things to run as efficiently as possible.
 
 4. Language Flexibility: Using WebAssembly means that developers are not stuck with one programming language. They can use different languages like Rust or C++.
 
@@ -105,7 +121,7 @@ Apart from adding the crate-level `no_std` attribute, the following changes were
 
 ### Making all MoveVM crates build for the `wasm32-unknown-unknown` target.
 
-Apart from setting the build target this also included CI configuration updates.
+Apart from setting the build target, this also included CI configuration updates.
 
 ### Changing address length from 20 to 32 bytes.
 
