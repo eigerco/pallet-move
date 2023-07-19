@@ -52,7 +52,7 @@ Congratulations! You've spun up your first Substrate node.
 
 1. Go to the substrate-based node directory root.
 
-2. Open `runtime/Cargo.toml` file and add new dependency:
+2. Open the `runtime/Cargo.toml` file and add a new dependency:
 ```toml
 substrate-movevm-pallet = { default-features = false, path = "../../substrate-movevm-pallet" }
 ```
