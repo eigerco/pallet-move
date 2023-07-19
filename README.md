@@ -14,13 +14,13 @@ The most important steps are described below.
 git clone https://github.com/substrate-developer-hub/substrate-node-template
 ```
 
-2. Switch to learning branch and build the node:
+2. Switch to a new branch and build the node:
 ```bash
 cd substrate-node-template
-git checkout -b mybranch
+git checkout -b move-vm-pallet
 cargo build --release
 ```
-If you wish to collect runtime benchmarks add `--features runtime-benchmarks` to the build command.
+If you wish to collect runtime benchmarks, add `--features runtime-benchmarks` to the build command.
 
 3. Run the node:
 ```bash
@@ -37,7 +37,7 @@ yarn start
 
 5. Your browser should be opened automatically at `http://localhost:8000/` and you should see the information about the node.
 
-Alternatively, there is possibility to use polkadot frontend:
+Alternatively, there is a possibility to use the Polkadot frontend:
 ```bash
 git clone https://github.com/polkadot-js/apps
 cd apps
@@ -46,7 +46,7 @@ yarn start
 ```
 and open `http://localhost:3000/` in your browser. Then switch on the left-side to the local development chain. Now you can do the same things as with the substrate frontend.
 
-Congratulations. You've spinned up your first Substrate node.
+Congratulations! You've spun up your first Substrate node.
 
 ## Adding MoveVM pallet to the node
 
@@ -56,20 +56,28 @@ Congratulations. You've spinned up your first Substrate node.
 ```toml
 substrate-movevm-pallet = { default-features = false, path = "../../substrate-movevm-pallet" }
 ```
-and new features under `[features]` section:
+and under the `[features]` section, to the `std` section, add this feature:
 ```toml
-"substrate-movevm-pallet/std",
+std = [
+    <...>
+    "substrate-movevm-pallet/std",
+]
 ```
-to the `std = [` section,
+to the `runtime-benchmarks` section, add this feature:
 ```toml
-"substrate-movevm-pallet/runtime-benchmarks",
+runtime-benchmarks = [
+    <...>
+    "substrate-movevm-pallet/runtime-benchmarks",
+]
 ```
-to the `runtime-benchmarks = [` section,
+and to the `try-runtime = [` section, add this feature.
 ```toml
-"substrate-movevm-pallet/try-runtime",
+try-runtime = [
+    <...>
+    "substrate-movevm-pallet/try-runtime",
+]
 ```
-to the `try-runtime = [` section.
-Here is the assumption made that the pallet and the node are located under the same directory.
+The instructions here assume that the `substrate-movevm-pallet` and the `substrate-node-template` repos are located under the same directory.
 
 3. Open `runtime/src/lib.rs` and add new pallet to the runtime configuration.
 Add new import:
@@ -92,7 +100,7 @@ If you need to run runtime benchmarks find `define_benchmarks!(` macro and add:
     [substrate_movevm_pallet, MoveModule]
 ```
 
-4. Run the node, frontend and check if the pallet is available in the frontend. If yes, there is possibility to call `execute` extrinsic and observe emitted events.
+4. Re-build the node, run the node and the frontend, then check if the pallet is available in the frontend. If yes, there is possibility to call `execute` extrinsic and observe emitted events.
 
 ## Benchmarking
 Benchmarking and updating weights should be done each time new extrinsic is added to the pallet (weights are used to estimate transaction fees). Weights are obligatory for extrinsics that are available for users.
