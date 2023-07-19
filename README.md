@@ -9,14 +9,15 @@ To spin up the local development node follow instructions from the [official gui
 
 The most important steps are described below.
 
-1. Clone node-template from substrate-developer-hub:
+1. Clone node-template and switch to the newest branch:
 ```bash
-git clone https://github.com/substrate-developer-hub/substrate-node-template
+git clone https://github.com/eigerco/substrate-node-template
+cd substrate-node-template
+git checkout polkadot-v1.0.0
 ```
 
-2. Switch to a new branch and build the node:
+2. Create a new branch and build the node:
 ```bash
-cd substrate-node-template
 git checkout -b move-vm-pallet
 cargo build --release
 ```
