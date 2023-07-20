@@ -47,7 +47,13 @@ yarn start
 ```
 and open `http://localhost:3000/` in your browser. Then switch on the left-side to the local development chain. Now you can do the same things as with the substrate frontend.
 
-Congratulations! You've spun up your first Substrate node.
+Congratulations! You've spun up your first Substrate node. You are able now to perform your first transaction. To do this, log into the frontend (the node must be up, assuming that you are using the substrate frontend) and: 
+1. choose one of the accounts on the right top (eg. Alice account); 
+2. look at the `Transfer` section where you can choose the destination account for your transfer. Choose one eg. `charlie`; 
+3. enter the amount to be sent; 
+4. press `Submit` button to begin the transaction; 
+5. when everything is completed you will see information that the transaction has been successful along with `tx hash` value;
+6. `Balances` section should now display new balances for the affected accounts.
 
 ## Adding MoveVM pallet to the node
 
