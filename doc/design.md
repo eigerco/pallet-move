@@ -125,7 +125,7 @@ Apart from setting the build target, this also included CI configuration updates
 
 ### Changing address length from 20 to 32 bytes.
 
-Move address length had to be changed from 20 to 32 bytes to match the [Substrate address length][3]. This was done by changing the `LENGTH` constant in the `move-core-types` crate as well as updating some hard-coded addresses.
+Move address length had to be changed from 20 to 32 bytes to match the [Substrate address length][3]. This was done by changing the `LENGTH` constant in the `move-core-types` crate as well as updating some hard-coded addresses. In our fork, there won't be a need to make any code changes because the move-lang codebase introduced support for the `address32` feature, which is today used by Aptos and Sui blockchains.
 
 [3]: https://docs.substrate.io/reference/address-formats/
 
@@ -134,7 +134,6 @@ Move address length had to be changed from 20 to 32 bytes to match the [Substrat
 The [Pontem MoveVM pallet][4] has a form of a Cargo crate. It depends on the Pontem's MoveVM fork described in the previous section and wraps it into a Substrate pallet using the `frame-support` crate.
 
 The crate exposes 3 main entry points: [`execute`][5], [`publish_module`][6], and [`publish_package`][7]. Each of them expects bytecode and `gas_limit` arguments.
-
 
 [4]: https://github.com/pontem-network/pontem/tree/master/pallets/sp-mvm.
 [5]: https://github.com/pontem-network/pontem/blob/master/pallets/sp-mvm/src/lib.rs#L188
@@ -145,7 +144,6 @@ The crate exposes 3 main entry points: [`execute`][5], [`publish_module`][6], an
 
 Substrate allows you to configure the initial state of the blockchain by providing a [`GenesisConfig`][8]. The Pontem MoveVM pallet uses this to
 set up its storage.
-
 
 [8]: https://docs.substrate.io/build/genesis-configuration
 
@@ -166,6 +164,11 @@ Declares the `MVMApiRuntime` trait placed inside the [`sp_api::decl_runtime_apis
 # The way forward
 
 ## Is forking needed?
+
+TODO notes:
+_Yes!_
+- _Mention the `address32` move-lang feature we are going to use_
+- _we need to apply no-std support throughout the codebase_
 
 ## Forking challenges - VM and the toolchain
 
