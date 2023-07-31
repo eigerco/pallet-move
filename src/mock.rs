@@ -1,4 +1,4 @@
-use crate as substrate_movevm_pallet;
+use crate as pallet_move;
 use frame_support::traits::{ConstU16, ConstU64};
 use sp_core::H256;
 use sp_runtime::{
@@ -13,7 +13,7 @@ frame_support::construct_runtime!(
 	pub enum Test
 	{
 		System: frame_system,
-		MoveModule: substrate_movevm_pallet,
+		MoveModule: pallet_move,
 	}
 );
 
@@ -43,7 +43,7 @@ impl frame_system::Config for Test {
     type MaxConsumers = frame_support::traits::ConstU32<16>;
 }
 
-impl substrate_movevm_pallet::Config for Test {
+impl pallet_move::Config for Test {
     type RuntimeEvent = RuntimeEvent;
     type WeightInfo = ();
 }

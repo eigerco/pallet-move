@@ -1,4 +1,4 @@
-# substrate-movevm-pallet
+# pallet-move
 MoveVM pallet for Substrate-based chains
 
 
@@ -61,50 +61,50 @@ Congratulations! You've spun up your first Substrate node. You are able now to p
 
 2. Open the `runtime/Cargo.toml` file and add a new dependency:
 ```toml
-substrate-movevm-pallet = { default-features = false, path = "../../substrate-movevm-pallet" }
+pallet-move = { default-features = false, path = "../../pallet-move" }
 ```
 and under the `[features]` section, to the `std` section, add this feature:
 ```toml
 std = [
     <...>
-    "substrate-movevm-pallet/std",
+    "pallet-move/std",
 ]
 ```
 to the `runtime-benchmarks` section, add this feature:
 ```toml
 runtime-benchmarks = [
     <...>
-    "substrate-movevm-pallet/runtime-benchmarks",
+    "pallet-move/runtime-benchmarks",
 ]
 ```
 and to the `try-runtime = [` section, add this feature.
 ```toml
 try-runtime = [
     <...>
-    "substrate-movevm-pallet/try-runtime",
+    "pallet-move/try-runtime",
 ]
 ```
-The instructions here assume that the `substrate-movevm-pallet` and the `substrate-node-template` repos are located under the same directory.
+The instructions here assume that the `pallet-move` and the `substrate-node-template` repos are located under the same directory.
 
 3. Open `runtime/src/lib.rs` and add new pallet to the runtime configuration.
 Add new import:
 ```rust
-pub use substrate_movevm_pallet;
+pub use pallet-move;
 ```
 Find section where pallets are configured for Runtime and add new pallet:
 ```rust
-impl substrate_movevm_pallet::Config for Runtime {
+impl pallet_move::Config for Runtime {
         type RuntimeEvent = RuntimeEvent;
-        type WeightInfo = substrate_movevm_pallet::weights::SubstrateWeight<Runtime>;
+        type WeightInfo = pallet_move::weights::SubstrateWeight<Runtime>;
 }
 ```
 Add new pallet under `construct_runtime!(` macro:
 ```rust
-    MoveModule: substrate_movevm_pallet,
+    MoveModule: pallet_move,
 ```
 If you need to run runtime benchmarks find `define_benchmarks!(` macro and add:
 ```rust
-    [substrate_movevm_pallet, MoveModule]
+    [pallet_move, MoveModule]
 ```
 
 4. Re-build the node, run the node and the frontend, then check if the pallet is available in the frontend. If yes, there is possibility to call `execute` extrinsic and observe emitted events.
@@ -114,6 +114,6 @@ Benchmarking and updating weights should be done each time new extrinsic is adde
 
 To update weights simply run:
 ```bash
-./target/release/node-template benchmark pallet --chain dev --pallet substrate_movevm_pallet --steps=50 --repeat=20 --execution=wasm --wasm-execution=compiled --output ../substrate-movevm-pallet/src/weights.rs --template ./.maintain/frame-weight-template.hbs --extrinsic '*'
+./target/release/node-template benchmark pallet --chain dev --pallet pallet-move --steps=50 --repeat=20 --execution=wasm --wasm-execution=compiled --output ../pallet-move/src/weights.rs --template ./.maintain/frame-weight-template.hbs --extrinsic '*'
 ```
-when being in the substrate-based node directory root. Assumption is made that the pallet is located under `../substrate-movevm-pallet` directory. Template for the weights is located under `./.maintain/frame-weight-template.hbs` directory and can be obtained from Substrate repository.
+when being in the substrate-based node directory root. Assumption is made that the pallet is located under `../pallet-move` directory. Template for the weights is located under `./.maintain/frame-weight-template.hbs` directory and can be obtained from Substrate repository.

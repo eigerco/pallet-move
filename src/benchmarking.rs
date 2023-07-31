@@ -1,4 +1,4 @@
-//! Benchmarking setup for substrate-movevm-pallet
+//! Benchmarking setup for pallet-move
 #![cfg(feature = "runtime-benchmarks")]
 use super::*;
 
