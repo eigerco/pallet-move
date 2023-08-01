@@ -23,7 +23,9 @@ git checkout -b move-vm-pallet
 cargo build --release
 ```
 
-If you wish to collect runtime benchmarks, you will need to build Move assets first and then add `--features runtime-benchmarks` to the build command.
+If you wish to collect runtime benchmarks, you will need to build Move assets first and then add `--features runtime-benchmarks` to the build command. 
+
+Make sure you've Move language installed and accessible from the command line (`move` command). If not, please follow the official [Move tutorial](https://github.com/move-language/move/blob/main/language/documentation/tutorial/README.md) to install it. Then, from the root of the repository, run:
 
 ```bash
 cd tests/assets/move
