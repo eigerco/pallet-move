@@ -37,6 +37,7 @@ use core::marker::PhantomData;
 pub trait WeightInfo {
 	fn execute() -> Weight;
 	fn publish_module() -> Weight;
+	fn publish_package() -> Weight;
 }
 
 /// Weights for pallet_move using the Substrate node and recommended hardware.
@@ -46,15 +47,22 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
 		// Proof Size summary in bytes:
 		//  Measured:  `0`
 		//  Estimated: `0`
-		// Minimum execution time: 7_550_000 picoseconds.
-		Weight::from_parts(8_272_000, 0)
+		// Minimum execution time: 5_125_000 picoseconds.
+		Weight::from_parts(5_568_000, 0)
 	}
 	fn publish_module() -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `0`
 		//  Estimated: `0`
-		// Minimum execution time: 7_252_000 picoseconds.
-		Weight::from_parts(7_809_000, 0)
+		// Minimum execution time: 5_284_000 picoseconds.
+		Weight::from_parts(5_814_000, 0)
+	}
+	fn publish_package() -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `0`
+		//  Estimated: `0`
+		// Minimum execution time: 5_336_000 picoseconds.
+		Weight::from_parts(5_700_000, 0)
 	}
 }
 
@@ -64,14 +72,21 @@ impl WeightInfo for () {
 		// Proof Size summary in bytes:
 		//  Measured:  `0`
 		//  Estimated: `0`
-		// Minimum execution time: 7_550_000 picoseconds.
-		Weight::from_parts(8_272_000, 0)
+		// Minimum execution time: 5_125_000 picoseconds.
+		Weight::from_parts(5_568_000, 0)
 	}
 	fn publish_module() -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `0`
 		//  Estimated: `0`
-		// Minimum execution time: 7_252_000 picoseconds.
-		Weight::from_parts(7_809_000, 0)
+		// Minimum execution time: 5_284_000 picoseconds.
+		Weight::from_parts(5_814_000, 0)
+	}
+	fn publish_package() -> Weight {
+		// Proof Size summary in bytes:
+		//  Measured:  `0`
+		//  Estimated: `0`
+		// Minimum execution time: 5_336_000 picoseconds.
+		Weight::from_parts(5_700_000, 0)
 	}
 }

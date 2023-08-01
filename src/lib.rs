@@ -43,6 +43,10 @@ pub mod pallet {
         /// Event about successful move-module publishing
         /// [account]
         ModulePublished { who: T::AccountId },
+
+        /// Event about successful move-package published
+        /// [account]
+        PackagePublished { who: T::AccountId },
     }
 
     // Dispatchable functions allows users to interact with the pallet and invoke state changes.
@@ -89,6 +93,24 @@ pub mod pallet {
             Self::deposit_event(Event::ModulePublished { who });
 
             // Return a successful DispatchResultWithPostInfo
+            Ok(PostDispatchInfo::default())
+        }
+
+        /// Publish a Move module packages sent by the user.
+        #[pallet::call_index(2)]
+        #[pallet::weight(T::WeightInfo::publish_package())]
+        pub fn publish_package(
+            origin: OriginFor<T>,
+            package: Vec<u8>,
+            gas_limit: u64,
+        ) -> DispatchResultWithPostInfo {
+            let who = ensure_signed(origin)?;
+
+            // TODO: Publish module package
+
+            // Emit an event.
+            Self::deposit_event(Event::PackagePublished { who });
+
             Ok(PostDispatchInfo::default())
         }
     }
