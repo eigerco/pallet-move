@@ -27,5 +27,13 @@ mod benchmarks {
         publish_module(RawOrigin::Signed(caller), module, 500_000);
     }
 
+    #[benchmark]
+    fn publish_package() {
+        let caller: T::AccountId = whitelisted_caller();
+        let module = include_bytes!("../tests/assets/move/build/move/bytecode_modules/Empty.mv").to_vec();
+        #[extrinsic_call]
+        publish_package(RawOrigin::Signed(caller), module, 1_500_000);
+    }
+
     impl_benchmark_test_suite!(MovePallet, crate::mock::new_test_ext(), crate::mock::Test);
 }
