@@ -22,7 +22,14 @@ git checkout polkadot-1.0.0-pallet-move
 git checkout -b move-vm-pallet
 cargo build --release
 ```
-If you wish to collect runtime benchmarks, add `--features runtime-benchmarks` to the build command.
+
+If you wish to collect runtime benchmarks, you will need to build Move assets first and then add `--features runtime-benchmarks` to the build command.
+
+```bash
+cd tests/assets/move
+move build
+cargo build --release --features runtime-benchmarks
+```
 
 3. Run the node:
 ```bash
@@ -72,6 +79,6 @@ Benchmarking and updating weights should be done each time new extrinsic is adde
 
 To update weights simply run:
 ```bash
-./target/release/node-template benchmark pallet --chain dev --pallet pallet-move --steps=50 --repeat=20 --execution=wasm --wasm-execution=compiled --output ../pallet-move/src/weights.rs --template ./.maintain/frame-weight-template.hbs --extrinsic '*'
+./target/release/node-template benchmark pallet --chain dev --pallet pallet-move --steps=50 --repeat=20 --wasm-execution=compiled --output ../pallet-move/src/weights.rs --template ./.maintain/frame-weight-template.hbs --extrinsic '*'
 ```
 when being in the substrate-based node directory root. Assumption is made that the pallet is located under `../pallet-move` directory. Template for the weights is located under `./.maintain/frame-weight-template.hbs` directory and can be obtained from Substrate repository.
