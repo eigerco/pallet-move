@@ -17,6 +17,8 @@ pub mod pallet {
     use super::*;
     use frame_support::pallet_prelude::*;
     use frame_system::pallet_prelude::*;
+    use frame_support::dispatch::{DispatchResultWithPostInfo,PostDispatchInfo};
+    use sp_std::{vec::Vec, prelude::*, default::Default};
 
     #[pallet::pallet]
     pub struct Pallet<T>(_);
@@ -37,6 +39,10 @@ pub mod pallet {
         /// Event about calling execute function.
         /// [account]
         ExecuteCalled { who: T::AccountId },
+
+        /// Event about successful move-module publishing
+        /// [account]
+        ModulePublished { who: T::AccountId },
     }
 
     // Dispatchable functions allows users to interact with the pallet and invoke state changes.
@@ -44,12 +50,19 @@ pub mod pallet {
     // Dispatchable functions must be annotated with a weight and must return a DispatchResult.
     #[pallet::call]
     impl<T: Config> Pallet<T> {
-        /// Execute function
+        
+        /// Execute Move script bytecode sent by the user.
         #[pallet::call_index(0)]
         #[pallet::weight(T::WeightInfo::execute())]
-        pub fn execute(origin: OriginFor<T>) -> DispatchResult {
+        pub fn execute(
+            origin: OriginFor<T>,
+            bytecode: Vec<u8>,
+            gas_limit: u64,) -> DispatchResult {
+
             // Allow only signed calls.
             let who = ensure_signed(origin)?;
+
+            // TODO: Execute bytecode
 
             // Emit an event.
             Self::deposit_event(Event::ExecuteCalled { who });
@@ -58,5 +71,26 @@ pub mod pallet {
             Ok(())
         }
 
+        /// Publish a Move module sent by the user.
+        /// Module is published under its sender's address.
+        #[pallet::call_index(1)]
+        #[pallet::weight(T::WeightInfo::publish_module())]
+        pub fn publish_module(
+            origin: OriginFor<T>,
+            bytecode: Vec<u8>,
+            gas_limit: u64,
+        ) -> DispatchResultWithPostInfo {
+            // Allow only signed calls.
+            let who = ensure_signed(origin)?;
+
+            // TODO: Publish module
+
+            // Emit an event.
+            Self::deposit_event(Event::ModulePublished { who });
+
+            // Return a successful DispatchResultWithPostInfo
+            Ok(PostDispatchInfo::default())
+        }
     }
 }
+
