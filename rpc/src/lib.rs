@@ -135,6 +135,7 @@ where
         let api = self.client.runtime_api();
         let res = api.get_resource(at.unwrap_or_else(|| self.client.info().best_hash), account, tag);
 
+        // Currently, there is always correct value returned so it's safe to unwrap here.
         res.unwrap().map_err(runtime_error_into_rpc_err)
     }
 
@@ -146,6 +147,7 @@ where
         let api = self.client.runtime_api();
         let res = api.get_module_abi(at.unwrap_or_else(|| self.client.info().best_hash), module_id);
 
+        // Currently, there is always correct value returned so it's safe to unwrap here.
         res.unwrap().map_err(runtime_error_into_rpc_err)
     }
 
@@ -157,6 +159,7 @@ where
         let api = self.client.runtime_api();
         let res = api.get_module(at.unwrap_or_else(|| self.client.info().best_hash), module_id);
 
+        // Currently, there is always correct value returned so it's safe to unwrap here.
         res.unwrap().map_err(runtime_error_into_rpc_err)
     }
 }
