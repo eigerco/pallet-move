@@ -84,3 +84,22 @@ To update weights simply run:
 ./target/release/node-template benchmark pallet --chain dev --pallet pallet-move --steps=50 --repeat=20 --wasm-execution=compiled --output ../pallet-move/src/weights.rs --template ./.maintain/frame-weight-template.hbs --extrinsic '*'
 ```
 when being in the substrate-based node directory root. Assumption is made that the pallet is located under `../pallet-move` directory. Template for the weights is located under `./.maintain/frame-weight-template.hbs` directory and can be obtained from Substrate repository.
+
+## Docker
+There is possibility to generate the docker image containing working `node-template` with `move-pallet` built-in. To generate image run: 
+```bash
+sudo docker build -t "nodemove:Dockerfile" .
+```
+
+When build is complete you can check if you can see the image in the docker repository by running:
+```bash
+sudo docker images
+```
+
+To run image type:
+```bash
+sudo docker run nodemove:Dockerfile
+```
+
+It will start `node-template` on local interface. You can change default behavior by passing your own command when running docker image. All available options are in the [node template](https://docs.substrate.io/reference/command-line-tools/node-template/) documentation.
+
