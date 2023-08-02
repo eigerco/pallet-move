@@ -1,4 +1,3 @@
-use crate as pallet_move;
 use frame_support::traits::{ConstU16, ConstU64};
 use sp_core::H256;
 use sp_runtime::{
@@ -6,15 +5,17 @@ use sp_runtime::{
     BuildStorage,
 };
 
+use crate as pallet_move;
+
 type Block = frame_system::mocking::MockBlock<Test>;
 
 // Configure a mock runtime to test the pallet.
 frame_support::construct_runtime!(
-	pub enum Test
-	{
-		System: frame_system,
-		MoveModule: pallet_move,
-	}
+    pub enum Test
+    {
+        System: frame_system,
+        MoveModule: pallet_move,
+    }
 );
 
 impl frame_system::Config for Test {
@@ -50,5 +51,8 @@ impl pallet_move::Config for Test {
 
 // Build genesis storage according to the mock runtime.
 pub fn new_test_ext() -> sp_io::TestExternalities {
-    frame_system::GenesisConfig::<Test>::default().build_storage().unwrap().into()
+    frame_system::GenesisConfig::<Test>::default()
+        .build_storage()
+        .unwrap()
+        .into()
 }

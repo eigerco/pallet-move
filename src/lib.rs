@@ -14,11 +14,14 @@ pub use weights::*;
 // The pallet is defined below.
 #[frame_support::pallet]
 pub mod pallet {
-    use super::*;
-    use frame_support::pallet_prelude::*;
+    use frame_support::{
+        dispatch::{DispatchResultWithPostInfo, PostDispatchInfo},
+        pallet_prelude::*,
+    };
     use frame_system::pallet_prelude::*;
-    use frame_support::dispatch::{DispatchResultWithPostInfo,PostDispatchInfo};
-    use sp_std::{vec::Vec, prelude::*, default::Default};
+    use sp_std::{default::Default, prelude::*, vec::Vec};
+
+    use super::*;
 
     #[pallet::pallet]
     pub struct Pallet<T>(_);
@@ -54,15 +57,10 @@ pub mod pallet {
     // Dispatchable functions must be annotated with a weight and must return a DispatchResult.
     #[pallet::call]
     impl<T: Config> Pallet<T> {
-        
         /// Execute Move script bytecode sent by the user.
         #[pallet::call_index(0)]
         #[pallet::weight(T::WeightInfo::execute())]
-        pub fn execute(
-            origin: OriginFor<T>,
-            bytecode: Vec<u8>,
-            gas_limit: u64,) -> DispatchResult {
-
+        pub fn execute(origin: OriginFor<T>, bytecode: Vec<u8>, gas_limit: u64) -> DispatchResult {
             // Allow only signed calls.
             let who = ensure_signed(origin)?;
 
@@ -70,7 +68,7 @@ pub mod pallet {
 
             // Emit an event.
             Self::deposit_event(Event::ExecuteCalled { who });
-            
+
             // Return a successful DispatchResult
             Ok(())
         }
@@ -115,4 +113,3 @@ pub mod pallet {
         }
     }
 }
-
