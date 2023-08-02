@@ -1,8 +1,12 @@
 use std::sync::Arc;
 
 use codec::Codec;
-use frame_support::weights::Weight;
-use jsonrpsee::{core::RpcResult, proc_macros::rpc};
+use frame_support::{dispatch::Vec, weights::Weight};
+use jsonrpsee::{
+    core::{Error as JsonRpseeError, RpcResult},
+    proc_macros::rpc,
+    types::error::{CallError, ErrorObject},
+};
 pub use pallet_move_runtime_api::MoveApi as MoveRuntimeApi;
 use sp_api::ProvideRuntimeApi;
 use sp_blockchain::HeaderBackend;
@@ -18,6 +22,43 @@ pub trait MoveApi<BlockHash, AccountId> {
     /// Convert weight to gas
     #[method(name = "mvm_weightToGas")]
     fn weight_to_gas(&self, weight: Weight, at: Option<BlockHash>) -> RpcResult<u64>;
+
+    /// Estimate gas for publishing module
+    #[method(name = "mvm_estimateGasPublish")]
+    fn estimate_gas_publish(
+        &self,
+        account: AccountId,
+        bytecode: Vec<u8>,
+        gas_limit: u64,
+        at: Option<BlockHash>,
+    ) -> RpcResult<u64>;
+
+    /// Estimate gas for executing Move script
+    #[method(name = "mvm_estimateGasExecute")]
+    fn estimate_gas_execute(
+        &self,
+        account: AccountId,
+        bytecode: Vec<u8>,
+        gas_limit: u64,
+        at: Option<BlockHash>,
+    ) -> RpcResult<u64>;
+
+    /// Get resource
+    #[method(name = "mvm_getResource")]
+    fn get_resource(
+        &self,
+        account: AccountId,
+        tag: Vec<u8>,
+        at: Option<BlockHash>,
+    ) -> RpcResult<Option<Vec<u8>>>;
+
+    /// Get module ABI using address
+    #[method(name = "mvm_getModuleABI")]
+    fn get_module_abi(&self, module_id: Vec<u8>, at: Option<BlockHash>) -> RpcResult<Option<Vec<u8>>>;
+
+    /// Get module binary using address
+    #[method(name = "mvm_getModule")]
+    fn get_module(&self, module_id: Vec<u8>, at: Option<BlockHash>) -> RpcResult<Option<Vec<u8>>>;
 }
 
 /// A struct that implements the `MoveApi`.
@@ -44,12 +85,90 @@ where
     C::Api: MoveRuntimeApi<Block, AccountId>,
 {
     fn gas_to_weight(&self, gas: u64, at: Option<<Block as BlockT>::Hash>) -> RpcResult<Weight> {
-        // Return a dummy weight for now
-        Ok(Weight::from_parts(2_123_123, 0))
+        let api = self.client.runtime_api();
+        let res = api.gas_to_weight(at.unwrap_or_else(|| self.client.info().best_hash), gas);
+
+        res.map_err(runtime_error_into_rpc_err)
     }
 
     fn weight_to_gas(&self, weight: Weight, at: Option<<Block as BlockT>::Hash>) -> RpcResult<u64> {
-        // Return a dummy gas for now
-        Ok(1u64)
+        let api = self.client.runtime_api();
+        let res = api.weight_to_gas(at.unwrap_or_else(|| self.client.info().best_hash), weight);
+
+        res.map_err(runtime_error_into_rpc_err)
     }
+
+    fn estimate_gas_publish(
+        &self,
+        account: AccountId,
+        bytecode: Vec<u8>,
+        gas_limit: u64,
+        at: Option<<Block as BlockT>::Hash>,
+    ) -> RpcResult<u64> {
+        let api = self.client.runtime_api();
+        let res =
+            api.estimate_gas_publish(at.unwrap_or_else(|| self.client.info().best_hash), account, bytecode, gas_limit);
+
+        res.map_err(runtime_error_into_rpc_err)
+    }
+
+    fn estimate_gas_execute(
+        &self,
+        account: AccountId,
+        bytecode: Vec<u8>,
+        gas_limit: u64,
+        at: Option<<Block as BlockT>::Hash>,
+    ) -> RpcResult<u64> {
+        let api = self.client.runtime_api();
+        let res =
+            api.estimate_gas_execute(at.unwrap_or_else(|| self.client.info().best_hash), account, bytecode, gas_limit);
+
+        res.map_err(runtime_error_into_rpc_err)
+    }
+
+    fn get_resource(
+        &self,
+        account: AccountId,
+        tag: Vec<u8>,
+        at: Option<<Block as BlockT>::Hash>,
+    ) -> RpcResult<Option<Vec<u8>>> {
+        let api = self.client.runtime_api();
+        let res = api.get_resource(at.unwrap_or_else(|| self.client.info().best_hash), account, tag);
+
+        res.unwrap().map_err(runtime_error_into_rpc_err)
+    }
+
+    fn get_module_abi(
+        &self,
+        module_id: Vec<u8>,
+        at: Option<<Block as BlockT>::Hash>,
+    ) -> RpcResult<Option<Vec<u8>>> {
+        let api = self.client.runtime_api();
+        let res = api.get_module_abi(at.unwrap_or_else(|| self.client.info().best_hash), module_id);
+
+        res.unwrap().map_err(runtime_error_into_rpc_err)
+    }
+
+    fn get_module(
+        &self,
+        module_id: Vec<u8>,
+        at: Option<<Block as BlockT>::Hash>,
+    ) -> RpcResult<Option<Vec<u8>>> {
+        let api = self.client.runtime_api();
+        let res = api.get_module(at.unwrap_or_else(|| self.client.info().best_hash), module_id);
+
+        res.unwrap().map_err(runtime_error_into_rpc_err)
+    }
+}
+
+const RUNTIME_ERROR: i32 = 1;
+
+/// Converts a runtime trap into an RPC error.
+fn runtime_error_into_rpc_err(err: impl std::fmt::Debug) -> JsonRpseeError {
+    CallError::Custom(ErrorObject::owned(
+        RUNTIME_ERROR,
+        "Runtime error",
+        Some(format!("{:?}", err)),
+    ))
+    .into()
 }
