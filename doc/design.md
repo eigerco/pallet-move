@@ -177,9 +177,9 @@ As the forking is still needed there are some challenges that need to be address
 
 One of the biggest challenges is to keep the possibility to use already existing contracts written in Move language. Two main goals can be achieved:
 - level 1: source compatibility - keep the possibility to use existing contracts written in Move language after recompiling by modified toolchain; 
-- level 2: binary compatibility - keep the possibility to use existing contracts in binary form.
+- level 2: bytecode compatibility - keep the possibility to use existing contracts in bytecode form.
 
-At this point, we believe we will achieve level 1 compatibility, but we are not sure if level 2 will be possible.
+Level 1 compatibility will be achieved, but at this point, we cannot guarantee level 2 compatibility. Level 2 depends on many external factors, like concrete blockchain features (address length, gas metering, etc.).
 
 TODO: write here about the toolchain changes, ABI etc. - anything that can cause incompatibility with the existing contracts.
 
@@ -225,9 +225,9 @@ The package and repository structure will look like this:
 - `pallet-move-rpc` - the RPC MoveVM pallet repository - placed under `src/rpc` directory in the `pallet-move` repository. Contains the RPC codebase, tests, and documentation. Work is done in the `main` branch.
 - `pallet-move-runtime-api` - the runtime API MoveVM pallet repository - placed under `src/rpc/runtime-api` directory in the `pallet-move` repository. Work is done in the `main` branch.
 - `substrate-move` - Move language fork [repository](https://github.com/eigerco/substrate-move) - contains the Move language codebase, tests, and documentation.
-- `substrate-node-template` - testing [node repository](https://github.com/eigerco/substrate-node-template) - contains the node codebase, tests, and documentation. Work is done in the `polkadot-1.0.0-pallet-move` branch.
+- `substrate-node-template-move-vm-test` - testing [node repository](https://github.com/eigerco/substrate-node-template-move-vm-test) - contains the node codebase, tests, and documentation. Work is done in the `polkadot-1.0.0-pallet-move` branch.
 
-Testing code should be separated from the actual codebase. That's a little different approach when compared to the previous Pontem work where the Move pallet and machine were placed inside the main Pontem repository and built together with the node. Pontem did the real node and the usable blockchain and therefore, it was justified to keep everything in one place. In our case, we are not going to build a real blockchain, but use only a modified template node to prove our solution is working correctly. We believe it will be easier for further pallet integrators to have it separated from the node codebase as they can fork only pallet repo and integrate it with their solutions.
+Testing code should be separated from the actual codebase. That's a little different approach when compared to the previous Pontem work, where the Move pallet and machine were placed inside the main Pontem repository and built together with the node. Pontem implemented a real node and a usable blockchain, and therefore, it was justified to keep everything in one place. In our case, we are not going to build a full blockchain, but only a MoveVM pallet. We plan to use only a modified template node to prove our solution is working correctly. We believe it will be easier for further pallet integrators to have it separated from the node codebase as they can fork only the pallet repo and integrate it with their solutions.
 
 ## Deliverables
 
