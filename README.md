@@ -12,8 +12,8 @@ The most important steps are described below.
 1. Clone Move pallet and node-template (make sure they are in the same repository) and switch to the newest branch which already include Move pallet building:
 ```bash
 git clone https://github.com/eigerco/pallet-move.git
-git clone https://github.com/eigerco/substrate-node-template
-cd substrate-node-template
+git clone https://github.com/eigerco/substrate-node-template-move-vm-test
+cd substrate-node-template-move-vm-test
 git checkout polkadot-1.0.0-pallet-move
 ```
 

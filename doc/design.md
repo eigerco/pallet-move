@@ -19,7 +19,7 @@
   - [Is forking needed?](#is-forking-needed)
   - [Forking challenges - VM and the toolchain](#forking-challenges---vm-and-the-toolchain)
   - [Proposed solution - the architecture](#proposed-solution---the-architecture)
-  - [MoveVM changes](#movevm-changes)
+  - [MoveVM module and changes](#movevm-module-and-changes)
   - [Substrate MoveVM pallet](#substrate-movevm-pallet)
   - [Deliverables](#deliverables)
 
@@ -163,6 +163,8 @@ Declares the `MVMApiRuntime` trait placed inside the [`sp_api::decl_runtime_apis
 
 # The way forward
 
+TODO: make some intro here
+
 ## Is forking needed?
 
 TODO notes:
@@ -171,13 +173,62 @@ _Yes!_
 - _we need to apply no-std support throughout the codebase_
 
 ## Forking challenges - VM and the toolchain
+As the forking is still needed there are some challenges that need to be addressed for the VM itself as well as for the toolchain.
+
+One of the biggest challenges is to keep the possibility to use already existing contracts written in Move language. Two main goals can be achieved:
+- level 1: source compatibility - keep the possibility to use existing contracts written in Move language after recompiling by modified toolchain; 
+- level 2: bytecode compatibility - keep the possibility to use existing contracts in bytecode form.
+
+Level 1 compatibility will be achieved, but at this point, we cannot guarantee level 2 compatibility. Level 2 depends on many external factors, like concrete blockchain features (address length, gas metering, etc.).
+
+TODO: write here about the toolchain changes, ABI etc. - anything that can cause incompatibility with the existing contracts.
+
+Another important challenge is keeping the repository in sync state with the upstream and separating custom work from the main line, which can allow us to perform upgrades easily. We aim to provide the least possible changes to the original codebase to provide a better upgrade experience and the ability to follow the mainline with all the language and feature updates. Of course, it will be not possible to keep everything separated from the main repository and therefore, some changes will be applied to the virtual machine itself.
+
+Our proposal involves creating a fork of the Move VM `main` repository branch and do the changes on different branches. It will allow us to keep a clean and easy way to import changes from the upstream and apply them to our work. Many changes that are not affecting the modified codebase will be able to merge instantly (eg. by rebasing our branches to the new main head). Only mainline changes touching our modified code need to be applied manually.
+
+The key point is to perform such minor updates periodically when it would be easier to maintain the changing codebase. Waiting too long between syncs can cause a lot of problems and make it impossible to merge changes without a lot of manual work, which can lead to a situation where it will be easier to fork the repository again and start from scratch, especially if it is done by the separate team than the one who created the fork. 
 
 ## Proposed solution - the architecture
+The architecture of software represents a crucial design element that goes beyond the lines of code, empowering developers to visualize, plan, and construct robust and scalable solutions. However, our solution architecture is constrained by two external factors:
+- The Substrate framework architecture.
+- The Move language virtual machine architecture.
+Both of these factors are out of our control, and we have to work with them as they are, fulfilling their requirements and fitting our solution into them. Moreover, some inspiration can be taken from the Pontem work on the MoveVM pallet as we've identified some of their design decisions to be good and that can be reused in our solution. 
 
-## MoveVM changes
+After deep analysis, we've made decomposed the solution into smaller, manageable, and cohesive modules. Each module represents a distinct unit of functionality that can be developed, tested, and maintained mostly independently. The modules are:
+1) The MoveVM module - described in [MoveVM module and changes](#movevm-module-and-changes).
+2) The MoveVM Substrate pallet - described in [Substrate MoveVM pallet](#substrate-movevm-pallet):
+   - The MoveVM pallet main library.
+   - The MoveVM pallet runtime API.
+   - The MoveVM pallet RPC.
+3) The MoveVM testing Substrate node.
+4) The MoveVM testing tools.
+
+TODO: write further design description
+
+## MoveVM module and changes
+
+TODO: describe MoveVM architecture and all the changes that are needed to be done in the VM codebase.
 
 ## Substrate MoveVM pallet
 
+TODO: describe here the pallet itself, its architecture and how it works.
+
+## Testing
+Software testing is an essential process in the software development life cycle that helps identify bugs, defects, and errors in a software application. Tests are performed from the very start of the project and each design decision takes into account the testability of the code. Testing is performed on different levels, from unit tests to integration tests and end-to-end tests. More about it can be found in the [Testing Guide](testing_guide.md) document which is one of the project deliverables.
+
+## Repository structure
+In order to keep things separated and easy to maintain, we propose to create a separate repository for each forked codebase and a separate repository for the VM pallet itself.
+
+The package and repository structure will look like this:
+- `pallet-move` - the [MoveVM pallet repository](https://github.com/eigerco/pallet-move) - contains the pallet codebase, tests, and documentation. Work is done in the `main` branch.
+- `pallet-move-rpc` - the RPC MoveVM pallet repository - placed under `src/rpc` directory in the `pallet-move` repository. Contains the RPC codebase, tests, and documentation. Work is done in the `main` branch.
+- `pallet-move-runtime-api` - the runtime API MoveVM pallet repository - placed under `src/rpc/runtime-api` directory in the `pallet-move` repository. Work is done in the `main` branch.
+- `substrate-move` - Move language fork [repository](https://github.com/eigerco/substrate-move) - contains the Move language codebase, tests, and documentation.
+- `substrate-node-template-move-vm-test` - testing [node repository](https://github.com/eigerco/substrate-node-template-move-vm-test) - contains the node codebase, tests, and documentation. Work is done in the `polkadot-1.0.0-pallet-move` branch.
+
+Testing code should be separated from the actual codebase. That's a little different approach when compared to the previous Pontem work, where the Move pallet and machine were placed inside the main Pontem repository and built together with the node. Pontem implemented a real node and a usable blockchain, and therefore, it was justified to keep everything in one place. In our case, we are not going to build a full blockchain, but only a MoveVM pallet. We plan to use only a modified template node to prove our solution is working correctly. We believe it will be easier for further pallet integrators to have it separated from the node codebase as they can fork only the pallet repo and integrate it with their solutions.
+
 ## Deliverables
 
-
+TODO: describe here what we are going to deliver.
