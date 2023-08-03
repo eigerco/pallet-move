@@ -7,10 +7,10 @@ WORKDIR /usr/src/move/pallet-move
 COPY . .
 WORKDIR /usr/src/move
 RUN cd pallet-move && cd tests/assets/move && move build
-RUN git clone https://github.com/eigerco/substrate-node-template && cd substrate-node-template && git checkout polkadot-1.0.0-pallet-move && cargo build --release --features runtime-benchmarks
+RUN git clone https://github.com/eigerco/substrate-node-template-move-vm-test && cd substrate-node-template-move-vm-test && git checkout polkadot-1.0.0-pallet-move && cargo build --release --features runtime-benchmarks
 
 FROM debian:bullseye-slim
 RUN apt-get update && apt-get upgrade -y && rm -rf /var/lib/apt/lists/*
-COPY --from=builder /usr/src/move/substrate-node-template/target/release/node-template /usr/local/bin/node-template
+COPY --from=builder /usr/src/move/substrate-node-template-move-vm-test/target/release/node-template /usr/local/bin/node-template
 EXPOSE 9930 9333 9944 30333 30334
 CMD ["node-template", "--dev"]
