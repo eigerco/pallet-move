@@ -162,8 +162,7 @@ Declares the `MVMApiRuntime` trait placed inside the [`sp_api::decl_runtime_apis
 [9]: https://paritytech.github.io/substrate/master/sp_api/macro.decl_runtime_apis.html
 
 # The way forward
-
-TODO: make some intro here
+In this chapter, we outline the strategic plan, decisions and roadmap for the future development and growth of MoveVM pallet software.
 
 ## Is forking needed?
 
@@ -204,18 +203,49 @@ After deep analysis, we've made decomposed the solution into smaller, manageable
 3) The MoveVM testing Substrate node.
 4) The MoveVM testing tools.
 
-TODO: write further design description
+TODO: write further design description 
 
 ## MoveVM module and changes
 
 TODO: describe MoveVM architecture and all the changes that are needed to be done in the VM codebase.
 
 ## Substrate MoveVM pallet
+Substrate pallets are modular components that allow developers to easily customize and extend the functionality of their Substrate-based blockchains, making the development process more efficient and flexible. It is also desired way to extend the Substrate runtime with custom functionality. That's why MoveVM functionality should be implemented as a Substrate pallet.
 
-TODO: describe here the pallet itself, its architecture and how it works.
+The software design proposed by Pontem's initial work pursues the Substrate pallet architecture and standards. Therefore, we've followed a similar approach to comply with the standard.
+
+The architecture of a MoveVM pallet follows a modular design pattern, enabling other development teams to build and integrate specific functionalities of MoveVM into their Substrate-based blockchains. MoveVM pallet is a self-contained module that encapsulates Move Virtual Machine and all side logic needed to handle Move specifics. Let's dive into the crucial aspects of pallet architecture:
+1) Module: The MoveVM pallet represents a module within a Substrate runtime. It contains a set of related functionalities that make a group together. The MoveVM pallet would include only things needed for interaction with the virtual machine.
+2) State: The MoveVM will define its state, which is the data they need to keep track of. That state consists of various variables containing information relevant to the pallet's functionalities. It is stored on the blockchain and updated through transactions and blocks.
+3) Storage: It defines the data structures and how they are accessed and modified. The storage system ensures data consistency across the network. The MoveVM pallet would use it to store data in the map of key-value pairs and provide a storage adapter for the Move Virtual Machine storage.
+4) Dispatchable Functions - extrinsics: The MoveVM pallet will expose dispatchable functions, which users can call via transactions. These functions define the operations that some can perform on the blockchain. Currently, there are three extrinsics defined:
+- 'execute' - executes a Move script;
+- 'publishModule' - publishes a Move module;
+- 'publishPackage' - publishes a Move package.
+5) Events: Events inform about changes within the pallet. The MoveVM pallet defines separate events for completing each extrinsic call. Somebody can subscribe to them, allowing external applications to react to specific changes or triggers within the blockchain.
+6) Configuration: The MoveVM pallet is configured during the runtime's setup to customize its behaviour. Configuration is done in a standard way, like for any other sample pallets.
+7) Traits: The MoveVM pallet defines a set of traits which can be used further in the runtime or RPC node.
+8) RPC: The MoveVM pallet incorporates a sub-crate with RPC calls (`pallet-move-rpc` using `jsonrpsee`) that can be used to interact with the pallet from external applications:
+- `mvm_estimateGasExecute`,
+- `mvm_estimateGasPublish`,
+- `mvm_gasToWeight`,
+- `mvm_getModule`,
+- `mvm_getModuleABI`,
+- `mvm_getResource`,
+- `mvm_weightToGas`.
+
+The MoveVM pallet divides into three main components - the MoveVM pallet itself, runtime API (fulfilling the pallet's traits), and RPC. The MoveVM pallet is the core, containing all the logic needed to interact with the virtual machine. The runtime API is a separate crate that implements the pallet's traits and exposes them to the runtime. The RPC is a separate crate that implements the pallet's RPC calls and exposes them to the RPC node.
+
+The pallet calls the Move Virtual Machine and gathers the results. Since Move smart contracts can operate on other abstractions, the Move VM pallet is responsible for caring for those differences and translating them both ways to ensure interoperability. The main part of the pallet is also responsible for storing the Move modules and packages on the chain. It is also responsible for the gas metering and gas conversion. Move language (like many other chains) has a concept of `gas` for executing contracts, whereas Substrate uses `Weights`. Those values need to be transformed before usage as well as there is a need to provide the user with API to estimate the possible gas cost for executing particular Move scripts or publishing data.
+
+The pallet will have a MoveVM backend to communicate directly with the Move Virtual Machine, a separate crate. Separation allows us to replace the VM implementation in the future easily. The VM backend will create MoveVM inside the runtime and execute the scripts. It will also take any error and be able to translate it to a form acceptable and understandable by the Substrate framework.
 
 ## Testing
-Software testing is an essential process in the software development life cycle that helps identify bugs, defects, and errors in a software application. Tests are performed from the very start of the project and each design decision takes into account the testability of the code. Testing is performed on different levels, from unit tests to integration tests and end-to-end tests. More about it can be found in the [Testing Guide](testing_guide.md) document which is one of the project deliverables.
+Software testing is an essential process in the software development life cycle that helps identify software application bugs, defects, and errors. We are designing and implementing tests from the start of the project, and each design decision considers the code's testability. The team plans tests on different levels, from unit to integration and end-to-end tests. You can find more in the [Testing Guide](testing_guide.md) document, one of the project deliverables.
+
+It's worth mentioning the unit and integration test architecture that demands doing additional work to provide a test runtime environment. There is a need to create a runtime mock to run tests in the CI/CD pipeline. The mock should be able to run the tests like the actual runtime but without running the whole blockchain node. The pallet will include a mock file that provides a runtime environment using the `construct_runtime!` macro with a test configuration like the other pallets. Moreover, we will add testing assets (like Move modules) to be able to perform each test with the same data. Extracting those modules as external assets will allow us to reuse them in other tests and projects.
+
+Similarly, we'll mock the runtime for benchmarking purposes.
 
 ## Repository structure
 In order to keep things separated and easy to maintain, we propose to create a separate repository for each forked codebase and a separate repository for the VM pallet itself.
@@ -229,6 +259,11 @@ The package and repository structure will look like this:
 
 Testing code should be separated from the actual codebase. That's a little different approach when compared to the previous Pontem work, where the Move pallet and machine were placed inside the main Pontem repository and built together with the node. Pontem implemented a real node and a usable blockchain, and therefore, it was justified to keep everything in one place. In our case, we are not going to build a full blockchain, but only a MoveVM pallet. We plan to use only a modified template node to prove our solution is working correctly. We believe it will be easier for further pallet integrators to have it separated from the node codebase as they can fork only the pallet repo and integrate it with their solutions.
 
-## Deliverables
+# Conclusions
+In conclusion, the successful completion of this software project holds great promise for our team and the broader blockchain community. Developing a Substrate pallet that enables the integration of the Move language within the Substrate blockchain represents a significant step forward in enhancing the versatility and functionality of blockchain applications.
 
-TODO: describe here what we are going to deliver.
+One of the crucial goals of this project is achieving interoperability with existing Move contracts sources and minimising changes introduced to the Move Virtual Machine. We recognize the significance of seamless integration with existing Substrate and Move functionalities and other modules. By prioritizing interoperability, we aim to enhance the overall ecosystem, enabling developers to build innovative applications and smart contracts more efficiently.
+
+Furthermore, we understand the value of community feedback and collaboration in an open-source environment. We will actively engage with the developer community, seeking input, conducting audits, and addressing concerns to ensure our pallet aligns with the community's needs and desires.
+
+In conclusion, our team is determined to overcome challenges and deliver a Substrate pallet that empowers users with the capabilities of the Move language. By focusing on project management, adhering to timelines, and prioritizing interoperability, our efforts will contribute to the growth and success of the Substrate blockchain ecosystem. Together with the community, we look forward to the realization of this exciting project and its potential impact on the broader blockchain space.
