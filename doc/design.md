@@ -101,7 +101,7 @@ There are a few reasons why Substrate uses WebAssembly:
 
 4. Language Flexibility: WebAssembly means developers are free of one programming language. They can use different languages like Rust or C++.
 
-Because of these features, Substrate uses a WebAssembly environment. The Move language had to be adjusted to be compatible with this environment. The Pontem fork of MoveVM is these adjustments.
+Because of these features, Substrate uses a WebAssembly environment. The Move language had to be adjusted to be compatible with this environment. The Pontem fork of MoveVM contains these adjustments.
 
 ## What were the changes?
 
