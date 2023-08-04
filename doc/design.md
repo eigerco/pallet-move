@@ -24,7 +24,7 @@
   - [Deliverables](#deliverables)
 
 # Introduction
-This article describes the ability to incorporate Move Virtual Machine into Substrate-based chains as a runtime module. It also describes the current state of the Move VM (with available forks, including Pontem work) and the challenges that need to be overcome to make it work with Substrate.
+This article describes the ability to incorporate Move Virtual Machine into Substrate-based chains as a runtime module. It also describes the current state of the Move VM (with available forks, including Pontem work) and the team's challenges in making it work with Substrate.
 
 ## Move language
 Move is a programming language originally developed at Facebook to power the Diem blockchain. Its main aim was to give the ability to write smart contracts that can be run on the specialized virtual machine (Move VM) inside the blockchain. 
@@ -61,7 +61,7 @@ More information about the Substrate framework can be found:
 
 # The present state of Move VMs
 
-The official repository for the Move language in the [move-language](https://github.com/move-language/move/tree/main/language) repo ([move-vm](https://github.com/move-language/move/tree/main/language/move-vm)). The open-source community maintains it, and also other Move forks keep it up to date.
+The official repository for the Move language in the [move-language](https://github.com/move-language/move/tree/main/language) repo ([move-vm](https://github.com/move-language/move/tree/main/language/move-vm)). The open-source community maintains it, and other Move forks keep it current.
 
 ## Available forks
 
@@ -72,8 +72,7 @@ The most important move-lang forks are:
  - [0L](https://github.com/0LNetworkCommunity/libra/tree/v6/diem-move) ([move-vm](https://github.com/0LNetworkCommunity/libra/tree/v6/diem-move/diem-vm))
  - [Sui](https://github.com/MystenLabs/sui/tree/main/external-crates/move) ([move-vm](https://github.com/MystenLabs/sui/tree/main/external-crates/move/move-vm))
 
-Maybe the most important of the above is the Sui's fork, a special dialect of the Move language called Sui Move. The key differences with the Diem-style Move language are:
-
+The most important of the above is the Sui's fork, a unique dialect of the Move language called Sui Move. The key differences with the Diem-style Move language are:
 - Sui uses its own object-centric global storage
 - Addresses represent Object IDs
 - Sui objects have globally unique IDs
@@ -98,11 +97,11 @@ There are a few reasons why Substrate uses WebAssembly:
 
 2. Works Everywhere: WebAssembly code can run on different platforms without change. This is great for ensuring Substrate-based blockchains can operate on various systems.
 
-3. Efficient: WebAssembly is fast and lightweight. This is important for blockchain, as you want things to run as efficiently as possible.
+3. Efficient: WebAssembly is fast and lightweight. That is important for blockchain, as you want things to run as efficiently as possible.
 
-4. Language Flexibility: Using WebAssembly means that developers are not stuck with one programming language. They can use different languages like Rust or C++.
+4. Language Flexibility: WebAssembly means developers are free of one programming language. They can use different languages like Rust or C++.
 
-Because of these features, Substrate uses a WebAssembly environment. The Move language had to be adjusted to be compatible with this environment. The Pontem fork of MoveVM is essentially these adjustments.
+Because of these features, Substrate uses a WebAssembly environment. The Move language had to be adjusted to be compatible with this environment. The Pontem fork of MoveVM is these adjustments.
 
 ## What were the changes?
 
@@ -110,7 +109,7 @@ Because of these features, Substrate uses a WebAssembly environment. The Move la
 
 The first group of commits that were added by Pontem after forking the original Move
 repository deal with making all MoveVM crates [`no_std`][1]. `no_std` means that the crate
-does not depend on the Rust standard library. This is important because the Rust standard library may not be available in the Wasm environment. This means that any crate that depends on the Rust standard library cannot be used in a Substrate pallet.
+does not depend on the Rust standard library. This is important because the Rust standard library may not be available in the Wasm environment. Any crate that depends on the Rust standard library cannot be used in a Substrate pallet.
 
 Apart from adding the crate-level `no_std` attribute, the following changes were made to the code:
 * substituted the use of `std` with [`sp-std`][2] crate. `sp-std` is a Substrate crate that provides a subset of the Rust standard library that is compatible with the Substrate runtime.
@@ -172,7 +171,7 @@ _Yes!_
 - _we need to apply no-std support throughout the codebase_
 
 ## Forking challenges - VM and the toolchain
-As the forking is still needed there are some challenges that need to be addressed for the VM itself as well as for the toolchain.
+As the forking is still needed, some challenges need to be addressed for the VM itself and the toolchain.
 
 One of the biggest challenges is to keep the possibility to use already existing contracts written in Move language. Two main goals can be achieved:
 - level 1: source compatibility - keep the possibility to use existing contracts written in Move language after recompiling by modified toolchain; 
@@ -182,7 +181,7 @@ Level 1 compatibility will be achieved, but at this point, we cannot guarantee l
 
 TODO: write here about the toolchain changes, ABI etc. - anything that can cause incompatibility with the existing contracts.
 
-Another important challenge is keeping the repository in sync state with the upstream and separating custom work from the main line, which can allow us to perform upgrades easily. We aim to provide the least possible changes to the original codebase to provide a better upgrade experience and the ability to follow the mainline with all the language and feature updates. Of course, it will be not possible to keep everything separated from the main repository and therefore, some changes will be applied to the virtual machine itself.
+Another critical challenge is keeping the repository in sync with the upstream and separating custom work from the main line, allowing us to perform upgrades efficiently. We aim to provide the least possible changes to the original codebase to provide a better upgrade experience and the ability to follow the mainline with all the language and feature updates. Of course, keeping everything separated from the main repository will not be possible. Therefore, some changes will be applied to the virtual machine itself.
 
 Our proposal involves creating a fork of the Move VM `main` repository branch and do the changes on different branches. It will allow us to keep a clean and easy way to import changes from the upstream and apply them to our work. Many changes that are not affecting the modified codebase will be able to merge instantly (eg. by rebasing our branches to the new main head). Only mainline changes touching our modified code need to be applied manually.
 
@@ -257,12 +256,12 @@ The package and repository structure will look like this:
 - `substrate-move` - Move language fork [repository](https://github.com/eigerco/substrate-move) - contains the Move language codebase, tests, and documentation.
 - `substrate-node-template-move-vm-test` - testing [node repository](https://github.com/eigerco/substrate-node-template-move-vm-test) - contains the node codebase, tests, and documentation. Work is done in the `polkadot-1.0.0-pallet-move` branch.
 
-Testing code should be separated from the actual codebase. That's a little different approach when compared to the previous Pontem work, where the Move pallet and machine were placed inside the main Pontem repository and built together with the node. Pontem implemented a real node and a usable blockchain, and therefore, it was justified to keep everything in one place. In our case, we are not going to build a full blockchain, but only a MoveVM pallet. We plan to use only a modified template node to prove our solution is working correctly. We believe it will be easier for further pallet integrators to have it separated from the node codebase as they can fork only the pallet repo and integrate it with their solutions.
+Testing code should be separated from the actual codebase. That's a slightly different approach compared to the previous Pontem work, where the Move pallet and machine were placed inside the main Pontem repository and built together with the node. Pontem implemented a real node and a usable blockchain, and therefore, it was justified to keep everything in one place. In our case, we will not build a complete blockchain but only a MoveVM pallet. We will use only a modified template node to prove our solution works correctly. It will be easier for further pallet integrators to separate it from the node codebase as they can only fork the pallet repository and integrate it with their solutions.
 
 # Conclusions
 In conclusion, the successful completion of this software project holds great promise for our team and the broader blockchain community. Developing a Substrate pallet that enables the integration of the Move language within the Substrate blockchain represents a significant step forward in enhancing the versatility and functionality of blockchain applications.
 
-One of the crucial goals of this project is achieving interoperability with existing Move contracts sources and minimising changes introduced to the Move Virtual Machine. We recognize the significance of seamless integration with existing Substrate and Move functionalities and other modules. By prioritizing interoperability, we aim to enhance the overall ecosystem, enabling developers to build innovative applications and smart contracts more efficiently.
+One of the crucial goals of this project is achieving interoperability with existing Move contract sources and minimising changes introduced to the Move Virtual Machine. We recognize the significance of seamless integration with existing Substrate and Move functionalities and other modules. By prioritizing interoperability, we aim to enhance the overall ecosystem, enabling developers to build innovative applications and smart contracts more efficiently.
 
 Furthermore, we understand the value of community feedback and collaboration in an open-source environment. We will actively engage with the developer community, seeking input, conducting audits, and addressing concerns to ensure our pallet aligns with the community's needs and desires.
 
