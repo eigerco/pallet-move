@@ -12,15 +12,15 @@ Test layers refer to the different levels or stages of testing that are performe
 - Acceptance testing.
 - Code coverage.
 
-The testing approach will differ depending on the place where new or modified code will appear. Each thing added in the `pallet-move` repository (and any other crates inside this repository like RPC crates or runtime API) will be tested using the full testing set, ensuring each test layer is covered. It will assure that produced output is correct and expected.
+The testing approach will differ depending on where new or modified code will appear. Each thing added in the `pallet-move` repository (and any other crates inside this repository like RPC crates or runtime API) will be tested using the full testing set, ensuring each test layer is covered. It will ensure that produced output is correct and expected.
 
 `pallet-move` is a central place which gets all the work together as it references the Move fork crate, contains the API and RPC and is incorporated directly in the Substrate node executable. It means there is a need to make some changes also to external repositories in order to work with this crate - those changes are also subject to be covered by the tests. As we are considering here external repositories there is a need to fit into their testing structure and organization.
 
-It's desirable to reach at least 70-80% of test coverage when summing all layers for `pallet-move` repository. Instructions on how to run code coverage and test coverage tools are described in the [Code coverage](https://doc.rust-lang.org/rustc/instrument-coverage.html) Rust documentation. 
+It's desirable to reach at least 70-80% of test coverage when summing all layers for the `pallet-move` repository. Instructions on how to run code coverage and test coverage tools are described in the [Code coverage](https://doc.rust-lang.org/rustc/instrument-coverage.html) Rust documentation.
 
 All changes done to the Move Virtual Machine or Move language will be covered by the test set compatible with other functionalities already present in that module, taking into account the rules given in further chapters of this document. It means that if we introduce some new functions they will be covered by the same test suite the other functions are. Move smart contracts intended to be production-use will be tested using unit tests. 
 
-Changes introduced to the Substrate node will be covered by the test set compatible with other functionalities already present in the node unless they will require some new mechanisms that aren't used in the node yet. In fact, fork of the template node is used only for testing purposes to provide a system (black-box) testing framework, and it shouldn't contain many functional changes (beside changes that incorporate pallet and allows to call it functions and receive results - and that will be tested). The software design ensures that the MoveVM pallet is independent enough to be tested separately.
+Changes introduced to the Substrate node will be covered by the test set compatible with other functionalities already present in the node unless they will require some new mechanisms that aren't used in the node yet. In fact, a fork of the template node is used only for testing purposes to provide a system (black-box) testing framework, and it shouldn't contain many functional changes (besides changes that incorporate pallet and allows to call it functions and receive results - and that will be tested). The software design ensures that the MoveVM pallet is independent enough to be tested separately.
 
 ## Code analysis
 The first and very basic way of assuring code correctness is to use code analysis tools. Rust provides a set of tools that can be used to analyze the code and find potential issues. The team will use `clippy` linter to check the code for potential issues and `rustfmt` to format the code according to the Rust style guidelines.
@@ -93,14 +93,14 @@ Modified [node template](https://github.com/eigerco/substrate-node-template-move
 
 The node can be compiled and run following instructions from the [README](../README.md). It's also possible to run the node inside the Docker container.
 
-Regardless of the method used to run the node, it's possible to connect to the node using the Polkadot JS UI or Substrate node template and perform all extrinsic calls on the pallet. It means that there is a possibility to publish a new Move module and execute it later using the Move script. Sample scripts can be found on the Move website as well as in the testing assets directory in this repository.
+Regardless of the method used to run the node, it's possible to connect to the node using the `Polkadot JS UI` or `Substrate Front End Template` and perform all extrinsic calls on the pallet. It means that there is a possibility to publish a new Move module and execute it later using the Move script. Sample scripts can be found on the Move website as well as in the testing assets directory in this repository.
 
 Currently, user can call three extrinsics:
 - `execute` - which executes the Move script;
 - `publishModule` - which publishes a new Move module;
 - `publishPackage` - which publishes a new Move package.
 
-During Milestone 1 all extrinsics return some dummy values, but are executed properly and generate events. The events are logged and can be seen in the UI.
+In Milestone 1, all implemented extrinsics return some dummy values, but are executed properly and generate events. The events are logged and can be seen in the UI.
 
 User can fetch RPC methods using UI (Pallet Interactor -> Interaction type: RPC -> Pallet: rpc -> Callables: methods). It's possible to call the following methods:
 - `mvm_estimateGasExecute`,
@@ -122,8 +122,8 @@ Acceptance testing is the final testing layer before the software is released to
 The concrete set of acceptance tests will be defined in the future when the project will be closer to the production release. It's expected to define a full set of acceptance tests and agree on them with the client before the end of Milestone 2. Performing those tests will be a part of Milestone 3.
 
 ## Test automation
-Test automation addresses some of the key challenges in traditional manual testing, such as time-consuming test execution, limited test coverage, and the potential for human error. By automating repetitive and time-intensive test scenarios, teams can focus on more complex and exploratory testing, leading to a more thorough evaluation of the software's behaviour.
+Test automation addresses some of the key challenges in traditional manual testing, such as time-consuming test execution, limited test coverage, and removes the potential human error factor. By automating repetitive and time-intensive test scenarios, teams can focus on more complex and exploratory testing, leading to a more thorough evaluation of the software's behaviour.
 
 Not all tests are suitable for automation. We propose to choose tests that are stable, repeatable and have a high probability of catching defects. Complex and exploratory tests are better left to manual testing. In fact, unit, integration and many system tests can be automated, while acceptance tests are usually manual.
 
-Unit and integration tests can be easily automated even using GitHub Actions and put directly into the workflow, even during normal build. It means that every time there is something new done and pushed to the repository there is a possibility to perform building with running tests. Of course, it will use some resources (action minutes) to perform compilation and the whole test suite, so it should be considered only when merging to a specific branch or when doing a release.
+Unit and integration tests can be easily automated even using GitHub Actions and put directly into the workflow, even during normal build. It means that every time something new is done and pushed to the repository, it is possible to run tests on this latest build. Of course, it will use some resources (action minutes) to perform compilation and the whole test suite, so it should be considered only when merging to a specific branch or when doing a release.
