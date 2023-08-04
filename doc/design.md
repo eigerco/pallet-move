@@ -165,7 +165,7 @@ In this chapter, we outline the strategic plan, decisions and roadmap for the fu
 
 ## Is forking needed?
 
-TODO notes:
+**TODO notes:**
 _Yes!_
 - _Mention the `address32` move-lang feature we are going to use_
 - _we need to apply no-std support throughout the codebase_
@@ -179,7 +179,7 @@ One of the biggest challenges is to keep the possibility to use already existing
 
 Level 1 compatibility will be achieved, but at this point, we cannot guarantee level 2 compatibility. Level 2 depends on many external factors, like concrete blockchain features (address length, gas metering, etc.).
 
-TODO: write here about the toolchain changes, ABI etc. - anything that can cause incompatibility with the existing contracts.
+**TODO(Karlo):** write here about the toolchain changes, ABI etc. - anything that can cause incompatibility with the existing contracts.
 
 Another critical challenge is keeping the repository in sync with the upstream and separating custom work from the main line, allowing us to perform upgrades efficiently. We aim to provide the least possible changes to the original codebase to provide a better upgrade experience and the ability to follow the mainline with all the language and feature updates. Of course, keeping everything separated from the main repository will not be possible. Therefore, some changes will be applied to the virtual machine itself.
 
@@ -202,11 +202,11 @@ After deep analysis, we've made decomposed the solution into smaller, manageable
 3) The MoveVM testing Substrate node.
 4) The MoveVM testing tools.
 
-TODO: write further design description 
+**TODO:** write further design description - maybe some diagram (Karlo)
 
 ## MoveVM module and changes
 
-TODO: describe MoveVM architecture and all the changes that are needed to be done in the VM codebase.
+**TODO(Karlo):** describe MoveVM architecture and all the changes that are needed to be done in the VM codebase.
 
 ## Substrate MoveVM pallet
 Substrate pallets are modular components that allow developers to easily customize and extend the functionality of their Substrate-based blockchains, making the development process more efficient and flexible. It is also desired way to extend the Substrate runtime with custom functionality. That's why MoveVM functionality should be implemented as a Substrate pallet.
