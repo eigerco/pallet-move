@@ -72,7 +72,7 @@ The most important move-lang forks are:
  - [0L](https://github.com/0LNetworkCommunity/libra/tree/v6/diem-move) ([move-vm](https://github.com/0LNetworkCommunity/libra/tree/v6/diem-move/diem-vm))
  - [Sui](https://github.com/MystenLabs/sui/tree/main/external-crates/move) ([move-vm](https://github.com/MystenLabs/sui/tree/main/external-crates/move/move-vm))
 
-The most important of the above is the Sui's fork, a unique dialect of the Move language called Sui Move. The key differences with the Diem-style Move language are:
+The most interesting of the above is the Sui's fork, a unique dialect of the Move language called Sui Move. The key differences with the Diem-style Move language are:
 - Sui uses its own object-centric global storage
 - Addresses represent Object IDs
 - Sui objects have globally unique IDs
@@ -89,19 +89,8 @@ The Pontem Network has [adapted the Move language][0] to work with the Substrate
 [0]: https://github.com/pontem-network/sp-move-vm
 
 ## Why The Changes Were Needed
-Move, originally developed for the Libra project, is known for its safety and efficiency. But, to make it work with Substrate, adjustments to MoveVM were needed. Substrate uses a WebAssembly (Wasm) environment, and this is key to understanding why changes to MoveVM were necessary.
 
-There are a few reasons why Substrate uses WebAssembly:
-
-1. Easy Upgrades: With WebAssembly, Substrate can update the blockchain's runtime logic without having to fork. This is because the Wasm code is stored on the blockchain itself. This makes upgrades smoother and keeps everything, including account balances and logic, in one place.
-
-2. Works Everywhere: WebAssembly code can run on different platforms without change. This is great for ensuring Substrate-based blockchains can operate on various systems.
-
-3. Efficient: WebAssembly is fast and lightweight. That is important for blockchain, as you want things to run as efficiently as possible.
-
-4. Language Flexibility: WebAssembly means developers are free of one programming language. They can use different languages like Rust or C++.
-
-Because of these features, Substrate uses a WebAssembly environment. The Move language had to be adjusted to be compatible with this environment. The Pontem fork of MoveVM contains these adjustments.
+To make Move language compatible with Substrate, adjustments to the MoveVM were needed. Substrate uses a WebAssembly (Wasm) environment, and this is key to understanding why changes to MoveVM were necessary.
 
 ## What were the changes?
 
@@ -128,7 +117,7 @@ Move address length had to be changed from 20 to 32 bytes to match the [Substrat
 
 [3]: https://docs.substrate.io/reference/address-formats/
 
-# Pontem MoveVM pallet
+## Pontem MoveVM pallet
 
 The [Pontem MoveVM pallet][4] has a form of a Cargo crate. It depends on the Pontem's MoveVM fork described in the previous section and wraps it into a Substrate pallet using the `frame-support` crate.
 
@@ -139,22 +128,22 @@ The crate exposes 3 main entry points: [`execute`][5], [`publish_module`][6], an
 [6]: https://github.com/pontem-network/pontem/blob/master/pallets/sp-mvm/src/lib.rs#L220
 [7]: https://github.com/pontem-network/pontem/blob/master/pallets/sp-mvm/src/lib.rs#L252
 
-## `GenesisConfig` and storage
+### `GenesisConfig` and storage
 
 Substrate allows you to configure the initial state of the blockchain by providing a [`GenesisConfig`][8]. The Pontem MoveVM pallet uses this to
 set up its storage.
 
 [8]: https://docs.substrate.io/build/genesis-configuration
 
-## `SubstrateWeight`
+### `SubstrateWeight`
 
 Defines the weight of the pallet's functions. This is used by the `pallet::weight` macro to specify the weight of the extrinsics.
 
-## `rpc` crate
+### `rpc` crate
 
 This crate defines the runtime RPC made available by this pallet.
 
-## `runtime` crate
+### `runtime` crate
 
 Declares the `MVMApiRuntime` trait placed inside the [`sp_api::decl_runtime_apis!`][9] macro. The macro creates two declarations, one for use on the client side and one on the runtime side.
 
