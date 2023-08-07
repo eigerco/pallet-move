@@ -4,24 +4,20 @@
 - [The present state of Move VMs](#the-present-state-of-move-vms)
   - [Available forks](#available-forks)
 - [Pontem Move fork](#pontem-move-fork)
-  - [Introduction](#introduction-1)
-  - [Why The Changes Were Needed](#why-the-changes-were-needed)
-  - [What were the changes?](#what-were-the-changes)
-    - [Making all MoveVM crates `no_std`.](#making-all-movevm-crates-no_std)
-    - [Making all MoveVM crates build for the `wasm32-unknown-unknown` target.](#making-all-movevm-crates-build-for-the-wasm32-unknown-unknown-target)
-    - [Changing address length from 20 to 32 bytes.](#changing-address-length-from-20-to-32-bytes)
-- [Pontem MoveVM pallet](#pontem-movevm-pallet)
-  - [`GenesisConfig` and storage](#genesisconfig-and-storage)
-  - [`SubstrateWeight`](#substrateweight)
-  - [`rpc` crate](#rpc-crate)
-  - [`runtime` crate](#runtime-crate)
+  - [Necessary adaptations](#necessary-adaptations)
+    - [Making all MoveVM crates `no_std`](#making-all-movevm-crates-no_std)
+    - [Making all MoveVM crates build for the `wasm32-unknown-unknown` target](#making-all-movevm-crates-build-for-the-wasm32-unknown-unknown-target)
+    - [Changing address length from 20 to 32 bytes](#changing-address-length-from-20-to-32-bytes)
+  - [Pontem MoveVM pallet](#pontem-movevm-pallet)
 - [The way forward](#the-way-forward)
   - [Is forking needed?](#is-forking-needed)
-  - [Forking challenges - VM and the toolchain](#forking-challenges---vm-and-the-toolchain)
-  - [Proposed solution - the architecture](#proposed-solution---the-architecture)
+  - [Forking challenges - VM and the toolchain](#forking-challenges-vm-and-the-toolchain)
+  - [Proposed solution - the architecture](#proposed-solution-the-architecture)
   - [MoveVM module and changes](#movevm-module-and-changes)
   - [Substrate MoveVM pallet](#substrate-movevm-pallet)
-  - [Deliverables](#deliverables)
+  - [Testing](#testing)
+  - [Repository structure](#repository-structure)
+- [Conclusions](#conclusions)
 
 # Introduction
 This article describes the ability to incorporate Move Virtual Machine into Substrate-based chains as a runtime module. It also describes the current state of the Move VM (with available forks, including Pontem work) and the team's challenges in making it work with Substrate.
@@ -83,18 +79,15 @@ The main constraint of Sui Move is that it is tightly coupled with the Sui block
 
 # Pontem Move fork
 
-## Introduction
 The Pontem Network has [adapted the Move language][0] to work with the Substrate framework. In order to do this, some adjustments were made to Move's Virtual Machine (MoveVM). This document provides an overview of all the necessary changes.
 
 [0]: https://github.com/pontem-network/sp-move-vm
 
-## Why The Changes Were Needed
+## Necessary adaptations
 
 To make Move language compatible with Substrate, adjustments to the MoveVM were needed. Substrate uses a WebAssembly (Wasm) environment, and this is key to understanding why changes to MoveVM were necessary.
 
-## What were the changes?
-
-### Making all MoveVM crates `no_std`.
+### Making all MoveVM crates `no_std`
 
 The first group of commits that were added by Pontem after forking the original Move
 repository deal with making all MoveVM crates [`no_std`][1]. `no_std` means that the crate
@@ -107,11 +100,11 @@ Apart from adding the crate-level `no_std` attribute, the following changes were
 [1]: https://docs.rust-embedded.org/book/intro/no-std.html
 [2]: https://crates.io/crates/sp-std
 
-### Making all MoveVM crates build for the `wasm32-unknown-unknown` target.
+### Making all MoveVM crates build for the `wasm32-unknown-unknown` target
 
 Apart from setting the build target, this also included CI configuration updates.
 
-### Changing address length from 20 to 32 bytes.
+### Changing address length from 20 to 32 bytes
 
 Move address length had to be changed from 20 to 32 bytes to match the [Substrate address length][3]. This was done by changing the `LENGTH` constant in the `move-core-types` crate as well as updating some hard-coded addresses. In our fork, there won't be a need to make any code changes because the move-lang codebase introduced support for the `address32` feature, which is today used by Aptos and Sui blockchains.
 
@@ -128,24 +121,16 @@ The crate exposes 3 main entry points: [`execute`][5], [`publish_module`][6], an
 [6]: https://github.com/pontem-network/pontem/blob/master/pallets/sp-mvm/src/lib.rs#L220
 [7]: https://github.com/pontem-network/pontem/blob/master/pallets/sp-mvm/src/lib.rs#L252
 
-### `GenesisConfig` and storage
-
-Substrate allows you to configure the initial state of the blockchain by providing a [`GenesisConfig`][8]. The Pontem MoveVM pallet uses this to
+- `GenesisConfig` and storage - Substrate allows you to configure the initial state of the blockchain by providing a [`GenesisConfig`][8]. The Pontem MoveVM pallet uses this to
 set up its storage.
 
 [8]: https://docs.substrate.io/build/genesis-configuration
 
-### `SubstrateWeight`
+- `SubstrateWeight` - Defines the weight of the pallet's functions. This is used by the `pallet::weight` macro to specify the weight of the extrinsics.
 
-Defines the weight of the pallet's functions. This is used by the `pallet::weight` macro to specify the weight of the extrinsics.
+- `rpc` crate - This crate defines the runtime RPC made available by this pallet.
 
-### `rpc` crate
-
-This crate defines the runtime RPC made available by this pallet.
-
-### `runtime` crate
-
-Declares the `MVMApiRuntime` trait placed inside the [`sp_api::decl_runtime_apis!`][9] macro. The macro creates two declarations, one for use on the client side and one on the runtime side.
+- `runtime` crate - Declares the `MVMApiRuntime` trait placed inside the [`sp_api::decl_runtime_apis!`][9] macro. The macro creates two declarations, one for use on the client side and one on the runtime side.
 
 [9]: https://paritytech.github.io/substrate/master/sp_api/macro.decl_runtime_apis.html
 
