@@ -1,58 +1,41 @@
-name: basics
+name: Format and lint
 
 on:
   push:
-    branches: [ master ]
+    branches:
+      - main
+    paths:
+      - "src/**"
+      - "Cargo.toml"
+      - "rpc/**"
   pull_request:
-    branches: [ master ]
 
 env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  check:
-    name: check
+  build:
+    name: Run fmt and clippy
     runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: stable
-          override: true
-      - uses: actions-rs/cargo@v1
-        with:
-          command: check
-          args: --all-targets
 
-  fmt:
-    name: fmt
-    runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions-rs/toolchain@v1
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Setup Rust toolchain
+        uses: actions-rs/toolchain@v1
         with:
           profile: minimal
           toolchain: nightly
+          components: rustfmt, clippy
           override: true
-      - run: rustup component add rustfmt
-      - uses: actions-rs/cargo@v1
-        with:
-          command: fmt
-          args: --all -- --check
 
-  clippy:
-    name: clippy
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          components: clippy
-          override: true
-      - uses: actions-rs/clippy-check@v1
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          args: --all-targets -- -D warnings
-          name: clippy output
+      - name: fmt
+        run: cargo fmt --all -- --check
+
+      - name: clippy
+        run: cargo clippy --all-targets -- -D warnings
+
+      # You can edit this part when you add tests
+      # - name: Test
+      #   run: cargo test --verbose
