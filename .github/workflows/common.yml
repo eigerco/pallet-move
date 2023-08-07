@@ -2,25 +2,23 @@ name: Common jobs (fmt, clippy)
 
 on:
   push:
-    branches:
-      - main
     paths:
-      - "src/**"
-      - "Cargo.toml"
-      - "rpc/**"
-  pull_request:
+      - src/**
+      - Cargo.toml
+      - rpc/**
+      - .github/workflows/common.yml
 
 env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  build:
+  common:
     name: Run fmt and clippy
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Setup Rust toolchain
         uses: actions-rs/toolchain@v1
