@@ -5,8 +5,6 @@ use sp_runtime::{
     BuildStorage,
 };
 
-use crate as pallet_move;
-
 type Block = frame_system::mocking::MockBlock<Test>;
 
 // Configure a mock runtime to test the pallet.
