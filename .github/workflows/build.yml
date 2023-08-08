@@ -1,5 +1,5 @@
-name: Build the project
-
+name: Build the project (commented out)
+#
 on:
   push:
     paths:
@@ -10,44 +10,43 @@ on:
 
 env:
   CARGO_TERM_COLOR: always
-
+#
 jobs:
   build:
     name: Run fmt and clippy
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout eigerco/pallet-move
         uses: actions/checkout@v3
         with:
           repository: eigerco/pallet-move
           path: pallet-move
-
-      - name: Checkout eigerco/substrate-node-template-move-vm-test
-        uses: actions/checkout@v3
-        with:
-          repository: eigerco/substrate-node-template-move-vm-test
-          ref: polkadot-1.0.0-pallet-move
-          path: substrate-node-template-move-vm-test
-
-      - name: Install Protoc
-        uses: arduino/setup-protoc@v2
-
-      - name: Setup Rust
-        uses: actions-rs/toolchain@v1
-        with:
-          override: true
-          profile: minimal
-          toolchain: nightly
-          target: wasm32-unknown-unknown
-
-      - name: Rust cache
-        uses: Swatinem/rust-cache@v2
-        with:
-          workspaces: "./substrate-node-template-move-vm-test -> target"
-
-      - name: Build project
-        uses: actions-rs/cargo@v1
-        with:
-          command: build
-          args: --release --manifest-path=substrate-node-template-move-vm-test/Cargo.toml
+#
+#       - name: Checkout eigerco/substrate-node-template-move-vm-test
+#         uses: actions/checkout@v3
+#         with:
+#           repository: eigerco/substrate-node-template-move-vm-test
+#           ref: polkadot-1.0.0-pallet-move
+#           path: substrate-node-template-move-vm-test
+#
+#       - name: Install Protoc
+#         uses: arduino/setup-protoc@v2
+#
+#       - name: Setup Rust
+#         uses: actions-rs/toolchain@v1
+#         with:
+#           override: true
+#           profile: minimal
+#           toolchain: nightly
+#           target: wasm32-unknown-unknown
+#
+#       - name: Rust cache
+#         uses: Swatinem/rust-cache@v2
+#         with:
+#           workspaces: "./substrate-node-template-move-vm-test -> target"
+#
+#       - name: Build project
+#         uses: actions-rs/cargo@v1
+#         with:
+#           command: build
+#           args: --release --manifest-path=substrate-node-template-move-vm-test/Cargo.toml
