@@ -175,3 +175,48 @@ fn runtime_error_into_rpc_err(err: impl std::fmt::Debug) -> JsonRpseeError {
     ))
     .into()
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn runtime_error_into_rpc_err_test_str() {
+        let err_str = "test";
+        let err_str_tst = "\"\\\"test\\\"\"";
+        let res = runtime_error_into_rpc_err(err_str);
+        match res {
+            JsonRpseeError::Call(err) => {
+                match err {
+                    CallError::Custom(err) => {
+                        assert_eq!(err.code(), RUNTIME_ERROR);
+                        assert_eq!(err.message(), "Runtime error");
+                        assert_eq!(err.data().unwrap().get(), err_str_tst)
+                    }
+                    _ => panic!("Wrong error type"),
+                }
+            }
+            _ => panic!("Wrong error type"),
+        }
+    }
+
+    #[test]
+    fn runtime_error_into_rpc_err_empty_str() {
+        let err_str = "";
+        let err_str_tst = "\"\\\"\\\"\"";
+        let res = runtime_error_into_rpc_err(err_str);
+        match res {
+            JsonRpseeError::Call(err) => {
+                match err {
+                    CallError::Custom(err) => {
+                        assert_eq!(err.code(), RUNTIME_ERROR);
+                        assert_eq!(err.message(), "Runtime error");
+                        assert_eq!(err.data().unwrap().get(), err_str_tst)
+                    }
+                    _ => panic!("Wrong error type"),
+                }
+            }
+            _ => panic!("Wrong error type"),
+        }
+    }
+}
