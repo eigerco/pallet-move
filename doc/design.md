@@ -13,8 +13,8 @@
   - [Is forking needed?](#is-forking-needed)
   - [Forking challenges - VM and the toolchain](#forking-challenges-vm-and-the-toolchain)
   - [Proposed solution - the architecture](#proposed-solution-the-architecture)
-  - [MoveVM module and changes](#movevm-module-and-changes)
   - [Substrate MoveVM pallet](#substrate-movevm-pallet)
+  - [MoveVM module and changes](#movevm-module-and-changes)
   - [Testing](#testing)
   - [Repository structure](#repository-structure)
 - [Conclusions](#conclusions)
@@ -170,7 +170,7 @@ The key point is to perform such minor updates periodically when it would be eas
 The architecture of software represents a crucial design element that goes beyond the lines of code, empowering developers to visualize, plan, and construct robust and scalable solutions. However, our solution architecture is constrained by two external factors:
 - The Substrate framework architecture.
 - The Move language virtual machine architecture.
-Both of these factors are out of our control, and we have to work with them as they are, fulfilling their requirements and fitting our solution into them. Moreover, some inspiration can be taken from the Pontem work on the MoveVM pallet as we've identified some of their design decisions to be good and that can be reused in our solution. 
+Both of these factors are out of our control, and we have to work with them as they are, fulfilling their requirements and fitting our solution into them. Moreover, some inspiration can be taken from the Pontem work on the MoveVM pallet as we've identified some of their design decisions to be good and that can be reused in our solution.
 
 After deep analysis, we've made decomposed the solution into smaller, manageable, and cohesive modules. Each module represents a distinct unit of functionality that can be developed, tested, and maintained mostly independently. The modules are:
 1) The MoveVM module - described in [MoveVM module and changes](#movevm-module-and-changes).
@@ -180,23 +180,6 @@ After deep analysis, we've made decomposed the solution into smaller, manageable
    - The MoveVM pallet RPC.
 3) The MoveVM testing Substrate node.
 4) The MoveVM testing tools.
-
-**TODO:** write further design description - maybe some diagram (Karlo)
-TODO: mention `mvm` part which integrates moveVM and is an API for our pallet
-
-## MoveVM module and changes
-
-The main component of MoveVM is the `move-vm-runtime` crate - it's a core part of the virtual machine, and it needs to be adapted for no-std environments such as Wasm-based Substrate pallets. The crate depends on a few other Move language crates, which consequently, also require adaptations to no-std. In the image below, a dependency tree is shown for the `move-vm-runtime` crate.
-
-![Alt text](./assets/uml-move-vm-runtime-dep-tree.png)
-
-To estimate how much work it takes to adapt certain Move crates to `no-std` and make them Substrate compatible, our team decided to adapt two crates from the above image (marked in green). The results are promising - it shouldn't take more than a few days per Move crate. All Move crates from the above are part of the core language repo except for the `bcs` crate, which is contained separately in the [diem/bcs][bcs] repository. This repo will be forked in order to make `no-std` adaptations.
-
-One more crate that also requires partial `no-std` adaption is the `move-stdlib` crate. Only the `natives` part of crate requires adaptions.
-
-All these crates that require adaptions will still be compiled with full std support when used by the move-compiler. For that reason, all `no-std` changes will be accessible through `feature` mechanism provided by the Rust toolchain.
-
-[bcs]: https://github.com/diem/bcs
 
 ## Substrate MoveVM pallet
 Substrate pallets are modular components that allow developers to easily customize and extend the functionality of their Substrate-based blockchains, making the development process more efficient and flexible. It is also desired way to extend the Substrate runtime with custom functionality. That's why MoveVM functionality should be implemented as a Substrate pallet.
@@ -225,9 +208,37 @@ The architecture of a MoveVM pallet follows a modular design pattern, enabling o
 
 The MoveVM pallet divides into three main components - the MoveVM pallet itself, runtime API (fulfilling the pallet's traits), and RPC. The MoveVM pallet is the core, containing all the logic needed to interact with the virtual machine. The runtime API is a separate crate that implements the pallet's traits and exposes them to the runtime. The RPC is a separate crate that implements the pallet's RPC calls and exposes them to the RPC node.
 
+![Alt text](./assets/uml-move-pallet.png)
+
 The pallet calls the Move Virtual Machine and gathers the results. Since Move smart contracts can operate on other abstractions, the Move VM pallet is responsible for caring for those differences and translating them both ways, ensuring interoperability. The main part of the pallet is also responsible for storing the Move modules and packages on the chain. It is also responsible for the gas metering and gas conversion. Move language (like many other smart contract languages) has a concept of `gas` for executing contracts, whereas Substrate uses `Weights`. Those values need to be transformed before usage as well as there is a need to provide the user with API to estimate the possible gas cost for executing particular Move scripts or publishing data.
 
-The pallet will have a MoveVM backend to communicate directly with the Move Virtual Machine, a separate crate. Separation allows us to use another VM implementation in the future easily. The VM backend will create MoveVM inside the runtime and execute the scripts. It will also be able to handle any error and translate it to a form acceptable and understandable by the Substrate framework.
+The pallet will have a MoveVM backend `move-vm-backend` to communicate directly with the Move Virtual Machine, a separate crate. Separation allows us to use another VM implementation in the future easily. The VM backend will create MoveVM inside the runtime and execute the scripts. It will also be able to handle any error and translate it to a form acceptable and understandable by the Substrate framework.
+
+## MoveVM module and changes
+
+A list of all Move crates can be seen in the image below. The impacted crates are shown in blue color.
+
+![alt text](./assets/uml-move-lang-crates.png)
+
+The main component of MoveVM is the `move-vm-runtime` crate - it's a core part of the virtual machine, and it needs to be adapted for no-std environments such as Wasm-based Substrate pallets. The crate depends on a few other Move language crates, which consequently, also require adaptations to no-std. In the image below, a dependency tree is shown for the `move-vm-runtime` crate.
+
+![alt text](./assets/uml-move-vm-runtime-dep-tree.png)
+
+To estimate how much work it takes to adapt certain Move crates to `no-std` and make them Substrate compatible, our team decided to adapt two crates from the above image (marked in green). The results are promising - it shouldn't take more than a few days per Move crate. All Move crates from the above are part of the core language repo except for the `bcs` crate, which is contained separately in the [diem/bcs][bcs] repository. This repo will be forked in order to make `no-std` adaptations.
+
+One more crate that also requires partial `no-std` adaption is the `move-stdlib` crate. Only the `natives` part of crate requires adaptions.
+
+All these crates that require adaptions will still be compiled with full std support when used by the move-compiler. For that reason, all `no-std` changes will be accessible through the `feature` mechanism provided by the Rust toolchain.
+
+[bcs]: https://github.com/diem/bcs
+
+The MoveVM-backend module `move-vm-backend` will be used as an interface between `move-pallet` Substrate pallet and MoveVM. It will take care of the initial configuration of the MoveVM, genesis configuration, storage setup, gas cost tables, etc.
+
+![Alt text](./assets/uml-full-picture-no-details.png)
+
+A full architecture can be seen in the image below.
+
+![Alt text](./assets/uml-full-picture.png)
 
 ## Testing
 Software testing is an essential process in the software development life cycle that helps identify software application bugs, defects, and errors. We are designing and implementing tests from the start of the project, and each design decision considers the code's testability. The team plans tests on different levels, from unit to integration and end-to-end tests. You can find more in the [Testing Guide](testing_guide.md) document, one of the project deliverables.
