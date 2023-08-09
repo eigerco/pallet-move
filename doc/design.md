@@ -114,18 +114,9 @@ The crate exposes 3 main entry points: [`execute`][5], [`publish_module`][6], an
 [6]: https://github.com/pontem-network/pontem/blob/master/pallets/sp-mvm/src/lib.rs#L220
 [7]: https://github.com/pontem-network/pontem/blob/master/pallets/sp-mvm/src/lib.rs#L252
 
-- `GenesisConfig` and storage - Substrate allows you to configure the initial state of the blockchain by providing a [`GenesisConfig`][8]. The Pontem MoveVM pallet uses this to
-set up its storage.
-
-[8]: https://docs.substrate.io/build/genesis-configuration
-
-- `SubstrateWeight` - Defines the weight of the pallet's functions. This is used by the `pallet::weight` macro to specify the weight of the extrinsics.
-
-- `rpc` crate - This crate defines the runtime RPC made available by this pallet.
-
-- `runtime` crate - Declares the `MVMApiRuntime` trait placed inside the [`sp_api::decl_runtime_apis!`][9] macro. The macro creates two declarations, one for use on the client side and one on the runtime side.
-
-[9]: https://paritytech.github.io/substrate/master/sp_api/macro.decl_runtime_apis.html
+There are two additional crates inside the pallet crate:
+- `rpc` crate - defines the runtime RPC made available by this pallet;
+- `runtime` crate - declares the `MVMApiRuntime` trait for runtime-pallet communication.
 
 # The way forward
 In this chapter, we outline the strategic plan, decisions and roadmap for the future development and growth of the MoveVM pallet software.
@@ -158,22 +149,12 @@ Another critical challenge is keeping the repository in sync with the upstream a
 The key point is to perform such minor updates periodically when it would be easier to maintain the changing codebase. Waiting too long between syncs can cause a lot of problems and make it impossible to merge changes without a lot of manual work, which can lead to a situation where it will be easier to fork the repository again and start from scratch, especially if it is done by a separate team than the one who created the fork. 
 
 ## The proposed architecture solution
-The architecture of software represents a crucial design element that goes beyond the lines of code, empowering developers to visualize, plan, and construct robust and scalable solutions. However, our solution architecture is constrained by two external factors:
-- The Substrate framework architecture.
-- The Move language virtual machine architecture.
-Both of these factors are out of our control, and we have to work with them as they are, fulfilling their requirements and fitting our solution into them. Moreover, some inspiration can be taken from the Pontem work on the MoveVM pallet as we've identified some of their design decisions to be good and that can be reused in our solution.
-
-After deep analysis, we've made decomposed the solution into smaller, manageable, and cohesive modules. Each module represents a distinct unit of functionality that can be developed, tested, and maintained mostly independently. The modules are:
-1) The MoveVM module - described in [MoveVM module and changes](#movevm-module-and-changes).
-2) The MoveVM Substrate pallet - described in [Substrate MoveVM pallet](#substrate-movevm-pallet):
-   - The MoveVM pallet main library.
-   - The MoveVM pallet runtime API.
-   - The MoveVM pallet RPC.
-3) The MoveVM testing Substrate node.
-4) The MoveVM testing tools.
+The Move pallet will be implemented according to the Substrate framework standards. It shall integrate a stripped version of the MoveVM taken out from the official Move language repo. To integrate MoveVM effectively in the pallet, an additional layer of abstraction will be used.
 
 ### Substrate MoveVM pallet
 Substrate pallets are modular components that allow developers to easily customize and extend the functionality of their Substrate-based blockchains, making the development process more efficient and flexible.
+
+The software design proposed by Pontem's initial work pursues the Substrate pallet architecture and standards. Therefore, we've followed a similar approach to comply with the standard.
 
 Let's dive into the crucial aspects of pallet architecture:
 1) Module: The MoveVM pallet represents a module within a Substrate runtime. The MoveVM pallet would include only things needed for interaction with the virtual machine.
