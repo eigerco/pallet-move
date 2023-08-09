@@ -179,7 +179,7 @@ The MoveVM pallet divides into three main components - the MoveVM pallet itself,
 
 The main part of the pallet is also responsible for storing the Move modules and packages on the chain. It is also responsible for the gas metering and gas conversion. Move language (like many other smart contract languages) has a concept of `gas` for executing contracts, whereas Substrate uses `Weights`. Those values need to be transformed before usage as well as there is a need to provide the user with API to estimate the possible gas cost for executing particular Move scripts or publishing data.
 
-The pallet will use the MoveVM back-end (within the crate called move-vm-backend) to communicate directly with the Move Virtual Machine. This back-end layer allows us to easily use another VM implementation in the future. The VM back-end will create MoveVM inside the runtime and execute the scripts. It will also be able to handle any error and translate it to a form acceptable and understandable by the Substrate framework.
+The pallet will use the MoveVM back-end (within the crate called `move-vm-backend`) to communicate directly with the Move Virtual Machine. This back-end layer allows us to easily use another VM implementation in the future. The VM back-end will create MoveVM inside the runtime and execute the scripts. It will also be able to handle any error and translate it to a form acceptable and understandable by the Substrate framework.
 
 ### MoveVM module and changes
 
