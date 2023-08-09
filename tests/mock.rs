@@ -7,15 +7,6 @@ use sp_runtime::{
 
 type Block = frame_system::mocking::MockBlock<Test>;
 
-// Configure a mock runtime to test the pallet.
-frame_support::construct_runtime!(
-    pub enum Test
-    {
-        System: frame_system,
-        MoveModule: pallet_move,
-    }
-);
-
 impl frame_system::Config for Test {
     type BaseCallFilter = frame_support::traits::Everything;
     type BlockWeights = ();
@@ -55,3 +46,12 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
         .unwrap()
         .into()
 }
+
+// Configure a mock runtime to test the pallet.
+frame_support::construct_runtime!(
+    pub enum Test
+    {
+        System: frame_system,
+        MoveModule: pallet_move,
+    }
+);
