@@ -2,6 +2,7 @@ mod mock;
 use mock::*;
 
 #[test]
+#[ignore = "to be implemented"]
 /// Test that the module is published correctly.
 fn publish_module_as_user_correct() {
     new_test_ext().execute_with(|| {
@@ -10,6 +11,7 @@ fn publish_module_as_user_correct() {
 }
 
 #[test]
+#[ignore = "to be implemented"]
 /// Test that the module is not published if the user is not the owner.
 fn publish_module_as_user_wrong_user() {
     new_test_ext().execute_with(|| {
@@ -18,6 +20,7 @@ fn publish_module_as_user_wrong_user() {
 }
 
 #[test]
+#[ignore = "to be implemented"]
 /// Test that the module is not published if the user does not have enough gas.
 fn publish_module_as_user_insufficient_gas() {
     new_test_ext().execute_with(|| {
@@ -26,6 +29,7 @@ fn publish_module_as_user_insufficient_gas() {
 }
 
 #[test]
+#[ignore = "to be implemented"]
 /// Test that the module is not published if the bytecode is corrupted.
 fn publish_module_as_user_corrupted_bytecode() {
     new_test_ext().execute_with(|| {
@@ -34,6 +38,7 @@ fn publish_module_as_user_corrupted_bytecode() {
 }
 
 #[test]
+#[ignore = "to be implemented"]
 /// Test that the package is published correctly.
 fn publish_package_as_user_correct() {
     new_test_ext().execute_with(|| {
@@ -42,6 +47,7 @@ fn publish_package_as_user_correct() {
 }
 
 #[test]
+#[ignore = "to be implemented"]
 /// Test that the package is not published if the user is not the owner.
 fn publish_package_as_user_wrong_user() {
     new_test_ext().execute_with(|| {
@@ -50,6 +56,7 @@ fn publish_package_as_user_wrong_user() {
 }
 
 #[test]
+#[ignore = "to be implemented"]
 /// Test that the package is not published if the user does not have enough gas.
 fn publish_package_as_user_insufficient_gas() {
     new_test_ext().execute_with(|| {
@@ -58,6 +65,7 @@ fn publish_package_as_user_insufficient_gas() {
 }
 
 #[test]
+#[ignore = "to be implemented"]
 /// Test that the package is not published if the bytecode is corrupted.
 fn publish_package_as_user_corrupted_bytecode() {
     new_test_ext().execute_with(|| {
