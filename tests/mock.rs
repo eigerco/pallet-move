@@ -39,7 +39,7 @@ impl pallet_move::Config for Test {
 }
 
 // Build genesis storage according to the mock runtime.
-#[allow(dead_code)] //TODO: I added this to make clippy pass. Please, fix it if it's not correct
+#[allow(dead_code)]
 pub fn new_test_ext() -> sp_io::TestExternalities {
     frame_system::GenesisConfig::<Test>::default()
         .build_storage()
