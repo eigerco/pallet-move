@@ -72,4 +72,3 @@ fn publish_package_as_user_corrupted_bytecode() {
         assert_eq!(1, 0);
     });
 }
-
