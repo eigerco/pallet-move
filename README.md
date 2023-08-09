@@ -14,7 +14,7 @@ The most important steps are described below.
 git clone https://github.com/eigerco/pallet-move.git
 git clone https://github.com/eigerco/substrate-node-template-move-vm-test
 cd substrate-node-template-move-vm-test
-git checkout polkadot-1.0.0-pallet-move
+git checkout pallet-move
 ```
 
 2. Create a new branch (if you are going to make new changes) and build the node:
