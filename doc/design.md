@@ -12,9 +12,9 @@
 - [The way forward](#the-way-forward)
   - [Is forking needed?](#is-forking-needed)
   - [Forking challenges - VM and the toolchain](#forking-challenges-vm-and-the-toolchain)
-  - [Proposed solution - the architecture](#proposed-solution-the-architecture)
-  - [Substrate MoveVM pallet](#substrate-movevm-pallet)
-  - [MoveVM module and changes](#movevm-module-and-changes)
+  - [The proposed architecture solution](#the-proposed-architecture-solution)
+    - [Substrate MoveVM pallet](#substrate-movevm-pallet)
+    - [MoveVM module and changes](#movevm-module-and-changes)
   - [Testing](#testing)
   - [Repository structure](#repository-structure)
 - [Conclusions](#conclusions)
@@ -27,12 +27,6 @@ Move is a programming language originally developed at Facebook to power the Die
 
 Move is a statically-typed language with a syntax that is similar to Rust. It introduces a slightly different resource handling concept where resources can never be copied or implicitly discarded - they can be moved (as the language name states) between program storage locations.
 
-There were 4 main design goals for the Move language:
-* First-Class Resources - one of the key features of Move is the ability to create custom resource types that can be handled safely, which is enforced by the static type system and move semantics.
-* Flexibility - language introduces transaction scripts, which allow executing procedures with Move code which allows customizable transactions.
-* Safety - Move is designed to be safe by default. It rejects all programs that violate Move's key properties, such as resource safety, memory safety, and type safety. It's achieved by checking the Move bytecode on-chain for safety by the bytecode verifier and, if passed, executed directly by the bytecode interpreter.
-* Verifiability - there is an approach to perform as much lightweight on-chain verification as possible but support more complex verification off-chain, which can be performed by static verification tools. There have been several decisions made that make Move static verification friendly, like no dynamic dispatch, limited mutability and modularity support.
-
 Programs (smart contracts) written in Move language are deployed as a bytecode and executed by the Move VM, which is a stack-based virtual machine. It has been designed to be simple, efficient and platform-agnostic, which means it's possible to integrate with custom blockchains or even run it separately and interact using a command line interface.
 
 Move has been used as the smart-contract language for many blockchains like Sui, Starcoin, Aptos or Diem.
@@ -44,7 +38,7 @@ More information about the Move language can be found:
 * [Move examples and papers](https://github.com/MystenLabs/awesome-move)
 
 ## Substrate framework
-Substrate is a framework (SDK) which provides building tools for custom blockchains. Its main goal is to provide an environment that allows building blockchains with your own logic and features without the need to write everything from scratch. It's written in Rust and provides extensive documentation and usage samples.
+[Substrate][Substrate] is a framework (SDK) which provides building tools for custom blockchains. Its main goal is to provide an environment that allows building blockchains with your own logic and features without the need to write everything from scratch. It's written in Rust and provides extensive documentation and usage samples.
 
 Substrate is a modular framework which means it's possible to use only parts of it that are needed for the project. It provides a set of ready-to-use modules that can be used to build a blockchain. Substrate node consists of two general parts:
 - a core client with node services (peer discovery, managing transaction requests, responding to RPC calls),
@@ -52,12 +46,11 @@ Substrate is a modular framework which means it's possible to use only parts of 
 
 The runtime is responsible for determining the state of the blockchain and processing all requested changes, including validation. The runtime module is designed to compile to WebAssembly and allows it to be extended by modules called pallets developed for the FRAME (Framework for Runtime Aggregation of Modularized Entities) subsystem. Since Move Virtual Machine updates a blockchain state, it should be part of the Substrate's runtime execution. Therefore, it should be provided as a pallet that can be loaded as a module.
 
-More information about the Substrate framework can be found:
-* [Official webpage](https://substrate.io/)
+[Substrate]: https://substrate.io/
 
 # The present state of Move VMs
 
-The official repository for the Move language in the [move-language](https://github.com/move-language/move/tree/main/language) repo ([move-vm](https://github.com/move-language/move/tree/main/language/move-vm)). The open-source community maintains it, and other Move forks keep it current.
+The official repository for the Move language is in the [move-language](https://github.com/move-language/move/tree/main/language) repo ([move-vm](https://github.com/move-language/move/tree/main/language/move-vm)). The open-source community maintains it, and other Move forks keep it current.
 
 ## Available forks
 
@@ -68,7 +61,7 @@ The most important move-lang forks are:
  - [0L](https://github.com/0LNetworkCommunity/libra/tree/v6/diem-move) ([move-vm](https://github.com/0LNetworkCommunity/libra/tree/v6/diem-move/diem-vm))
  - [Sui](https://github.com/MystenLabs/sui/tree/main/external-crates/move) ([move-vm](https://github.com/MystenLabs/sui/tree/main/external-crates/move/move-vm))
 
-The most interesting of the above is the Sui's fork, a unique dialect of the Move language called Sui Move. The key differences with the Diem-style Move language are:
+The most interesting of the above is Sui's fork, a unique dialect of the Move language called Sui Move. The key differences with the Diem-style Move language are:
 - Sui uses its own object-centric global storage
 - Addresses represent Object IDs
 - Sui objects have globally unique IDs
@@ -135,12 +128,12 @@ set up its storage.
 [9]: https://paritytech.github.io/substrate/master/sp_api/macro.decl_runtime_apis.html
 
 # The way forward
-In this chapter, we outline the strategic plan, decisions and roadmap for the future development and growth of MoveVM pallet software.
+In this chapter, we outline the strategic plan, decisions and roadmap for the future development and growth of the MoveVM pallet software.
 
 ## Is forking needed?
 
 In order to make MoveVM compatible with the Substrate framework, forking of the Move language is necessary.
-- Since all runtime pallets in Substrate must be Wasm-compatible, the MoveVM requires a few adaptations to ensure interoperability in `no-std` environments. That implies that all dependencies should be replaced with `no-std` alternatives, or in the worst case, adapted to `no-std` - in that case more repositories will be forked (one example is the [`bcs`][bcs] crate which is an independent crate in a separate GitHub repository).
+- Since all runtime pallets in Substrate must be Wasm-compatible, the MoveVM requires a few adaptations to ensure interoperability in `no-std` environments. That implies that all dependencies should be replaced with `no-std` alternatives, or in the worst case, adapted to `no-std` - in that case, more repositories will be forked (one example is the [`bcs`][bcs] crate which is an independent crate in a separate GitHub repository).
 - Substrate uses 32-byte addresses, so the `address32` feature must be used in TOML files within our build infrastructure.
 
 ## Forking challenges - VM and the toolchain
@@ -158,15 +151,13 @@ The Move language directory from the official repo consists of four main parts:
 - move-compiler — contains the Move source language compiler.
 - standard library — contains the standard library transaction scripts.
 
-The virtual machine and the bytecode verifier must be fully `no-std` compatible, while the standard library will be partly no-std compatible. The move-compiler will generate Move bytecode and ABIs which can be processed by `no-std` built MoveVM binary inside a Substrate pallet. The main challenge here is to make sure all `no-std` changes done to shared libraries do not break interoperability between compiler-generated bytecode and a modified version of MoveVM.
+The virtual machine and the bytecode verifier must be fully `no-std` compatible, while the standard library will be partly `no-std` compatible. The move-compiler will generate Move bytecode and ABIs which can be processed by `no-std` built MoveVM binary inside a Substrate pallet. The main challenge here is to make sure all `no-std` changes done to shared libraries do not break interoperability between compiler-generated bytecode and a modified version of MoveVM.
 
 Another critical challenge is keeping the repository in sync with the upstream and separating custom work from the main line, allowing us to perform upgrades efficiently. We aim to provide the least possible changes to the original codebase to provide a better upgrade experience and the ability to follow the mainline with all the language and feature updates. Of course, keeping everything separated from the main repository will not be possible. Therefore, some changes will be applied to the virtual machine itself.
 
-Our proposal involves creating a fork of the Move VM `main` repository branch and do the changes on different branches. It will allow us to keep a clean and easy way to import changes from the upstream and apply them to our work. Many changes that are not affecting the modified codebase will be able to merge instantly (eg. by rebasing our branches to the new main head). Only mainline changes touching our modified code need to be applied manually.
+The key point is to perform such minor updates periodically when it would be easier to maintain the changing codebase. Waiting too long between syncs can cause a lot of problems and make it impossible to merge changes without a lot of manual work, which can lead to a situation where it will be easier to fork the repository again and start from scratch, especially if it is done by a separate team than the one who created the fork. 
 
-The key point is to perform such minor updates periodically when it would be easier to maintain the changing codebase. Waiting too long between syncs can cause a lot of problems and make it impossible to merge changes without a lot of manual work, which can lead to a situation where it will be easier to fork the repository again and start from scratch, especially if it is done by the separate team than the one who created the fork. 
-
-## Proposed solution - the architecture
+## The proposed architecture solution
 The architecture of software represents a crucial design element that goes beyond the lines of code, empowering developers to visualize, plan, and construct robust and scalable solutions. However, our solution architecture is constrained by two external factors:
 - The Substrate framework architecture.
 - The Move language virtual machine architecture.
@@ -181,16 +172,14 @@ After deep analysis, we've made decomposed the solution into smaller, manageable
 3) The MoveVM testing Substrate node.
 4) The MoveVM testing tools.
 
-## Substrate MoveVM pallet
-Substrate pallets are modular components that allow developers to easily customize and extend the functionality of their Substrate-based blockchains, making the development process more efficient and flexible. It is also desired way to extend the Substrate runtime with custom functionality. That's why MoveVM functionality should be implemented as a Substrate pallet.
+### Substrate MoveVM pallet
+Substrate pallets are modular components that allow developers to easily customize and extend the functionality of their Substrate-based blockchains, making the development process more efficient and flexible.
 
-The software design proposed by Pontem's initial work pursues the Substrate pallet architecture and standards. Therefore, we've followed a similar approach to comply with the standard.
-
-The architecture of a MoveVM pallet follows a modular design pattern, enabling other development teams to build and integrate specific functionalities of MoveVM into their Substrate-based blockchains. MoveVM pallet is a self-contained module that encapsulates Move Virtual Machine and all side logic needed to handle Move specifics. Let's dive into the crucial aspects of pallet architecture:
-1) Module: The MoveVM pallet represents a module within a Substrate runtime. It contains a set of related functionalities that make a group together. The MoveVM pallet would include only things needed for interaction with the virtual machine.
+Let's dive into the crucial aspects of pallet architecture:
+1) Module: The MoveVM pallet represents a module within a Substrate runtime. The MoveVM pallet would include only things needed for interaction with the virtual machine.
 2) State: The MoveVM will define its state, which is the data they need to keep track of. That state consists of various variables containing information relevant to the pallet's functionalities. It is stored on the blockchain and updated through transactions and blocks.
-3) Storage: It defines the data structures and how they are accessed and modified. The storage system ensures data consistency across the network. The MoveVM pallet would use it to store data in the map of key-value pairs and provide a storage adapter for the Move Virtual Machine storage.
-4) Dispatchable Functions - extrinsics: The MoveVM pallet will expose dispatchable functions, which users can call via transactions. These functions define the operations that some can perform on the blockchain. Currently, there are three extrinsics defined:
+3) Storage: It defines the data structures and how they are accessed and modified. The MoveVM pallet would use it to store data in the map of key-value pairs and provide a storage adapter for the Move Virtual Machine storage.
+4) Dispatchable Functions - extrinsics: The MoveVM pallet will expose dispatchable functions, which users can call via transactions. Currently, there are three extrinsics defined:
 - 'execute' - executes a Move script;
 - 'publishModule' - publishes a Move module;
 - 'publishPackage' - publishes a Move package.
@@ -214,13 +203,13 @@ The pallet calls the Move Virtual Machine and gathers the results. Since Move sm
 
 The pallet will have a MoveVM backend `move-vm-backend` to communicate directly with the Move Virtual Machine, a separate crate. Separation allows us to use another VM implementation in the future easily. The VM backend will create MoveVM inside the runtime and execute the scripts. It will also be able to handle any error and translate it to a form acceptable and understandable by the Substrate framework.
 
-## MoveVM module and changes
+### MoveVM module and changes
 
 A list of all Move crates can be seen in the image below. The impacted crates are shown in blue color.
 
 ![alt text](./assets/uml-move-lang-crates.png)
 
-The main component of MoveVM is the `move-vm-runtime` crate - it's a core part of the virtual machine, and it needs to be adapted for no-std environments such as Wasm-based Substrate pallets. The crate depends on a few other Move language crates, which consequently, also require adaptations to no-std. In the image below, a dependency tree is shown for the `move-vm-runtime` crate.
+The main component of MoveVM is the `move-vm-runtime` crate - it's a core part of the virtual machine, and it needs to be adapted for `no-std` environments such as Wasm-based Substrate pallets. The crate depends on a few other Move language crates, which consequently, also require adaptations to `no-std`. In the image below, a dependency tree is shown for the `move-vm-runtime` crate.
 
 ![alt text](./assets/uml-move-vm-runtime-dep-tree.png)
 
@@ -261,7 +250,7 @@ The package and repository structure will look like this:
 Testing code should be separated from the actual codebase. That's a slightly different approach compared to the previous Pontem work, where the Move pallet and machine were placed inside the main Pontem repository and built together with the node. Pontem implemented a real node and a usable blockchain, and therefore, it was justified to keep everything in one place. In our case, we will not build a complete blockchain but only a MoveVM pallet. We will use only a modified template node to prove our solution works correctly. It will be easier for further pallet integrators to separate it from the node codebase as they can only fork the pallet repository and integrate it with their solutions.
 
 # Conclusions
-In conclusion, the successful completion of this software project holds great promise for our team and the broader blockchain community. Developing a Substrate pallet that enables the integration of the Move language within the Substrate blockchain represents a significant step forward in enhancing the versatility and functionality of blockchain applications.
+In conclusion, the successful completion of this software project holds great promise for the Move community and the broader blockchain community. Developing a Substrate pallet that enables the integration of the Move language within the Substrate blockchain represents a significant step forward in enhancing the versatility and functionality of blockchain applications.
 
 One of the crucial goals of this project is achieving interoperability with existing Move contract sources and minimising changes introduced to the Move Virtual Machine. We recognize the significance of seamless integration with existing Substrate and Move functionalities and other modules. By prioritizing interoperability, we aim to enhance the overall ecosystem, enabling developers to build innovative applications and smart contracts more efficiently.
 
