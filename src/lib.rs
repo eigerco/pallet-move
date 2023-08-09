@@ -16,7 +16,7 @@ pub mod pallet {
         pallet_prelude::*,
     };
     use frame_system::pallet_prelude::*;
-    use sp_std::{default::Default, prelude::*, vec::Vec};
+    use sp_std::{default::Default, vec::Vec};
 
     use super::*;
 
@@ -57,7 +57,11 @@ pub mod pallet {
         /// Execute Move script bytecode sent by the user.
         #[pallet::call_index(0)]
         #[pallet::weight(T::WeightInfo::execute())]
-        pub fn execute(origin: OriginFor<T>, bytecode: Vec<u8>, gas_limit: u64) -> DispatchResult {
+        pub fn execute(
+            origin: OriginFor<T>,
+            _bytecode: Vec<u8>,
+            _gas_limit: u64,
+        ) -> DispatchResult {
             // Allow only signed calls.
             let who = ensure_signed(origin)?;
 
@@ -76,8 +80,8 @@ pub mod pallet {
         #[pallet::weight(T::WeightInfo::publish_module())]
         pub fn publish_module(
             origin: OriginFor<T>,
-            bytecode: Vec<u8>,
-            gas_limit: u64,
+            _bytecode: Vec<u8>,
+            _gas_limit: u64,
         ) -> DispatchResultWithPostInfo {
             // Allow only signed calls.
             let who = ensure_signed(origin)?;
@@ -96,8 +100,8 @@ pub mod pallet {
         #[pallet::weight(T::WeightInfo::publish_package())]
         pub fn publish_package(
             origin: OriginFor<T>,
-            package: Vec<u8>,
-            gas_limit: u64,
+            _package: Vec<u8>,
+            _gas_limit: u64,
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
 

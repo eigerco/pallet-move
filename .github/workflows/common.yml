@@ -1,0 +1,39 @@
+name: Common jobs (fmt, clippy)
+
+on:
+  pull_request:
+    paths:
+      - src/**
+      - Cargo.toml
+      - rpc/**
+      - .github/workflows/common.yml
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  common:
+    name: Run fmt and clippy
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: nightly
+          components: rustfmt, clippy
+          override: true
+
+      - name: fmt
+        run: cargo fmt --all -- --check
+
+      - name: clippy
+        run: cargo clippy --all-targets -- -D warnings
+
+      # You can edit this part when you add tests
+      # - name: Test
+      #   run: cargo test --verbose

@@ -7,15 +7,6 @@ use sp_runtime::{
 
 type Block = frame_system::mocking::MockBlock<Test>;
 
-// Configure a mock runtime to test the pallet.
-frame_support::construct_runtime!(
-    pub enum Test
-    {
-        System: frame_system,
-        MoveModule: pallet_move,
-    }
-);
-
 impl frame_system::Config for Test {
     type BaseCallFilter = frame_support::traits::Everything;
     type BlockWeights = ();
@@ -48,9 +39,19 @@ impl pallet_move::Config for Test {
 }
 
 // Build genesis storage according to the mock runtime.
+#[allow(dead_code)]
 pub fn new_test_ext() -> sp_io::TestExternalities {
     frame_system::GenesisConfig::<Test>::default()
         .build_storage()
         .unwrap()
         .into()
 }
+
+// Configure a mock runtime to test the pallet.
+frame_support::construct_runtime!(
+    pub enum Test
+    {
+        System: frame_system,
+        MoveModule: pallet_move,
+    }
+);
