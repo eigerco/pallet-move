@@ -29,7 +29,7 @@ Move is a statically-typed language with a syntax that is similar to Rust. It in
 
 Programs (smart contracts) written in Move language are deployed as a bytecode and executed by the Move VM, which is a stack-based virtual machine. It has been designed to be simple, efficient and platform-agnostic, which means it's possible to integrate with custom blockchains or even run it separately and interact using a command line interface.
 
-Move has been used as the smart-contract language for many blockchains like Sui, Starcoin, Aptos or Diem.
+Move has been used as the smart-contract language for many blockchains like Sui, Starcoin, Aptos and Diem.
 
 More information about the Move language can be found:
 * [Move language whitepaper](https://diem-developers-components.netlify.app/papers/diem-move-a-language-with-programmable-resources/2020-05-26.pdf)
@@ -104,14 +104,13 @@ Move address length had to be changed from 20 to 32 bytes to match the [Substrat
 
 ## Pontem MoveVM pallet
 
-The [Pontem MoveVM pallet][4] has a form of a Cargo crate. It depends on the Pontem's MoveVM fork described in the previous section and wraps it into a Substrate pallet using the `frame-support` crate.
+The [Pontem MoveVM pallet][4] is a crate which integrates the [Pontem's MoveVM fork][sp-move-vm]. The crate exposes 3 main entry points: [`execute`][5], [`publish_module`][6], and [`publish_package`][7]. Each of them expects bytecode and `gas_limit` arguments.
 
-The crate exposes 3 main entry points: [`execute`][5], [`publish_module`][6], and [`publish_package`][7]. Each of them expects bytecode and `gas_limit` arguments.
-
-[4]: https://github.com/pontem-network/pontem/tree/master/pallets/sp-mvm.
+[4]: https://github.com/pontem-network/pontem/tree/master/pallets/sp-mvm
 [5]: https://github.com/pontem-network/pontem/blob/master/pallets/sp-mvm/src/lib.rs#L188
 [6]: https://github.com/pontem-network/pontem/blob/master/pallets/sp-mvm/src/lib.rs#L220
 [7]: https://github.com/pontem-network/pontem/blob/master/pallets/sp-mvm/src/lib.rs#L252
+[sp-move-vm]: https://github.com/pontem-network/sp-move-vm
 
 There are two additional crates inside the pallet crate:
 - `rpc` crate - defines the runtime RPC made available by this pallet;
@@ -175,7 +174,9 @@ Let's dive into the crucial aspects of pallet architecture:
 
 The MoveVM pallet divides into three main components - the MoveVM pallet itself, runtime API (fulfilling the pallet's traits), and RPC. The MoveVM pallet is the core, containing all the logic needed to interact with the virtual machine. The runtime API is a separate crate that implements the pallet's traits and exposes them to the runtime. The RPC is a separate crate that implements the pallet's RPC calls and exposes them to the RPC node.
 
-![Alt text](./assets/uml-move-pallet.png)
+| ![uml-move-pallet.png](./assets/uml-move-pallet.png) | 
+|:--:|
+| *Move pallet* |
 
 The main part of the pallet is also responsible for storing the Move modules and packages on the chain. It is also responsible for the gas metering and gas conversion. Move language (like many other smart contract languages) has a concept of `gas` for executing contracts, whereas Substrate uses `Weights`. Those values need to be transformed before usage as well as there is a need to provide the user with API to estimate the possible gas cost for executing particular Move scripts or publishing data.
 
@@ -185,30 +186,36 @@ The pallet will use the MoveVM back-end (within the crate called `move-vm-backen
 
 A list of all Move crates can be seen in the image below. The impacted crates are shown in blue color.
 
-![alt text](./assets/uml-move-lang-crates.png)
+| ![uml-move-lang-crates.png](./assets/uml-move-lang-crates.png) | 
+|:--:|
+| *Move language crates* |
 
 The main component of MoveVM is the `move-vm-runtime` crate - it's a core part of the virtual machine and needs to be adapted for `no-std` environments such as Wasm-based Substrate pallets. The crate depends on a few other Move language crates, which consequently also require adaptations to `no-std`. The image below shows a dependency tree for the `move-vm-runtime` crate.
 
-![alt text](./assets/uml-move-vm-runtime-dep-tree.png)
+| ![uml-move-vm-runtime-dep-tree.png](./assets/uml-move-vm-runtime-dep-tree.png) |
+|:--:|
+| *MoveVM dependency tree* |
 
 To estimate how much work it takes to adapt certain Move crates to `no-std` and make them Substrate compatible, our team decided to adapt two crates from the above image (marked in green). The results are promising - it shouldn't take more than a few days per Move crate. All Move crates from the above are part of the core language repo except for the `bcs` crate, which is contained separately in the [diem/bcs][bcs] repository. This repo will be forked in order to make `no-std` adaptations.
 
-One more crate that also requires partial `no-std` adaption is the `move-stdlib` crate. Only the `natives` part of crate requires modifications.
+One additional crate that also requires `no-std` adaption is the `move-stdlib` crate. Only the `natives` part of crate requires modifications.
 
 All these crates that require adaptions will still be compiled with full std support when used by the move-compiler. For that reason, all `no-std` changes will be accessible through the `feature` mechanism provided by the Rust toolchain.
 
 [bcs]: https://github.com/diem/bcs
 
+| ![uml-full-picture-no-details.png](./assets/uml-full-picture-no-details.png) |
+|:--:|
+| *The architecture overview* |
+
 The MoveVM-backend module `move-vm-backend` will be used as an interface between `move-pallet` Substrate pallet and MoveVM. It will take care of the initial configuration of the MoveVM, genesis configuration, storage setup, gas cost tables, etc.
 
-![Alt text](./assets/uml-full-picture-no-details.png)
-
-A full architecture can be seen in the image below.
-
-![Alt text](./assets/uml-full-picture.png)
+| ![uml-full-picture.png](./assets/uml-full-picture.png) |
+|:--:|
+| *The full architecture overview* |
 
 ## Testing
-Software testing is an essential process in the software development life cycle that helps identify software application bugs, defects, and errors. We are designing and implementing tests from the start of the project, and each design decision considers the code's testability. The team plans tests on different levels, from unit to integration and end-to-end tests. You can find more in the [Testing Guide](testing_guide.md) document, one of the project deliverables.
+We are designing and implementing tests from the start of the project, and each design decision considers the code's testability. The team plans tests on different levels, from unit to integration and end-to-end tests. You can find more in the [Testing Guide](testing_guide.md) document, one of the project deliverables.
 
 It's worth mentioning the unit and integration test architecture that demands doing additional work to provide a test runtime environment. There is a need to create a runtime mock to run tests in the CI/CD pipeline. The mock should be able to run the tests like the actual runtime but without running the whole blockchain node. The pallet will include a mock file that provides a runtime environment using the `construct_runtime!` macro with a test configuration like the other pallets. Moreover, we will add testing assets (like Move modules) to be able to perform each test with the same data. Extracting those modules as external assets will allow us to reuse them in other tests and projects.
 
