@@ -198,7 +198,7 @@ The main component of MoveVM is the `move-vm-runtime` crate - it's a core part o
 
 To estimate how much work it takes to adapt certain Move crates to `no-std` and make them Substrate compatible, our team decided to adapt two crates from the above image (marked in green). The results are promising - it shouldn't take more than a few days per Move crate. All Move crates from the above are part of the core language repo except for the `bcs` crate, which is contained separately in the [diem/bcs][bcs] repository. This repo will be forked in order to make `no-std` adaptations.
 
-One additional crate that also requires `no-std` adaption is the `move-stdlib` crate. Only the `natives` part of crate requires modifications.
+One additional crate that also requires `no-std` adaption is the `move-stdlib` crate. Only the `natives` part of the crate requires modifications.
 
 All these crates that require adaptions will still be compiled with full std support when used by the move-compiler. For that reason, all `no-std` changes will be accessible through the `feature` mechanism provided by the Rust toolchain.
 
