@@ -227,12 +227,17 @@ Similarly, we'll mock the runtime for benchmarking purposes.
 In order to keep things separated and easy to maintain, we propose to create a separate repository for each forked codebase and a separate repository for the VM pallet itself.
 
 The package and repository structure will look like this:
-- `pallet-move` - the [MoveVM pallet repository](https://github.com/eigerco/pallet-move) - contains the pallet codebase, tests, and documentation. Work is done in the `main` branch.
-- `pallet-move-rpc` - the RPC MoveVM pallet repository - placed under `src/rpc` directory in the `pallet-move` repository. It contains the RPC codebase, tests, and documentation. Work is done in the `main` branch.
-- `pallet-move-runtime-api` - the runtime API MoveVM pallet repository - placed under `src/rpc/runtime-api` directory in the `pallet-move` repository. Work is done in the `main` branch.
-- `substrate-move` - Move language fork [repository](https://github.com/eigerco/substrate-move) - contains the Move language codebase, tests, and documentation.
-- `substrate-node-template-move-vm-test` - testing [node repository](https://github.com/eigerco/substrate-node-template-move-vm-test) - contains the node codebase, tests, and documentation. Work is done in the `pallet-move` branch.
-- [`bcs`][bcs] - Rust implementation of the Binary Canonical Serialization (BCS) format.
+- [`pallet-move`][pallet-move] - contains the pallet codebase, tests, and documentation.
+  - `pallet-move` - the main pallet crate.
+  - `pallet-move-rpc` - the RPC MoveVM pallet crate - placed under `src/rpc` directory. It contains the RPC codebase, tests, and documentation.
+  - `pallet-move-runtime-api` - the runtime API MoveVM pallet crate - placed under `src/rpc/runtime-api` directory.
+- [`substrate-move`][substrate-move] - Move language fork. Contains all the Move crates and the toolchain.
+- [`substrate-node-template-move-vm-test`][substrate-node-template-move-vm-test] - testing node repository - contains the node codebase, tests, and documentation. Work is done in the `pallet-move` branch.
+- [`bcs`][bcs] - Rust implementation of the Binary Canonical Serialization (BCS) format - a crate which is used by some Move crates.
+
+[pallet-move]: https://github.com/eigerco/pallet-move
+[substrate-move]: https://github.com/eigerco/substrate-move
+[substrate-node-template-move-vm-test]: https://github.com/eigerco/substrate-node-template-move-vm-test
 
 Testing code should be separated from the actual codebase. That's a slightly different approach compared to the previous Pontem work, where the Move pallet and testing code was placed inside the main Pontem repository and built together with the node. Pontem implemented a real node and a usable blockchain, and therefore, it was justified to keep everything in one place. In our case, we will not build a complete blockchain but only a MoveVM pallet. We will use only a modified template node to prove our solution works correctly. It will be easier for further pallet integrators to separate it from the node codebase as they can only fork the pallet repository and integrate it with their solutions.
 
