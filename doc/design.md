@@ -50,11 +50,11 @@ The runtime is responsible for determining the state of the blockchain and proce
 
 # The present state of Move VMs
 
-The official repository for the Move language is in the [move-language](https://github.com/move-language/move/tree/main/language) repo ([move-vm](https://github.com/move-language/move/tree/main/language/move-vm)). The open-source community maintains it, and other Move forks keep it current.
+The official repository for the Move language is in the [move-language](https://github.com/move-language/move/tree/main/language) repo ([move-vm](https://github.com/move-language/move/tree/main/language/move-vm)). The open-source community maintains it, but most of the contributions come from other Move forks.
 
 ## Available forks
 
-The most important move-lang forks are:
+Move language has many forks with their own unique spins on the language. The most important move-lang forks are:
 
  - [Aptos](https://github.com/aptos-labs/aptos-core/tree/main/third_party/move) ([move-vm](https://github.com/aptos-labs/aptos-core/tree/main/third_party/move/move-vm))
  - [Starcoin](https://github.com/starcoinorg/starcoin/tree/master/vm) ([move-vm](https://github.com/starcoinorg/starcoin/tree/master/vm/vm-runtime))
@@ -121,9 +121,9 @@ In this chapter, we outline the strategic plan, decisions and roadmap for the fu
 
 ## Is forking needed?
 
-In order to make MoveVM compatible with the Substrate framework, forking of the Move language is necessary.
-- Since all runtime pallets in Substrate must be Wasm-compatible, the MoveVM requires a few adaptations to ensure interoperability in `no-std` environments. That implies that all dependencies should be replaced with `no-std` alternatives, or in the worst case, adapted to `no-std` - in that case, more repositories will be forked (one example is the [`bcs`][bcs] crate which is an independent crate in a separate GitHub repository).
-- Substrate uses 32-byte addresses, so the `address32` feature must be used in TOML files within our build infrastructure.
+In order to make MoveVM compatible with the Substrate framework, forking of the Move language is necessary. 
+
+Since all runtime pallets in Substrate must be Wasm-compatible, the MoveVM requires a few adaptations to ensure interoperability in `no-std` environments. That implies that all dependencies should be replaced with `no-std` alternatives, or in the worst case, adapted to `no-std` - in that case, more repositories will be forked (one example is the [`bcs`][bcs] crate which is an independent crate in a separate GitHub repository).
 
 ## Forking challenges - VM and the toolchain
 As the forking is still needed, some challenges need to be addressed for the VM itself and the toolchain.
@@ -147,10 +147,10 @@ Another critical challenge is keeping the repository in sync with the upstream a
 The key point is to perform such minor updates periodically when it would be easier to maintain the changing codebase. Waiting too long between syncs can cause a lot of problems and make it impossible to merge changes without a lot of manual work, which can lead to a situation where it will be easier to fork the repository again and start from scratch, especially if it is done by a separate team than the one who created the fork. 
 
 ## The proposed architecture solution
-The Move pallet will be implemented according to the Substrate framework standards. It shall integrate a modified version of the MoveVM taken out from the official Move language repo. To integrate MoveVM effectively in the pallet, an additional layer of abstraction will be used.
+The Move pallet will be implemented according to the Substrate framework standards. It shall integrate a modified version of the MoveVM taken out from the official Move language repo, so we'll have our fork of MoveVM. To integrate MoveVM effectively in the pallet, an additional layer of abstraction will be used.
 
 ### Substrate MoveVM pallet
-Pontem’s initial work follows the standards and architecture commonly used by Substrate pallets. Taking this into account, we will also follow this decision.
+Pontem’s initial work follows the standards and architecture commonly used by Substrate pallets. Taking this into account, we will also follow this decision. Our proposed work will be called MoveVm pallet - `pallet-move`.
 
 Let's dive into the crucial aspects of pallet architecture:
 1) Module: The MoveVM pallet represents a module within a Substrate runtime. The MoveVM pallet would include only things needed for interaction with the virtual machine.
@@ -182,9 +182,11 @@ The main part of the pallet is also responsible for storing the Move modules and
 
 The pallet will use the MoveVM back-end (within the crate called `move-vm-backend`) to communicate directly with the Move Virtual Machine. This back-end layer allows us to easily use another VM implementation in the future. The VM back-end will create MoveVM inside the runtime and execute the scripts. It will also be able to handle any error and translate it to a form acceptable and understandable by the Substrate framework.
 
-### MoveVM module and changes
+Substrate uses 32-byte addresses, so the address32 feature must be used in the integrated MoveVM crates
 
-A list of all Move crates can be seen in the image below. The impacted crates are shown in blue color.
+### MoveVM module and changes
+Our proposed fork will be called Substrate Move.
+A list of all Move crates can be seen in the image below. The impacted crates that we will require some adaptations are coloured in blue.
 
 | ![uml-move-lang-crates.png](./assets/uml-move-lang-crates.png) | 
 |:--:|
@@ -232,7 +234,7 @@ The package and repository structure will look like this:
 - `substrate-node-template-move-vm-test` - testing [node repository](https://github.com/eigerco/substrate-node-template-move-vm-test) - contains the node codebase, tests, and documentation. Work is done in the `pallet-move` branch.
 - [`bcs`][bcs] - Rust implementation of the Binary Canonical Serialization (BCS) format.
 
-Testing code should be separated from the actual codebase. That's a slightly different approach compared to the previous Pontem work, where the Move pallet and testing code were placed inside the main Pontem repository and built together with the node. Pontem implemented a real node and a usable blockchain, and therefore, it was justified to keep everything in one place. In our case, we will not build a complete blockchain but only a MoveVM pallet. We will use only a modified template node to prove our solution works correctly. It will be easier for further pallet integrators to separate it from the node codebase as they can only fork the pallet repository and integrate it with their solutions.
+Testing code should be separated from the actual codebase. That's a slightly different approach compared to the previous Pontem work, where the Move pallet and testing code was placed inside the main Pontem repository and built together with the node. Pontem implemented a real node and a usable blockchain, and therefore, it was justified to keep everything in one place. In our case, we will not build a complete blockchain but only a MoveVM pallet. We will use only a modified template node to prove our solution works correctly. It will be easier for further pallet integrators to separate it from the node codebase as they can only fork the pallet repository and integrate it with their solutions.
 
 # Conclusions
 In conclusion, the successful completion of this software project holds great promise for the Move community and the broader blockchain community. Developing a Substrate pallet that enables the integration of the Move language within the Substrate blockchain represents a significant step forward in enhancing the versatility and functionality of blockchain applications.
