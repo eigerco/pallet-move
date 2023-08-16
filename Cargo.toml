@@ -19,6 +19,9 @@ frame-support = { version = "4.0.0-dev", default-features = false, git = "https:
 frame-system = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v1.0.0" }
 sp-std = { default-features = false, git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v1.0.0' }
 
+# Just for the proof of concept - the no-std move-core-types crate is compatible with our pallet
+move-core-types = { git = "https://github.com/eigerco/substrate-move.git", default-features = false }
+
 [dev-dependencies]
 sp-core = { version = "21.0.0", git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v1.0.0" }
 sp-io = { version = "23.0.0", git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v1.0.0" }
@@ -33,6 +36,7 @@ std = [
     "frame-system/std",
     "scale-info/std",
     "sp-std/std",
+    "move-core-types/std",
 ]
 runtime-benchmarks = ["frame-benchmarking/runtime-benchmarks"]
 try-runtime = ["frame-support/try-runtime"]
