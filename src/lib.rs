@@ -5,12 +5,15 @@ pub use pallet::*;
 #[cfg(feature = "runtime-benchmarks")]
 mod benchmarking;
 
+mod storage;
+
 pub mod weights;
 pub use weights::*;
 
 // The pallet is defined below.
 #[frame_support::pallet]
 pub mod pallet {
+    use codec::{FullCodec, FullEncode};
     use frame_support::{
         dispatch::{DispatchResultWithPostInfo, PostDispatchInfo},
         pallet_prelude::*,
@@ -21,7 +24,14 @@ pub mod pallet {
     use super::*;
 
     #[pallet::pallet]
+    #[pallet::without_storage_info] // Allows to define storage items without fixed size
     pub struct Pallet<T>(_);
+
+    /// Storage item for MoveVM pallet - runtime storage
+    /// Key-value map, where both key and value are vectors of bytes.
+    /// Key is an access path (Move address), and a value is a Move resource.
+    #[pallet::storage]
+    pub type VMStorage<T> = StorageMap<_, Blake2_128Concat, Vec<u8>, Vec<u8>>;
 
     /// MoveVM pallet configuration trait
     #[pallet::config]
@@ -112,5 +122,15 @@ pub mod pallet {
 
             Ok(PostDispatchInfo::default())
         }
+    }
+
+    /// Prepare a storage adapter ready for the Virtual Machine.
+    /// This declares the storage for the Pallet with the configuration T.
+    impl<T: Config, K, V> super::storage::MoveVmStorage<T, K, V> for Pallet<T>
+    where
+        K: FullEncode,
+        V: FullCodec,
+    {
+        type VmStorage = VMStorage<T>;
     }
 }
