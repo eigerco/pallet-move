@@ -40,6 +40,7 @@ where
 /// create a valid Move VM address.
 /// This function is ready to handle different than 32 bytes long AccountId instances.
 /// For the MoveVM port, we need to have a 32 bytes long address.
+/// Panic on bad account length.
 ///
 /// ```
 /// use pallet_move::address::account_to_bytes;
@@ -128,5 +129,12 @@ mod tests {
                 .to_vec();
             assert_eq!(bytes_expected, bytes);
         }
+    }
+
+    #[test]
+    #[should_panic]
+    fn account_to_bytes_panic() {
+        let test_vec = vec![0; 64];
+        let _bytes = account_to_bytes(&test_vec);
     }
 }
