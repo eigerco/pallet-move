@@ -26,7 +26,7 @@ move-core-types = { default-features = false, git = 'https://github.com/eigerco/
 move-vm-backend = { default-features = false, git = 'https://github.com/eigerco/substrate-move.git' }
 
 [dev-dependencies]
-assert_hex = "0.4.1"
+hex = "0.4"
 sp-core = { version = "21.0.0", git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v1.0.0" }
 sp-io = { version = "23.0.0", git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v1.0.0" }
 sp-runtime = { version = "24.0.0", git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v1.0.0" }
