@@ -64,7 +64,11 @@ where
 
     let skip = LENGTH.saturating_sub(bytes.len());
 
-    assert_eq!(LENGTH, bytes.len()+skip, "Substrate account address can't be larger than Move address");
+    assert_eq!(
+        LENGTH,
+        bytes.len() + skip,
+        "Substrate account address can't be larger than Move address"
+    );
 
     result[skip..].copy_from_slice(&bytes);
 
