@@ -1,5 +1,8 @@
-// Address conversion utilities based on the Pontem address solution.
-// To properly handle Move VM addresses and Substrate addresses, we need to convert them to each other.
+//! Address conversion utilities based on the Pontem address solution.
+//! To properly handle Move VM addresses and Substrate addresses, we need to convert them to each other.
+
+//TODO(asmie): general TODO - investigate if there is something better than AccountId
+// described there: https://paritytech.github.io/polkadot-sdk/master/frame_system/pallet/trait.Config.html#associatedtype.AccountId
 
 use codec::{Decode, Encode, Error};
 use move_core_types::account_address::AccountAddress;
@@ -60,6 +63,8 @@ where
     let bytes = account.encode();
 
     let skip = LENGTH.saturating_sub(bytes.len());
+
+    assert_eq!(LENGTH, bytes.len()+skip, "Substrate account address can't be larger than Move address");
 
     result[skip..].copy_from_slice(&bytes);
 
