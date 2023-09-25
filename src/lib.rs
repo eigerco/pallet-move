@@ -2,6 +2,8 @@
 
 pub use pallet::*;
 
+pub mod address;
+
 #[cfg(feature = "runtime-benchmarks")]
 mod benchmarking;
 
