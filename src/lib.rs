@@ -1,11 +1,13 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
+use move_vm_runtime::move_vm::MoveVM;
+
 pub use pallet::*;
 
 #[cfg(feature = "runtime-benchmarks")]
 mod benchmarking;
 
-mod storage;
+//mod storage;
 
 pub mod weights;
 pub use weights::*;
@@ -124,7 +126,7 @@ pub mod pallet {
         }
     }
 
-    /// Prepare a storage adapter ready for the Virtual Machine.
+    /*/// Prepare a storage adapter ready for the Virtual Machine.
     /// This declares the storage for the Pallet with the configuration T.
     impl<T: Config, K, V> super::storage::MoveVmStorage<T, K, V> for Pallet<T>
     where
@@ -132,5 +134,5 @@ pub mod pallet {
         V: FullCodec,
     {
         type VmStorage = VMStorage<T>;
-    }
+    }*/
 }
