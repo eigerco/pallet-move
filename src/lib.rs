@@ -40,7 +40,6 @@ pub mod pallet {
     /// Key-value map, where both key and value are vectors of bytes.
     /// Key is an access path (Move address), and a value is a Move resource.
     #[pallet::storage]
-    #[pallet::getter(fn vmstorage)]
     pub type VMStorage<T> = StorageMap<_, Blake2_128Concat, Vec<u8>, Vec<u8>>;
 
     /// MoveVM pallet configuration trait
