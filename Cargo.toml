@@ -21,6 +21,7 @@ sp-std = { default-features = false, git = 'https://github.com/paritytech/substr
 
 # MoveVM dependencies
 move-core-types = { default-features = false, git = 'https://github.com/eigerco/substrate-move.git', features = ["address32"] }
+move-vm-types = { default-features = false, git = 'https://github.com/eigerco/substrate-move.git' }
 
 # MoveVM backend dependency
 move-vm-backend = { default-features = false, git = 'https://github.com/eigerco/substrate-move.git' }
