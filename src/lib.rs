@@ -22,7 +22,7 @@ pub mod pallet {
     };
     use frame_system::pallet_prelude::*;
     // We need now use MoveStorage which provides ModuleResolver and ResourceResolver.
-    // Once we deal with it in move_vm_backend and storage will not depened upon those
+    // Once we deal with it in move_vm_backend and storage will not depend upon those
     // two traits, we can remove using MoveStorage and pass StorageAdapter directly.
     use move_vm_backend::storage::MoveStorage;
     use move_vm_backend::Mvm;
@@ -107,6 +107,10 @@ pub mod pallet {
 
             let storage = MoveStorage::new(Self::move_vm_storage());
 
+            //TODO(asmie): future work:
+            // - put Mvm initialization to some other place, to avoid doing it every time
+            // - handle storage without MoveStorage when move_vm_backend receive Warehouse structure and
+            //  can handle storage without resolver traits
             let vm = Mvm::new(storage).map_err(|_err| Error::<T>::PublishModuleFailed)?;
 
             vm.publish_module(
