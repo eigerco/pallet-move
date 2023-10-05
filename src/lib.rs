@@ -113,7 +113,7 @@ pub mod pallet {
             vm.publish_module(
                 bytecode.as_slice(),
                 address::to_move_address(&who),
-                &mut UnmeteredGasMeter,             // TODO(asmie): gas handling
+                &mut UnmeteredGasMeter, // TODO(asmie): gas handling
             )
             .map_err(|_err| Error::<T>::PublishModuleFailed)?;
 
