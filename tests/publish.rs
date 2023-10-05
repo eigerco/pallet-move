@@ -10,7 +10,7 @@ fn publish_module_as_user_correct() {
         let module = include_bytes!("assets/move/build/move/bytecode_modules/Empty.mv").to_vec();
 
         let res = MoveModule::publish_module(
-            // Just for now - as Move module address account is 0xCAFE, we need to sing it the same
+            // Just for now - as Move module address account is 0xCAFE, we need to sign it the same
             // address. But in tests, AccountId is u64, so we need to convert it (0xCAFE -> 0xFECA000000000000 - endian welcome)
             RuntimeOrigin::signed(0xFECA000000000000),
             module,
