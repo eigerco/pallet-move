@@ -21,10 +21,6 @@ pub mod pallet {
         pallet_prelude::*,
     };
     use frame_system::pallet_prelude::*;
-    // We need now use MoveStorage which provides ModuleResolver and ResourceResolver.
-    // Once we deal with it in move_vm_backend and storage will not depend upon those
-    // two traits, we can remove using MoveStorage and pass StorageAdapter directly.
-    use move_vm_backend::storage::MoveStorage;
     use move_vm_backend::Mvm;
     use move_vm_types::gas::UnmeteredGasMeter;
     use sp_std::{default::Default, vec::Vec};
@@ -105,12 +101,11 @@ pub mod pallet {
             // Allow only signed calls.
             let who = ensure_signed(origin)?;
 
-            let storage = MoveStorage::new(Self::move_vm_storage());
+            let storage = Self::move_vm_storage();
 
             //TODO(asmie): future work:
             // - put Mvm initialization to some other place, to avoid doing it every time
-            // - handle storage without MoveStorage when move_vm_backend receive Warehouse structure and
-            //  can handle storage without resolver traits
+            // - Substrate address to Move address conversion is missing in the move-cli
             let vm = Mvm::new(storage).map_err(|_err| Error::<T>::PublishModuleFailed)?;
 
             vm.publish_module(
