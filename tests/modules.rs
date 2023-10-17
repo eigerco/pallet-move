@@ -9,9 +9,7 @@ use move_core_types::{
 };
 use pallet_move::address;
 
-// Just for now - as Move module address account is 0xCAFE, we need to sign it the same
-// address. But in tests, AccountId is u64, so we need to convert it (0xCAFE -> 0xFECA000000000000 - endian welcome)
-const ACC_ADDR: u64 = 0xFECA000000000000;
+const EMPTY_ADDR: u64 = 0x000000000CAFE_u64.to_be();
 
 #[test]
 /// Test getting a module.
@@ -19,7 +17,7 @@ fn get_module_correct() {
     new_test_ext().execute_with(|| {
         let module = include_bytes!("assets/move/build/move/bytecode_modules/Empty.mv").to_vec();
 
-        let res = MoveModule::publish_module(RuntimeOrigin::signed(ACC_ADDR), module.clone(), 0);
+        let res = MoveModule::publish_module(RuntimeOrigin::signed(EMPTY_ADDR), module.clone(), 0);
 
         assert_ok!(res);
 
@@ -47,12 +45,11 @@ fn get_module_nonexistent() {
 
 #[test]
 /// Test getting a module providing incorrect (no module name after the address) module id.
-fn get_module_error() {
+fn get_module_invalid_input() {
     new_test_ext().execute_with(|| {
-        let address = [0; 32];
+        let invalid_module_id = [0u8; 32];
         let errmsg = "error in get_module: unexpected end of input".as_bytes();
-
-        let res = MoveModule::get_module(&address);
+        let res = MoveModule::get_module(&invalid_module_id);
 
         assert_eq!(res, Err(errmsg.to_vec()));
     });
@@ -64,12 +61,13 @@ fn get_module_error() {
 fn get_resource_correct() {
     new_test_ext().execute_with(|| {
         let module = include_bytes!("assets/move/build/move/bytecode_modules/Empty.mv").to_vec();
+        let resource_bytes = [0u8; 32]; // For now as we need to investigate what the resource looks like
 
-        let res = MoveModule::publish_module(RuntimeOrigin::signed(ACC_ADDR), module.clone(), 0);
+        let res = MoveModule::publish_module(RuntimeOrigin::signed(EMPTY_ADDR), module.clone(), 0);
 
         assert_ok!(res);
 
-        let address = address::to_move_address(&ACC_ADDR);
+        let address = address::to_move_address(&EMPTY_ADDR);
 
         let tag = StructTag {
             address,
@@ -78,9 +76,9 @@ fn get_resource_correct() {
             type_params: vec![],
         };
 
-        let res = MoveModule::get_resource(&ACC_ADDR, &bcs::to_bytes(&tag).unwrap());
+        let res = MoveModule::get_resource(&EMPTY_ADDR, &bcs::to_bytes(&tag).unwrap());
 
-        assert_eq!(res, Ok(Some(module)));
+        assert_eq!(res, Ok(Some(resource_bytes.to_vec())));
     });
 }
 
@@ -90,11 +88,11 @@ fn get_resource_non_existent() {
     new_test_ext().execute_with(|| {
         let module = include_bytes!("assets/move/build/move/bytecode_modules/Empty.mv").to_vec();
 
-        let res = MoveModule::publish_module(RuntimeOrigin::signed(ACC_ADDR), module.clone(), 0);
+        let res = MoveModule::publish_module(RuntimeOrigin::signed(EMPTY_ADDR), module.clone(), 0);
 
         assert_ok!(res);
 
-        let address = address::to_move_address(&ACC_ADDR);
+        let address = address::to_move_address(&EMPTY_ADDR);
 
         let tag = StructTag {
             address,
@@ -103,7 +101,7 @@ fn get_resource_non_existent() {
             type_params: vec![],
         };
 
-        let res = MoveModule::get_resource(&ACC_ADDR, &bcs::to_bytes(&tag).unwrap());
+        let res = MoveModule::get_resource(&EMPTY_ADDR, &bcs::to_bytes(&tag).unwrap());
 
         assert_eq!(res, Ok(None));
     });

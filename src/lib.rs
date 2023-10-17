@@ -168,23 +168,24 @@ pub mod pallet {
     }
 
     impl<T: Config> Pallet<T> {
-        pub fn get_module_abi(module_id: &[u8]) -> Result<Option<Vec<u8>>, Vec<u8>> {
+        // Internal helper for creating new MoveVM instance with StorageAdapter.
+        fn move_vm() -> Result<Mvm<crate::storage::StorageAdapter<VMStorage<T>>>, Vec<u8>> {
             let storage = Self::move_vm_storage();
 
-            let vm = Mvm::new(storage).map_err::<Vec<u8>, _>(|err| {
+            Mvm::new(storage).map_err::<Vec<u8>, _>(|err| {
                 format!("error while creating the vm {:?}", err).into()
-            })?;
+            })
+        }
+
+        pub fn get_module_abi(module_id: &[u8]) -> Result<Option<Vec<u8>>, Vec<u8>> {
+            let vm = Self::move_vm()?;
 
             vm.get_module_abi(module_id)
                 .map_err(|e| format!("error in get_module_abi: {:?}", e).into())
         }
 
         pub fn get_module(module_id: &[u8]) -> Result<Option<Vec<u8>>, Vec<u8>> {
-            let storage = Self::move_vm_storage();
-
-            let vm = Mvm::new(storage).map_err::<Vec<u8>, _>(|err| {
-                format!("error while creating the vm {:?}", err).into()
-            })?;
+            let vm = Self::move_vm()?;
 
             vm.get_module(module_id)
                 .map_err(|e| format!("error in get_module: {:?}", e).into())
@@ -194,11 +195,7 @@ pub mod pallet {
             account: &T::AccountId,
             tag: &[u8],
         ) -> Result<Option<Vec<u8>>, Vec<u8>> {
-            let storage = Self::move_vm_storage();
-
-            let vm = Mvm::new(storage).map_err::<Vec<u8>, _>(|err| {
-                format!("error while creating the vm {:?}", err).into()
-            })?;
+            let vm = Self::move_vm()?;
 
             vm.get_resource(
                 &AccountAddress::new(address::account_to_bytes(account)),
