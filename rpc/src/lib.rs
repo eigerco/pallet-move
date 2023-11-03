@@ -54,11 +54,21 @@ pub trait MoveApi<BlockHash, AccountId> {
 
     /// Get module ABI using address
     #[method(name = "mvm_getModuleABI")]
-    fn get_module_abi(&self, module_id: Vec<u8>, at: Option<BlockHash>) -> RpcResult<Option<Vec<u8>>>;
+    fn get_module_abi(
+        &self,
+        address: &str,
+        name: &str,
+        at: Option<BlockHash>,
+    ) -> RpcResult<Option<Vec<u8>>>;
 
     /// Get module binary using address
     #[method(name = "mvm_getModule")]
-    fn get_module(&self, module_id: Vec<u8>, at: Option<BlockHash>) -> RpcResult<Option<Vec<u8>>>;
+    fn get_module(
+        &self,
+        address: &str,
+        name: &str,
+        at: Option<BlockHash>,
+    ) -> RpcResult<Option<Vec<u8>>>;
 }
 
 /// A struct that implements the `MoveApi`.
@@ -106,8 +116,12 @@ where
         at: Option<<Block as BlockT>::Hash>,
     ) -> RpcResult<u64> {
         let api = self.client.runtime_api();
-        let res =
-            api.estimate_gas_publish(at.unwrap_or_else(|| self.client.info().best_hash), account, bytecode, gas_limit);
+        let res = api.estimate_gas_publish(
+            at.unwrap_or_else(|| self.client.info().best_hash),
+            account,
+            bytecode,
+            gas_limit,
+        );
 
         res.map_err(runtime_error_into_rpc_err)
     }
@@ -120,8 +134,12 @@ where
         at: Option<<Block as BlockT>::Hash>,
     ) -> RpcResult<u64> {
         let api = self.client.runtime_api();
-        let res =
-            api.estimate_gas_execute(at.unwrap_or_else(|| self.client.info().best_hash), account, bytecode, gas_limit);
+        let res = api.estimate_gas_execute(
+            at.unwrap_or_else(|| self.client.info().best_hash),
+            account,
+            bytecode,
+            gas_limit,
+        );
 
         res.map_err(runtime_error_into_rpc_err)
     }
@@ -133,7 +151,11 @@ where
         at: Option<<Block as BlockT>::Hash>,
     ) -> RpcResult<Option<Vec<u8>>> {
         let api = self.client.runtime_api();
-        let res = api.get_resource(at.unwrap_or_else(|| self.client.info().best_hash), account, tag);
+        let res = api.get_resource(
+            at.unwrap_or_else(|| self.client.info().best_hash),
+            account,
+            tag,
+        );
 
         // Currently, there is always correct value returned so it's safe to unwrap here.
         res.unwrap().map_err(runtime_error_into_rpc_err)
@@ -141,11 +163,16 @@ where
 
     fn get_module_abi(
         &self,
-        module_id: Vec<u8>,
+        address: &str,
+        name: &str,
         at: Option<<Block as BlockT>::Hash>,
     ) -> RpcResult<Option<Vec<u8>>> {
         let api = self.client.runtime_api();
-        let res = api.get_module_abi(at.unwrap_or_else(|| self.client.info().best_hash), module_id);
+        let res = api.get_module_abi(
+            at.unwrap_or_else(|| self.client.info().best_hash),
+            address.to_string(),
+            name.to_string(),
+        );
 
         // Currently, there is always correct value returned so it's safe to unwrap here.
         res.unwrap().map_err(runtime_error_into_rpc_err)
@@ -153,11 +180,16 @@ where
 
     fn get_module(
         &self,
-        module_id: Vec<u8>,
+        address: &str,
+        name: &str,
         at: Option<<Block as BlockT>::Hash>,
     ) -> RpcResult<Option<Vec<u8>>> {
         let api = self.client.runtime_api();
-        let res = api.get_module(at.unwrap_or_else(|| self.client.info().best_hash), module_id);
+        let res = api.get_module(
+            at.unwrap_or_else(|| self.client.info().best_hash),
+            address.to_string(),
+            name.to_string(),
+        );
 
         // Currently, there is always correct value returned so it's safe to unwrap here.
         res.unwrap().map_err(runtime_error_into_rpc_err)
@@ -186,16 +218,14 @@ mod tests {
         let err_str_tst = "\"\\\"test\\\"\"";
         let res = runtime_error_into_rpc_err(err_str);
         match res {
-            JsonRpseeError::Call(err) => {
-                match err {
-                    CallError::Custom(err) => {
-                        assert_eq!(err.code(), RUNTIME_ERROR);
-                        assert_eq!(err.message(), "Runtime error");
-                        assert_eq!(err.data().unwrap().get(), err_str_tst)
-                    }
-                    _ => panic!("Wrong error type"),
+            JsonRpseeError::Call(err) => match err {
+                CallError::Custom(err) => {
+                    assert_eq!(err.code(), RUNTIME_ERROR);
+                    assert_eq!(err.message(), "Runtime error");
+                    assert_eq!(err.data().unwrap().get(), err_str_tst)
                 }
-            }
+                _ => panic!("Wrong error type"),
+            },
             _ => panic!("Wrong error type"),
         }
     }
@@ -206,16 +236,14 @@ mod tests {
         let err_str_tst = "\"\\\"\\\"\"";
         let res = runtime_error_into_rpc_err(err_str);
         match res {
-            JsonRpseeError::Call(err) => {
-                match err {
-                    CallError::Custom(err) => {
-                        assert_eq!(err.code(), RUNTIME_ERROR);
-                        assert_eq!(err.message(), "Runtime error");
-                        assert_eq!(err.data().unwrap().get(), err_str_tst)
-                    }
-                    _ => panic!("Wrong error type"),
+            JsonRpseeError::Call(err) => match err {
+                CallError::Custom(err) => {
+                    assert_eq!(err.code(), RUNTIME_ERROR);
+                    assert_eq!(err.message(), "Runtime error");
+                    assert_eq!(err.data().unwrap().get(), err_str_tst)
                 }
-            }
+                _ => panic!("Wrong error type"),
+            },
             _ => panic!("Wrong error type"),
         }
     }
