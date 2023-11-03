@@ -31,6 +31,7 @@ pub mod pallet {
     use move_core_types::account_address::AccountAddress;
     use move_vm_backend::Mvm;
     use move_vm_types::gas::UnmeteredGasMeter;
+    use sp_core::crypto::AccountId32;
     use sp_std::{default::Default, vec::Vec};
 
     use super::*;
@@ -243,12 +244,11 @@ pub mod pallet {
         }
 
         // Transparent conversion native -> move
-        pub fn native_to_move(of: T::AccountId) -> Result<AccountAddress, Error<T>> {
-            let encoded = of.encode();
-            if encoded.len().ne(&32usize) {
-                return Err(Error::InvalidAccountSize);
-            }
-            Ok(AccountAddress::new(array_ref![encoded, 0, 32].to_owned()))
+        pub fn native_to_move(of: AccountId32) -> Result<AccountAddress, Error<T>> {
+            let account_bytes: [u8; 32] = of.into();
+            Ok(AccountAddress::new(
+                array_ref![account_bytes, 0, 32].to_owned(),
+            ))
         }
     }
 }
