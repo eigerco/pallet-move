@@ -55,5 +55,6 @@ fn round_conversion_native_move_works() {
         let native =
             MoveModule::move_to_native(&AccountAddress::from_hex_literal(MOVE).unwrap()).unwrap();
         let move_again = MoveModule::native_to_move(native).unwrap();
+        assert_eq!(MOVE, move_again.to_hex_literal());
     })
 }
