@@ -177,17 +177,24 @@ pub mod pallet {
             })
         }
 
-        pub fn get_module_abi(module_id: &[u8]) -> Result<Option<Vec<u8>>, Vec<u8>> {
+        pub fn get_module_abi(
+            address: &T::AccountId,
+            name: &str,
+        ) -> Result<Option<Vec<u8>>, Vec<u8>> {
             let vm = Self::move_vm()?;
 
-            vm.get_module_abi(module_id)
+            let address = address::to_move_address(&address);
+
+            vm.get_module_abi(address, name)
                 .map_err(|e| format!("error in get_module_abi: {:?}", e).into())
         }
 
-        pub fn get_module(module_id: &[u8]) -> Result<Option<Vec<u8>>, Vec<u8>> {
+        pub fn get_module(address: &T::AccountId, name: &str) -> Result<Option<Vec<u8>>, Vec<u8>> {
             let vm = Self::move_vm()?;
 
-            vm.get_module(module_id)
+            let address = address::to_move_address(&address);
+
+            vm.get_module(address, name)
                 .map_err(|e| format!("error in get_module: {:?}", e).into())
         }
 

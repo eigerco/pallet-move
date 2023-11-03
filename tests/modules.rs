@@ -2,11 +2,7 @@ mod mock;
 
 use frame_support::assert_ok;
 use mock::*;
-use move_core_types::{
-    account_address::AccountAddress,
-    identifier::Identifier,
-    language_storage::{ModuleId, StructTag},
-};
+use move_core_types::{identifier::Identifier, language_storage::StructTag};
 use pallet_move::address;
 
 const EMPTY_ADDR: u64 = 0x000000000CAFE_u64.to_be();
@@ -21,10 +17,7 @@ fn get_module_correct() {
 
         assert_ok!(res);
 
-        let address = AccountAddress::from_hex_literal("0xCAFE").unwrap(); // Alternative: let address = address::to_move_address(&ACC_ADDR);
-        let module_id = ModuleId::new(address, Identifier::new("Empty").unwrap());
-
-        let res = MoveModule::get_module(&bcs::to_bytes(&module_id).unwrap());
+        let res = MoveModule::get_module(&EMPTY_ADDR, "Empty");
 
         assert_eq!(res, Ok(Some(module)));
     });
@@ -34,24 +27,9 @@ fn get_module_correct() {
 /// Test getting a module that does not exist.
 fn get_module_nonexistent() {
     new_test_ext().execute_with(|| {
-        let address = AccountAddress::from_hex_literal("0xCAFE").unwrap();
-        let module_id = ModuleId::new(address, Identifier::new("Empty").unwrap());
-
-        let res = MoveModule::get_module(&bcs::to_bytes(&module_id).unwrap());
+        let res = MoveModule::get_module(&EMPTY_ADDR, "Empty");
 
         assert_eq!(res, Ok(None));
-    });
-}
-
-#[test]
-/// Test getting a module providing incorrect (no module name after the address) module id.
-fn get_module_invalid_input() {
-    new_test_ext().execute_with(|| {
-        let invalid_module_id = [0u8; 32];
-        let errmsg = "error in get_module: unexpected end of input".as_bytes();
-        let res = MoveModule::get_module(&invalid_module_id);
-
-        assert_eq!(res, Err(errmsg.to_vec()));
     });
 }
 
