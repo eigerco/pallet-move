@@ -20,10 +20,12 @@ pub mod pallet {
     #[cfg(not(feature = "std"))]
     use alloc::format;
 
+    use arrayref::array_ref;
     use codec::{FullCodec, FullEncode};
     use frame_support::{
         dispatch::{DispatchResultWithPostInfo, PostDispatchInfo},
         pallet_prelude::*,
+        traits::{Currency, ReservableCurrency},
     };
     use frame_system::pallet_prelude::*;
     use move_core_types::account_address::AccountAddress;
@@ -47,8 +49,12 @@ pub mod pallet {
     /// MoveVM pallet configuration trait
     #[pallet::config]
     pub trait Config: frame_system::Config {
+        /// The currency mechanism.
+        type Currency: ReservableCurrency<Self::AccountId>;
+
         /// Because this pallet emits events, it depends on the runtime's definition of an event.
         type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
+
         /// Type representing the weight of this pallet
         type WeightInfo: WeightInfo;
     }
@@ -155,6 +161,10 @@ pub mod pallet {
         PublishModuleFailed,
         /// Error returned when publishing Move module package failed.
         PublishPackageFailed,
+        /// Native balance to u128 conversion failed
+        BalanceConversionFailed,
+        /// Invalid account size (expected 32 bytes)
+        InvalidAccountSize,
     }
 
     /// Prepare a storage adapter ready for the Virtual Machine.
@@ -209,6 +219,36 @@ pub mod pallet {
                 tag,
             )
             .map_err(|e| format!("error in get_resource: {:?}", e).into())
+        }
+
+        /// Get balance of given account in native currency converted to u128
+        pub fn get_balance(of: T::AccountId) -> Result<u128, Error<T>> {
+            let encoded_balance = T::Currency::free_balance(&of).encode();
+            if encoded_balance.len().ne(&16usize) {
+                return Err(Error::BalanceConversionFailed);
+            }
+            Ok(u128::from_be_bytes(
+                array_ref!(encoded_balance, 0, 16).to_owned(),
+            ))
+        }
+
+        // Get balance of given Move account in native currecy converted to u128
+        pub fn get_move_balance(of: &AccountAddress) -> Result<u128, Error<T>> {
+            Self::get_balance(Self::move_to_native(of)?)
+        }
+
+        // Transparent conversion move -> native
+        pub fn move_to_native(of: &AccountAddress) -> Result<T::AccountId, Error<T>> {
+            T::AccountId::decode(&mut of.as_ref()).map_err(|_| Error::InvalidAccountSize)
+        }
+
+        // Transparent conversion native -> move
+        pub fn native_to_move(of: T::AccountId) -> Result<AccountAddress, Error<T>> {
+            let encoded = of.encode();
+            if encoded.len().ne(&32usize) {
+                return Err(Error::InvalidAccountSize);
+            }
+            Ok(AccountAddress::new(array_ref![encoded, 0, 32].to_owned()))
         }
     }
 }
