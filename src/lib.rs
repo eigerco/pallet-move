@@ -244,19 +244,13 @@ pub mod pallet {
         }
 
         /// Get balance of given account in native currency converted to u128
-        pub fn get_balance(of: T::AccountId) -> Result<u128, Error<T>> {
-            let encoded_balance = T::Currency::free_balance(&of).encode();
-            if encoded_balance.len().ne(&16usize) {
-                return Err(Error::BalanceConversionFailed);
-            }
-            Ok(u128::from_be_bytes(
-                array_ref!(encoded_balance, 0, 16).to_owned(),
-            ))
+        pub fn get_balance(of: T::AccountId) -> u128 {
+            T::Currency::free_balance(&of).saturated_into::<u128>()
         }
 
         // Get balance of given Move account in native currecy converted to u128
         pub fn get_move_balance(of: &AccountAddress) -> Result<u128, Error<T>> {
-            Self::get_balance(Self::move_to_native(of)?)
+            Ok(Self::get_balance(Self::move_to_native(of)?))
         }
 
         // Transparent conversion move -> native
