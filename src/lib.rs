@@ -25,13 +25,14 @@ pub mod pallet {
     use frame_support::{
         dispatch::{DispatchResultWithPostInfo, PostDispatchInfo},
         pallet_prelude::*,
-        traits::{Currency, ReservableCurrency},
+        traits::{Currency, ExistenceRequirement, ReservableCurrency},
     };
     use frame_system::pallet_prelude::*;
     use move_core_types::account_address::AccountAddress;
     use move_vm_backend::Mvm;
     use move_vm_types::gas::UnmeteredGasMeter;
     use sp_core::crypto::AccountId32;
+    use sp_runtime::{DispatchResult, SaturatedConversion};
     use sp_std::{default::Default, vec::Vec};
 
     use super::*;
@@ -51,7 +52,7 @@ pub mod pallet {
     #[pallet::config]
     pub trait Config: frame_system::Config {
         /// The currency mechanism.
-        type Currency: ReservableCurrency<Self::AccountId>;
+        type Currency: Currency<Self::AccountId> + ReservableCurrency<Self::AccountId>;
 
         /// Because this pallet emits events, it depends on the runtime's definition of an event.
         type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
@@ -120,10 +121,13 @@ pub mod pallet {
             // - put Mvm initialization to some other place, to avoid doing it every time
             // - Substrate address to Move address conversion is missing in the move-cli
             let vm = Mvm::new(storage).map_err(|_err| Error::<T>::PublishModuleFailed)?;
+            let encoded = who.encode();
+
+            ensure!(encoded.len().eq(&32), Error::<T>::InvalidAccountSize);
 
             vm.publish_module(
                 bytecode.as_slice(),
-                address::to_move_address(&who),
+                Self::native_to_move(AccountId32::new(array_ref![encoded, 0, 32].to_owned()))?,
                 &mut UnmeteredGasMeter, // TODO(asmie): gas handling
             )
             .map_err(|_err| Error::<T>::PublishModuleFailed)?;
@@ -151,6 +155,23 @@ pub mod pallet {
             Self::deposit_event(Event::PackagePublished { who });
 
             Ok(PostDispatchInfo::default())
+        }
+
+        #[pallet::call_index(3)]
+        #[pallet::weight(T::WeightInfo::transfer())]
+        pub fn transfer(
+            origin: OriginFor<T>,
+            recepient: [u8; 32], // AccountAddress
+            amount: u128,
+        ) -> DispatchResult {
+            let from = ensure_signed(origin)?;
+            let recepient_account = AccountAddress::new(recepient);
+            T::Currency::transfer(
+                &from,
+                &Self::move_to_native(&recepient_account)?,
+                amount.saturated_into(),
+                ExistenceRequirement::KeepAlive,
+            )
         }
     }
 
