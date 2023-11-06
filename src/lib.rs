@@ -9,6 +9,8 @@ mod benchmarking;
 
 mod storage;
 
+pub mod transaction;
+
 pub mod weights;
 pub use weights::*;
 
@@ -30,6 +32,7 @@ pub mod pallet {
     use move_vm_backend::Mvm;
     use move_vm_types::gas::UnmeteredGasMeter;
     use sp_std::{default::Default, vec::Vec};
+    use transaction::Transaction;
 
     use super::*;
     use crate::storage::MoveVmStorage;
@@ -80,13 +83,25 @@ pub mod pallet {
         #[pallet::weight(T::WeightInfo::execute())]
         pub fn execute(
             origin: OriginFor<T>,
-            _bytecode: Vec<u8>,
+            transaction_bc: Vec<u8>,
             _gas_limit: u64,
         ) -> DispatchResult {
             // Allow only signed calls.
             let who = ensure_signed(origin)?;
 
-            // TODO: Execute bytecode
+            let storage = Self::move_vm_storage();
+            let vm = Mvm::new(storage).map_err(|_err| Error::<T>::ExecuteFailed)?;
+
+            let transaction = Transaction::try_from(transaction_bc.as_slice())
+                .map_err(|_| Error::<T>::ExecuteFailed)?;
+
+            vm.execute_script(
+                transaction.script_bc.as_slice(),
+                transaction.type_args,
+                transaction.args.iter().map(|x| x.as_slice()).collect(),
+                &mut UnmeteredGasMeter, // TODO(asmie): gas handling
+            )
+            .map_err(|_err| Error::<T>::PublishModuleFailed)?;
 
             // Emit an event.
             Self::deposit_event(Event::ExecuteCalled { who });
