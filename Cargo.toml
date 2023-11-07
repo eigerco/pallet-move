@@ -24,11 +24,11 @@ sp-core = { default-features = false, git = 'https://github.com/paritytech/polka
 sp-runtime = { default-features = false, git = 'https://github.com/paritytech/polkadot-sdk.git', branch = 'release-polkadot-v1.3.0' }
 
 # MoveVM dependencies
-move-core-types = { default-features = false, git = 'https://github.com/eigerco/substrate-move.git', features = ["address32"] }
-move-vm-types = { default-features = false, git = 'https://github.com/eigerco/substrate-move.git' }
+move-core-types = { default-features = false, git = 'https://github.com/eigerco/substrate-move.git', features = ["address32"], branch = "iv-transfer-callback" }
+move-vm-types = { default-features = false, git = 'https://github.com/eigerco/substrate-move.git', branch = "iv-transfer-callback" }
 
 # MoveVM backend dependency
-move-vm-backend = { default-features = false, git = 'https://github.com/eigerco/substrate-move.git' }
+move-vm-backend = { default-features = false, git = 'https://github.com/eigerco/substrate-move.git', branch = "iv-transfer-callback" }
 
 [dev-dependencies]
 hex = "0.4"

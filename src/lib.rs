@@ -19,17 +19,19 @@ pub mod pallet {
     extern crate alloc;
     #[cfg(not(feature = "std"))]
     use alloc::format;
+    use core::marker::PhantomData;
 
     use arrayref::array_ref;
     use codec::{FullCodec, FullEncode};
     use frame_support::{
         dispatch::{DispatchResultWithPostInfo, PostDispatchInfo},
         pallet_prelude::*,
-        traits::{Currency, ExistenceRequirement, ReservableCurrency},
+        traits::{Currency, ExistenceRequirement, Hooks, ReservableCurrency},
+        Blake2_128Concat,
     };
-    use frame_system::pallet_prelude::*;
+    use frame_system::pallet_prelude::{BlockNumberFor, *};
     use move_core_types::account_address::AccountAddress;
-    use move_vm_backend::Mvm;
+    use move_vm_backend::{Mvm, SubstrateAPI, TransferError};
     use move_vm_types::gas::UnmeteredGasMeter;
     use sp_core::crypto::AccountId32;
     use sp_runtime::{DispatchResult, SaturatedConversion};
@@ -47,6 +49,12 @@ pub mod pallet {
     /// Key is an access path (Move address), and a value is a Move resource.
     #[pallet::storage]
     pub type VMStorage<T> = StorageMap<_, Blake2_128Concat, Vec<u8>, Vec<u8>>;
+
+    /// Storage of session/block allowed transfer executions
+    /// Maps binary code to sender's account which is expected to be the source of the transfer
+    #[pallet::storage]
+    pub(super) type SessionTransferToken<T: Config> =
+        StorageMap<_, Blake2_128Concat, Vec<u8>, T::AccountId>;
 
     /// MoveVM pallet configuration trait
     #[pallet::config]
@@ -76,6 +84,37 @@ pub mod pallet {
         /// Event about successful move-package published
         /// [account]
         PackagePublished { who: T::AccountId },
+
+        /// Failed to clean up all the remaining session transfer permissions
+        /// * diff - how many of permissions remained undeleted
+        SessionTransferTokenCleanupFailed { diff: u32 },
+    }
+
+    // Pallet hook[s] implementations
+    #[pallet::hooks]
+    impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
+        fn on_finalize(_now: BlockNumberFor<T>) {
+            let unused: u32 = <SessionTransferToken<T>>::iter().count().saturated_into();
+            // if we failed to use permission to transfer tokens
+            // TODO: make payed execute a separate extrinsic?
+            if unused > 0 {
+                // remove everything
+                let deleted =
+                    <SessionTransferToken<T>>::clear(unused.saturated_into(), None).unique;
+                // report if something failed to be cleaned up - potential security risk
+                if unused > deleted {
+                    Self::deposit_event(Event::SessionTransferTokenCleanupFailed {
+                        diff: unused.saturating_sub(deleted),
+                    })
+                }
+            }
+        }
+        // Offchain worker with Mvm initialization
+        fn offchain_worker(_block_number: BlockNumberFor<T>) {
+            let storage = Self::move_vm_storage();
+
+            let vm = Mvm::new(storage, Gw::<T>::new(PhantomData::default())).unwrap();
+        }
     }
 
     // Dispatchable functions allows users to interact with the pallet and invoke state changes.
@@ -86,13 +125,11 @@ pub mod pallet {
         /// Execute Move script bytecode sent by the user.
         #[pallet::call_index(0)]
         #[pallet::weight(T::WeightInfo::execute())]
-        pub fn execute(
-            origin: OriginFor<T>,
-            _bytecode: Vec<u8>,
-            _gas_limit: u64,
-        ) -> DispatchResult {
+        pub fn execute(origin: OriginFor<T>, bytecode: Vec<u8>, _gas_limit: u64) -> DispatchResult {
             // Allow only signed calls.
             let who = ensure_signed(origin)?;
+            // store token for this session execution
+            <SessionTransferToken<T>>::insert(bytecode, who.clone());
 
             // TODO: Execute bytecode
 
@@ -120,7 +157,8 @@ pub mod pallet {
             //TODO(asmie): future work:
             // - put Mvm initialization to some other place, to avoid doing it every time
             // - Substrate address to Move address conversion is missing in the move-cli
-            let vm = Mvm::new(storage).map_err(|_err| Error::<T>::PublishModuleFailed)?;
+            let vm = Mvm::new(storage, Gw::<T>::new(PhantomData::default()))
+                .map_err(|_err| Error::<T>::PublishModuleFailed)?;
             let encoded = who.encode();
 
             ensure!(encoded.len().eq(&32), Error::<T>::InvalidAccountSize);
@@ -156,23 +194,6 @@ pub mod pallet {
 
             Ok(PostDispatchInfo::default())
         }
-
-        #[pallet::call_index(3)]
-        #[pallet::weight(T::WeightInfo::transfer())]
-        pub fn transfer(
-            origin: OriginFor<T>,
-            recepient: [u8; 32], // AccountAddress
-            amount: u128,
-        ) -> DispatchResult {
-            let from = ensure_signed(origin)?;
-            let recepient_account = AccountAddress::new(recepient);
-            T::Currency::transfer(
-                &from,
-                &Self::move_to_native(&recepient_account)?,
-                amount.saturated_into(),
-                ExistenceRequirement::KeepAlive,
-            )
-        }
     }
 
     #[pallet::error]
@@ -187,6 +208,8 @@ pub mod pallet {
         BalanceConversionFailed,
         /// Invalid account size (expected 32 bytes)
         InvalidAccountSize,
+        /// No token for signer account present for transfer execution in `SessionExecutionToken`
+        TransferNotAllowed,
     }
 
     /// Prepare a storage adapter ready for the Virtual Machine.
@@ -201,10 +224,10 @@ pub mod pallet {
 
     impl<T: Config> Pallet<T> {
         // Internal helper for creating new MoveVM instance with StorageAdapter.
-        fn move_vm() -> Result<Mvm<crate::storage::StorageAdapter<VMStorage<T>>>, Vec<u8>> {
+        fn move_vm() -> Result<Mvm<crate::storage::StorageAdapter<VMStorage<T>>, Gw<T>>, Vec<u8>> {
             let storage = Self::move_vm_storage();
 
-            Mvm::new(storage).map_err::<Vec<u8>, _>(|err| {
+            Mvm::new(storage, Gw::new(PhantomData::default())).map_err::<Vec<u8>, _>(|err| {
                 format!("error while creating the vm {:?}", err).into()
             })
         }
@@ -264,6 +287,55 @@ pub mod pallet {
             Ok(AccountAddress::new(
                 array_ref![account_bytes, 0, 32].to_owned(),
             ))
+        }
+    }
+
+    /// Implementing structure for 'SubstrateApi'
+    pub struct Gw<T: Config> {
+        api: PhantomData<T>,
+    }
+
+    impl<T> Gw<T>
+    where
+        T: Config,
+    {
+        pub fn new(api: PhantomData<T>) -> Self {
+            Self { api }
+        }
+    }
+    // Substrate glue for Move VM interaction with the chain
+    impl<T> SubstrateAPI for Gw<T>
+    where
+        T: Config,
+    {
+        fn transfer(
+            from: AccountAddress,
+            to: AccountAddress,
+            amount: u128,
+        ) -> Result<(), TransferError> {
+            // TODO: add conversion error
+            let from = Pallet::<T>::move_to_native(&from)
+                .map_err(|_| TransferError::InsuficientBalance)?;
+            // Verify there's a token
+            if !SessionTransferToken::<T>::iter().any(|v| v.1.eq(&from)) {
+                return Err(TransferError::NoSessionTokenPresent);
+            }
+            // TODO: add conversion error
+            let to =
+                Pallet::<T>::move_to_native(&to).map_err(|_| TransferError::InsuficientBalance)?;
+            T::Currency::transfer(
+                &from,
+                &to,
+                amount.saturated_into(),
+                ExistenceRequirement::KeepAlive,
+            )
+            .map_err(|_| TransferError::InsuficientBalance)?;
+            //TODO: clean up transfer token
+            Ok(())
+        }
+
+        fn get_balance(of: AccountAddress) -> u128 {
+            Pallet::<T>::get_move_balance(&of).unwrap_or(0)
         }
     }
 }
