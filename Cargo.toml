@@ -13,12 +13,15 @@ targets = ["x86_64-unknown-linux-gnu"]
 
 [dependencies]
 bcs = { git = "https://github.com/eigerco/bcs.git", default-features = false, branch = "master" }
-codec = { package = "parity-scale-codec", version = "3.6.1", default-features = false, features = ["derive",] }
+codec = { package = "parity-scale-codec", version = "3.6.1", default-features = false, features = ["derive"] }
 scale-info = { version = "2.5.0", default-features = false, features = ["derive"] }
-frame-benchmarking = { version = "4.0.0-dev", default-features = false, optional = true, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v1.0.0" }
-frame-support = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v1.0.0" }
-frame-system = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v1.0.0" }
-sp-std = { default-features = false, git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v1.0.0' }
+arrayref = "^0.3"
+frame-benchmarking = { default-features = false, optional = true, git = "https://github.com/paritytech/polkadot-sdk.git", branch = "release-polkadot-v1.3.0" }
+frame-support = { default-features = false, git = "https://github.com/paritytech/polkadot-sdk.git", branch = "release-polkadot-v1.3.0" }
+frame-system = { default-features = false, git = "https://github.com/paritytech/polkadot-sdk.git", branch = "release-polkadot-v1.3.0" }
+sp-std = { default-features = false, git = 'https://github.com/paritytech/polkadot-sdk.git', branch = 'release-polkadot-v1.3.0' }
+sp-core = { default-features = false, git = 'https://github.com/paritytech/polkadot-sdk.git', branch = 'release-polkadot-v1.3.0' }
+sp-runtime = { default-features = false, git = 'https://github.com/paritytech/polkadot-sdk.git', branch = 'release-polkadot-v1.3.0' }
 
 # MoveVM dependencies
 move-core-types = { default-features = false, git = 'https://github.com/eigerco/substrate-move.git', features = ["address32"] }
@@ -29,9 +32,10 @@ move-vm-backend = { default-features = false, git = 'https://github.com/eigerco/
 
 [dev-dependencies]
 hex = "0.4"
-sp-core = { version = "21.0.0", git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v1.0.0" }
-sp-io = { version = "23.0.0", git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v1.0.0" }
-sp-runtime = { version = "24.0.0", git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v1.0.0" }
+sp-core = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "release-polkadot-v1.3.0" }
+sp-io = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "release-polkadot-v1.3.0" }
+sp-runtime = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "release-polkadot-v1.3.0" }
+pallet-balances = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "release-polkadot-v1.3.0" }
 
 [features]
 default = ["std"]

@@ -2,8 +2,6 @@
 
 pub use pallet::*;
 
-pub mod address;
-
 #[cfg(feature = "runtime-benchmarks")]
 mod benchmarking;
 
@@ -20,15 +18,19 @@ pub mod pallet {
     #[cfg(not(feature = "std"))]
     use alloc::format;
 
+    use arrayref::array_ref;
     use codec::{FullCodec, FullEncode};
     use frame_support::{
         dispatch::{DispatchResultWithPostInfo, PostDispatchInfo},
         pallet_prelude::*,
+        traits::{Currency, ExistenceRequirement, ReservableCurrency},
     };
     use frame_system::pallet_prelude::*;
     use move_core_types::account_address::AccountAddress;
     use move_vm_backend::Mvm;
     use move_vm_types::gas::UnmeteredGasMeter;
+    use sp_core::crypto::AccountId32;
+    use sp_runtime::{DispatchResult, SaturatedConversion};
     use sp_std::{default::Default, vec::Vec};
 
     use super::*;
@@ -47,8 +49,12 @@ pub mod pallet {
     /// MoveVM pallet configuration trait
     #[pallet::config]
     pub trait Config: frame_system::Config {
+        /// The currency mechanism.
+        type Currency: Currency<Self::AccountId> + ReservableCurrency<Self::AccountId>;
+
         /// Because this pallet emits events, it depends on the runtime's definition of an event.
         type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
+
         /// Type representing the weight of this pallet
         type WeightInfo: WeightInfo;
     }
@@ -116,7 +122,7 @@ pub mod pallet {
 
             vm.publish_module(
                 bytecode.as_slice(),
-                address::to_move_address(&who),
+                Self::native_to_move(&who)?,
                 &mut UnmeteredGasMeter, // TODO(asmie): gas handling
             )
             .map_err(|_err| Error::<T>::PublishModuleFailed)?;
@@ -145,6 +151,23 @@ pub mod pallet {
 
             Ok(PostDispatchInfo::default())
         }
+
+        #[pallet::call_index(3)]
+        #[pallet::weight(T::WeightInfo::transfer())]
+        pub fn transfer(
+            origin: OriginFor<T>,
+            recepient: [u8; 32], // AccountAddress
+            amount: u128,
+        ) -> DispatchResult {
+            let from = ensure_signed(origin)?;
+            let recepient_account = AccountAddress::new(recepient);
+            T::Currency::transfer(
+                &from,
+                &Self::move_to_native(&recepient_account)?,
+                amount.saturated_into(),
+                ExistenceRequirement::KeepAlive,
+            )
+        }
     }
 
     #[pallet::error]
@@ -155,6 +178,10 @@ pub mod pallet {
         PublishModuleFailed,
         /// Error returned when publishing Move module package failed.
         PublishPackageFailed,
+        /// Native balance to u128 conversion failed
+        BalanceConversionFailed,
+        /// Invalid account size (expected 32 bytes)
+        InvalidAccountSize,
     }
 
     /// Prepare a storage adapter ready for the Virtual Machine.
@@ -183,7 +210,7 @@ pub mod pallet {
         ) -> Result<Option<Vec<u8>>, Vec<u8>> {
             let vm = Self::move_vm()?;
 
-            let address = address::to_move_address(&address);
+            let address = Self::native_to_move(address).unwrap();
 
             vm.get_module_abi(address, name)
                 .map_err(|e| format!("error in get_module_abi: {:?}", e).into())
@@ -192,7 +219,8 @@ pub mod pallet {
         pub fn get_module(address: &T::AccountId, name: &str) -> Result<Option<Vec<u8>>, Vec<u8>> {
             let vm = Self::move_vm()?;
 
-            let address = address::to_move_address(&address);
+            let address =
+                Self::native_to_move(address).map_err(|_| "Invalid address size".as_bytes())?;
 
             vm.get_module(address, name)
                 .map_err(|e| format!("error in get_module: {:?}", e).into())
@@ -205,10 +233,35 @@ pub mod pallet {
             let vm = Self::move_vm()?;
 
             vm.get_resource(
-                &AccountAddress::new(address::account_to_bytes(account)),
+                &Self::native_to_move(account).map_err(|_| "Invalid address size".as_bytes())?,
                 tag,
             )
             .map_err(|e| format!("error in get_resource: {:?}", e).into())
+        }
+
+        /// Get balance of given account in native currency converted to u128
+        pub fn get_balance(of: T::AccountId) -> u128 {
+            T::Currency::free_balance(&of).saturated_into::<u128>()
+        }
+
+        // Get balance of given Move account in native currecy converted to u128
+        pub fn get_move_balance(of: &AccountAddress) -> Result<u128, Error<T>> {
+            Ok(Self::get_balance(Self::move_to_native(of)?))
+        }
+
+        // Transparent conversion move -> native
+        pub fn move_to_native(of: &AccountAddress) -> Result<T::AccountId, Error<T>> {
+            T::AccountId::decode(&mut of.as_ref()).map_err(|_| Error::InvalidAccountSize)
+        }
+
+        // Transparent conversion native -> move
+        pub fn native_to_move(of: &T::AccountId) -> Result<AccountAddress, Error<T>> {
+            let of = AccountId32::decode(&mut of.encode().as_ref())
+                .map_err(|_| Error::InvalidAccountSize)?;
+            let account_bytes: [u8; 32] = of.into();
+            Ok(AccountAddress::new(
+                array_ref![account_bytes, 0, 32].to_owned(),
+            ))
         }
     }
 }

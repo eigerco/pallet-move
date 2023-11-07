@@ -3,17 +3,24 @@ mod mock;
 use frame_support::assert_ok;
 use mock::*;
 use move_core_types::{identifier::Identifier, language_storage::StructTag};
-use pallet_move::address;
+use sp_runtime::AccountId32;
 
-const EMPTY_ADDR: u64 = 0x000000000CAFE_u64.to_be();
+const EMPTY_ADDR: AccountId32 = AccountId32::new([1u8; 32]);
 
 #[test]
 /// Test getting a module.
 fn get_module_correct() {
     new_test_ext().execute_with(|| {
+        let signed = RuntimeOrigin::signed(EMPTY_ADDR);
+        assert_ok!(Balances::force_set_balance(
+            RuntimeOrigin::root(),
+            EMPTY_ADDR,
+            1_000_000_000_000
+        ));
+
         let module = include_bytes!("assets/move/build/move/bytecode_modules/Empty.mv").to_vec();
 
-        let res = MoveModule::publish_module(RuntimeOrigin::signed(EMPTY_ADDR), module.clone(), 0);
+        let res = MoveModule::publish_module(signed, module.clone(), 0);
 
         assert_ok!(res);
 
@@ -45,7 +52,7 @@ fn get_resource_correct() {
 
         assert_ok!(res);
 
-        let address = address::to_move_address(&EMPTY_ADDR);
+        let address = MoveModule::native_to_move(&EMPTY_ADDR).unwrap();
 
         let tag = StructTag {
             address,
@@ -70,7 +77,7 @@ fn get_resource_non_existent() {
 
         assert_ok!(res);
 
-        let address = address::to_move_address(&EMPTY_ADDR);
+        let address = MoveModule::native_to_move(&EMPTY_ADDR).unwrap();
 
         let tag = StructTag {
             address,
