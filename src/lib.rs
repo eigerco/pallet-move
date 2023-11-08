@@ -18,7 +18,6 @@ pub mod pallet {
     #[cfg(not(feature = "std"))]
     use alloc::format;
 
-    use arrayref::array_ref;
     use codec::{FullCodec, FullEncode};
     use frame_support::{
         dispatch::{DispatchResultWithPostInfo, PostDispatchInfo},
@@ -259,9 +258,7 @@ pub mod pallet {
             let of = AccountId32::decode(&mut of.encode().as_ref())
                 .map_err(|_| Error::InvalidAccountSize)?;
             let account_bytes: [u8; 32] = of.into();
-            Ok(AccountAddress::new(
-                array_ref![account_bytes, 0, 32].to_owned(),
-            ))
+            Ok(AccountAddress::new(account_bytes))
         }
     }
 }
