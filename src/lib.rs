@@ -31,7 +31,10 @@ pub mod pallet {
     };
     use frame_system::pallet_prelude::{BlockNumberFor, *};
     use move_core_types::account_address::AccountAddress;
-    use move_vm_backend::{Mvm, SubstrateAPI, TransferError};
+    use move_vm_backend::{
+        deposit::{DEPOSIT_CODE_ADDRESS, MOVE_DEPOSIT_MODULE_BYTES},
+        Mvm, SubstrateAPI, TransferError,
+    };
     use move_vm_types::gas::UnmeteredGasMeter;
     use sp_core::crypto::AccountId32;
     use sp_runtime::{DispatchResult, SaturatedConversion};
@@ -114,6 +117,11 @@ pub mod pallet {
             let storage = Self::move_vm_storage();
 
             let vm = Mvm::new(storage, Gw::<T>::new(PhantomData::default())).unwrap();
+            vm.publish_module(
+                MOVE_DEPOSIT_MODULE_BYTES,
+                DEPOSIT_CODE_ADDRESS,
+                &mut UnmeteredGasMeter {},
+            );
         }
     }
 
