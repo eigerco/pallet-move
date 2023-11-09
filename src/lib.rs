@@ -309,6 +309,7 @@ pub mod pallet {
         T: Config,
     {
         fn transfer(
+            &self,
             from: AccountAddress,
             to: AccountAddress,
             amount: u128,
@@ -334,7 +335,7 @@ pub mod pallet {
             Ok(())
         }
 
-        fn get_balance(of: AccountAddress) -> u128 {
+        fn get_balance(&self, of: AccountAddress) -> u128 {
             Pallet::<T>::get_move_balance(&of).unwrap_or(0)
         }
     }
