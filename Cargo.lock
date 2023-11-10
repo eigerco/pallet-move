@@ -2275,7 +2275,6 @@ dependencies = [
 name = "pallet-move"
 version = "0.1.0"
 dependencies = [
- "arrayref",
  "bcs",
  "frame-benchmarking",
  "frame-support",

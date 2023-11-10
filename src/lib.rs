@@ -2,8 +2,6 @@
 
 pub use pallet::*;
 
-pub mod address;
-
 #[cfg(feature = "runtime-benchmarks")]
 mod benchmarking;
 
@@ -19,10 +17,8 @@ pub mod pallet {
     extern crate alloc;
     #[cfg(not(feature = "std"))]
     use alloc::format;
-    use core::marker::PhantomData;
-
-    use arrayref::array_ref;
     use codec::{FullCodec, FullEncode};
+    use core::marker::PhantomData;
     use frame_support::{
         dispatch::{DispatchResultWithPostInfo, PostDispatchInfo},
         pallet_prelude::*,
@@ -175,7 +171,7 @@ pub mod pallet {
 
             vm.publish_module(
                 bytecode.as_slice(),
-                Self::native_to_move(AccountId32::new(array_ref![encoded, 0, 32].to_owned()))?,
+                Self::native_to_move(&who)?,
                 &mut UnmeteredGasMeter, // TODO(asmie): gas handling
             )
             .map_err(|_err| Error::<T>::PublishModuleFailed)?;
@@ -203,6 +199,23 @@ pub mod pallet {
             Self::deposit_event(Event::PackagePublished { who });
 
             Ok(PostDispatchInfo::default())
+        }
+
+        #[pallet::call_index(3)]
+        #[pallet::weight(T::WeightInfo::transfer())]
+        pub fn transfer(
+            origin: OriginFor<T>,
+            recepient: [u8; 32], // AccountAddress
+            amount: u128,
+        ) -> DispatchResult {
+            let from = ensure_signed(origin)?;
+            let recepient_account = AccountAddress::new(recepient);
+            T::Currency::transfer(
+                &from,
+                &Self::move_to_native(&recepient_account)?,
+                amount.saturated_into(),
+                ExistenceRequirement::KeepAlive,
+            )
         }
     }
 
@@ -248,7 +261,7 @@ pub mod pallet {
         ) -> Result<Option<Vec<u8>>, Vec<u8>> {
             let vm = Self::move_vm()?;
 
-            let address = address::to_move_address(&address);
+            let address = Self::native_to_move(address).unwrap();
 
             vm.get_module_abi(address, name)
                 .map_err(|e| format!("error in get_module_abi: {:?}", e).into())
@@ -257,7 +270,8 @@ pub mod pallet {
         pub fn get_module(address: &T::AccountId, name: &str) -> Result<Option<Vec<u8>>, Vec<u8>> {
             let vm = Self::move_vm()?;
 
-            let address = address::to_move_address(&address);
+            let address =
+                Self::native_to_move(address).map_err(|_| "Invalid address size".as_bytes())?;
 
             vm.get_module(address, name)
                 .map_err(|e| format!("error in get_module: {:?}", e).into())
@@ -270,7 +284,7 @@ pub mod pallet {
             let vm = Self::move_vm()?;
 
             vm.get_resource(
-                &AccountAddress::new(address::account_to_bytes(account)),
+                &Self::native_to_move(account).map_err(|_| "Invalid address size".as_bytes())?,
                 tag,
             )
             .map_err(|e| format!("error in get_resource: {:?}", e).into())
@@ -292,11 +306,11 @@ pub mod pallet {
         }
 
         // Transparent conversion native -> move
-        pub fn native_to_move(of: AccountId32) -> Result<AccountAddress, Error<T>> {
+        pub fn native_to_move(of: &T::AccountId) -> Result<AccountAddress, Error<T>> {
+            let of = AccountId32::decode(&mut of.encode().as_ref())
+                .map_err(|_| Error::InvalidAccountSize)?;
             let account_bytes: [u8; 32] = of.into();
-            Ok(AccountAddress::new(
-                array_ref![account_bytes, 0, 32].to_owned(),
-            ))
+            Ok(AccountAddress::new(account_bytes))
         }
     }
 
@@ -313,6 +327,7 @@ pub mod pallet {
             Self { api }
         }
     }
+
     // Substrate glue for Move VM interaction with the chain
     impl<T> SubstrateAPI for Gw<T>
     where

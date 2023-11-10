@@ -54,7 +54,7 @@ fn round_conversion_native_move_works() {
         const MOVE: &str = "0x90b5ab205c6974c9ea841be688864633dc9ca8a357843eeacf2314649965fe22";
         let native =
             MoveModule::move_to_native(&AccountAddress::from_hex_literal(MOVE).unwrap()).unwrap();
-        let move_again = MoveModule::native_to_move(native).unwrap();
+        let move_again = MoveModule::native_to_move(&native).unwrap();
         assert_eq!(MOVE, move_again.to_hex_literal());
     })
 }

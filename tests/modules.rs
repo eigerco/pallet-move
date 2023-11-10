@@ -3,7 +3,6 @@ mod mock;
 use frame_support::assert_ok;
 use mock::*;
 use move_core_types::{identifier::Identifier, language_storage::StructTag};
-use pallet_move::address;
 use sp_runtime::AccountId32;
 
 const EMPTY_ADDR: AccountId32 = AccountId32::new([1u8; 32]);
@@ -53,7 +52,7 @@ fn get_resource_correct() {
 
         assert_ok!(res);
 
-        let address = address::to_move_address(&EMPTY_ADDR);
+        let address = MoveModule::native_to_move(&EMPTY_ADDR).unwrap();
 
         let tag = StructTag {
             address,
@@ -78,7 +77,7 @@ fn get_resource_non_existent() {
 
         assert_ok!(res);
 
-        let address = address::to_move_address(&EMPTY_ADDR);
+        let address = MoveModule::native_to_move(&EMPTY_ADDR).unwrap();
 
         let tag = StructTag {
             address,
