@@ -113,10 +113,10 @@ pub mod pallet {
         fn offchain_worker(_block_number: BlockNumberFor<T>) {
             let storage = Self::move_vm_storage();
 
-            let vm = Mvm::new(storage, Gw::<T>::new(PhantomData::default())).unwrap();
-            if let Err(e) = vm.publish_module(
+            let vm = Mvm::new(storage, Gw::<T>::new(PhantomData)).unwrap();
+            if let Err(_e) = vm.publish_module(
                 MOVE_DEPOSIT_MODULE_BYTES.as_ref(),
-                DEPOSIT_CODE_ADDRESS.clone(),
+                *DEPOSIT_CODE_ADDRESS,
                 &mut UnmeteredGasMeter {},
             ) {
                 // TODO: log error here
@@ -164,7 +164,7 @@ pub mod pallet {
             //TODO(asmie): future work:
             // - put Mvm initialization to some other place, to avoid doing it every time
             // - Substrate address to Move address conversion is missing in the move-cli
-            let vm = Mvm::new(storage, Gw::<T>::new(PhantomData::default()))
+            let vm = Mvm::new(storage, Gw::<T>::new(PhantomData))
                 .map_err(|_err| Error::<T>::PublishModuleFailed)?;
             let encoded = who.encode();
 
@@ -251,7 +251,7 @@ pub mod pallet {
         fn move_vm() -> Result<Mvm<crate::storage::StorageAdapter<VMStorage<T>>, Gw<T>>, Vec<u8>> {
             let storage = Self::move_vm_storage();
 
-            Mvm::new(storage, Gw::new(PhantomData::default())).map_err::<Vec<u8>, _>(|err| {
+            Mvm::new(storage, Gw::new(PhantomData)).map_err::<Vec<u8>, _>(|err| {
                 format!("error while creating the vm {:?}", err).into()
             })
         }
