@@ -17,8 +17,9 @@ pub mod pallet {
     extern crate alloc;
     #[cfg(not(feature = "std"))]
     use alloc::format;
-    use codec::{FullCodec, FullEncode};
     use core::marker::PhantomData;
+
+    use codec::{FullCodec, FullEncode};
     use frame_support::{
         dispatch::{DispatchResultWithPostInfo, PostDispatchInfo},
         pallet_prelude::*,
