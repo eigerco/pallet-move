@@ -117,11 +117,13 @@ pub mod pallet {
             let storage = Self::move_vm_storage();
 
             let vm = Mvm::new(storage, Gw::<T>::new(PhantomData::default())).unwrap();
-            vm.publish_module(
-                MOVE_DEPOSIT_MODULE_BYTES,
-                DEPOSIT_CODE_ADDRESS,
+            if let Err(e) = vm.publish_module(
+                MOVE_DEPOSIT_MODULE_BYTES.as_ref(),
+                DEPOSIT_CODE_ADDRESS.clone(),
                 &mut UnmeteredGasMeter {},
-            );
+            ) {
+                // TODO: log error here
+            }
         }
     }
 
