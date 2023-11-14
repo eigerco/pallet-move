@@ -24,7 +24,6 @@ pub mod pallet {
         dispatch::{DispatchResultWithPostInfo, PostDispatchInfo},
         pallet_prelude::*,
         traits::{Currency, ExistenceRequirement, Hooks, ReservableCurrency},
-        Blake2_128Concat,
     };
     use frame_system::pallet_prelude::{BlockNumberFor, *};
     use move_core_types::account_address::AccountAddress;
@@ -33,7 +32,7 @@ pub mod pallet {
         Mvm, SubstrateAPI, TransferError,
     };
     use move_vm_types::gas::UnmeteredGasMeter;
-    use sp_core::crypto::AccountId32;
+    use sp_core::{blake2_128, crypto::AccountId32};
     use sp_runtime::{DispatchResult, SaturatedConversion};
     use sp_std::{default::Default, vec::Vec};
 
@@ -55,6 +54,13 @@ pub mod pallet {
     #[pallet::storage]
     pub(super) type SessionTransferToken<T: Config> =
         StorageMap<_, Blake2_128Concat, Vec<u8>, T::AccountId>;
+
+    /// Published modules to be processed by `Mvm` instance
+    /// Picked up one by one on `offchain_worker` execution
+    /// Report of execution is done by emitting `Event::PublishModuleResult{ publisher, module, status }`
+    #[pallet::storage]
+    pub(super) type ModulesToPublish<T: Config> =
+        StorageDoubleMap<_, Blake2_128Concat, T::AccountId, Blake2_128Concat, u128, Vec<u8>>;
 
     /// MoveVM pallet configuration trait
     #[pallet::config]
@@ -79,7 +85,8 @@ pub mod pallet {
 
         /// Event about successful move-module publishing
         /// [account]
-        ModulePublished { who: T::AccountId },
+        /// blake2_128 hash of submitted bytecode Big Endian encoded into u128
+        ModulePublished { who: T::AccountId, module_id: u128 },
 
         /// Event about successful move-package published
         /// [account]
@@ -167,26 +174,13 @@ pub mod pallet {
             // Allow only signed calls.
             let who = ensure_signed(origin)?;
 
-            let storage = Self::move_vm_storage();
-
-            //TODO(asmie): future work:
-            // - put Mvm initialization to some other place, to avoid doing it every time
-            // - Substrate address to Move address conversion is missing in the move-cli
-            let vm = Mvm::new(storage, Gw::<T>::new(PhantomData))
-                .map_err(|_err| Error::<T>::PublishModuleFailed)?;
-            let encoded = who.encode();
-
-            ensure!(encoded.len().eq(&32), Error::<T>::InvalidAccountSize);
-
-            vm.publish_module(
-                bytecode.as_slice(),
-                Self::native_to_move(&who)?,
-                &mut UnmeteredGasMeter, // TODO(asmie): gas handling
-            )
-            .map_err(|_err| Error::<T>::PublishModuleFailed)?;
+            // TODO: can we check if given bytecode is actually Move module?
+            // FIXME: define size checks
+            let module_id = u128::from_be_bytes(blake2_128(&bytecode));
+            ModulesToPublish::<T>::insert(who.clone(), module_id, bytecode);
 
             // Emit an event.
-            Self::deposit_event(Event::ModulePublished { who });
+            Self::deposit_event(Event::ModulePublished { who, module_id });
 
             // Return a successful DispatchResultWithPostInfo
             Ok(PostDispatchInfo::default())
