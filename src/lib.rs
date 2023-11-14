@@ -248,6 +248,7 @@ pub mod pallet {
 
     impl<T: Config> Pallet<T> {
         // Internal helper for creating new MoveVM instance with StorageAdapter.
+        #[allow(clippy::type_complexity)]
         fn move_vm() -> Result<Mvm<crate::storage::StorageAdapter<VMStorage<T>>, Gw<T>>, Vec<u8>> {
             let storage = Self::move_vm_storage();
 
