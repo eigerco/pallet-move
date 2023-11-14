@@ -39,6 +39,13 @@ pub mod pallet {
     use super::*;
     use crate::storage::MoveVmStorage;
 
+    /// Represents if module publish succedded or failed
+    #[derive(Debug, Encode, Decode, Clone, Copy, PartialEq, Eq, TypeInfo)]
+    pub enum ModulePublishStatus {
+        Suceess,
+        Failure,
+    }
+
     #[pallet::pallet]
     #[pallet::without_storage_info] // Allows to define storage items without fixed size
     pub struct Pallet<T>(_);
@@ -87,7 +94,15 @@ pub mod pallet {
         /// [account]
         /// blake2_128 hash of submitted bytecode Big Endian encoded into u128
         ModulePublished { who: T::AccountId, module_id: u128 },
-
+        /// Event emitted by `offline_client` which allows module publishing execution monitoring
+        /// * publisher - account of publish_module extrinsict caller.
+        /// * module - u128 hash ID of module data
+        /// * status - `modulePublishStatus` indicating result of operation
+        PublishModuleResult {
+            publisher: T::AccountId,
+            module: u128,
+            status: ModulePublishStatus,
+        },
         /// Event about successful move-package published
         /// [account]
         PackagePublished { who: T::AccountId },
@@ -136,6 +151,29 @@ pub mod pallet {
                 return; // can not proceed without deposit module injected
             }
             Self::deposit_event(Event::DepositModulePublished);
+
+            // Processing users modules to be published
+            ModulesToPublish::<T>::drain().for_each(|(account, id, module)| {
+                if let Err(_) = vm.publish_module(
+                    &module,
+                    Self::native_to_move(&account).unwrap(), //FIXME: safe to unwrap?
+                    &mut UnmeteredGasMeter {},
+                ) {
+                    // report failure
+                    Self::deposit_event(Event::PublishModuleResult {
+                        publisher: account,
+                        module: id,
+                        status: ModulePublishStatus::Failure,
+                    });
+                } else {
+                    // report success
+                    Self::deposit_event(Event::PublishModuleResult {
+                        publisher: account,
+                        module: id,
+                        status: ModulePublishStatus::Suceess,
+                    });
+                }
+            });
         }
     }
 
