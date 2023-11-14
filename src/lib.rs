@@ -88,6 +88,12 @@ pub mod pallet {
         /// Failed to clean up all the remaining session transfer permissions
         /// * diff - how many of permissions remained undeleted
         SessionTransferTokenCleanupFailed { diff: u32 },
+
+        /// Failed to publish DepositModule from offchain_worker
+        DepositModulePublishFailed,
+
+        /// Successfuly published DepositModule from offchain_worker
+        DepositModulePublished,
     }
 
     // Pallet hook[s] implementations
@@ -119,8 +125,10 @@ pub mod pallet {
                 *DEPOSIT_CODE_ADDRESS,
                 &mut UnmeteredGasMeter {},
             ) {
-                // TODO: log error here
+                Self::deposit_event(Event::DepositModulePublishFailed);
+                return; // can not proceed without deposit module injected
             }
+            Self::deposit_event(Event::DepositModulePublished);
         }
     }
 
