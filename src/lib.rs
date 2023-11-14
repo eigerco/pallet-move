@@ -39,11 +39,18 @@ pub mod pallet {
     use super::*;
     use crate::storage::MoveVmStorage;
 
-    /// Represents if module publish succedded or failed
-    #[derive(Debug, Encode, Decode, Clone, Copy, PartialEq, Eq, TypeInfo)]
+    /// Reports if module publish succedded or failed
+    #[derive(Debug, Encode, Decode, Clone, PartialEq, Eq, TypeInfo)]
     pub enum ModulePublishStatus {
         Suceess,
-        Failure,
+        Failure(String),
+    }
+
+    /// Reports of script execution succedded or failed
+    #[derive(Debug, Encode, Decode, Clone, PartialEq, Eq, TypeInfo)]
+    pub enum ScriptExecutionStatus {
+        Suceess,
+        Failure(String),
     }
 
     #[pallet::pallet]
@@ -67,7 +74,14 @@ pub mod pallet {
     /// Report of execution is done by emitting `Event::PublishModuleResult{ publisher, module, status }`
     #[pallet::storage]
     pub(super) type ModulesToPublish<T: Config> =
-        StorageDoubleMap<_, Blake2_128Concat, T::AccountId, Blake2_128Concat, u128, Vec<u8>>;
+        StorageDoubleMap<_, Twox64Concat, T::AccountId, Twox64Concat, u128, Vec<u8>>;
+
+    /// Set of submitted scripts for execution by `Mvm` instance
+    /// Picked up one by one on `offchain_worker` execution
+    /// Report of execution is done by emitting `Event::ScriptExecutionResult { publisher, script, status }`
+    #[pallet::storage]
+    pub(super) type ScriptsToExecute<T: Config> =
+        StorageDoubleMap<_, Twox64Concat, T::AccountId, Twox64Concat, u128, Vec<u8>>;
 
     /// MoveVM pallet configuration trait
     #[pallet::config]
@@ -94,6 +108,7 @@ pub mod pallet {
         /// [account]
         /// blake2_128 hash of submitted bytecode Big Endian encoded into u128
         ModulePublished { who: T::AccountId, module_id: u128 },
+
         /// Event emitted by `offline_client` which allows module publishing execution monitoring
         /// * publisher - account of publish_module extrinsict caller.
         /// * module - u128 hash ID of module data
@@ -103,6 +118,17 @@ pub mod pallet {
             module: u128,
             status: ModulePublishStatus,
         },
+
+        /// Event emitted by `offline_client` which allows script execution monitoring
+        /// * publisher - account of publish_module extrinsict caller.
+        /// * script - u128 hash ID of script data
+        /// * status - `modulePublishStatus` indicating result of operation
+        ExecuteScriptResult {
+            publisher: T::AccountId,
+            script: u128,
+            status: ScriptExecutionStatus,
+        },
+
         /// Event about successful move-package published
         /// [account]
         PackagePublished { who: T::AccountId },
@@ -154,7 +180,7 @@ pub mod pallet {
 
             // Processing users modules to be published
             ModulesToPublish::<T>::drain().for_each(|(account, id, module)| {
-                if let Err(_) = vm.publish_module(
+                if let Err(reason) = vm.publish_module(
                     &module,
                     Self::native_to_move(&account).unwrap(), //FIXME: safe to unwrap?
                     &mut UnmeteredGasMeter {},
@@ -163,7 +189,7 @@ pub mod pallet {
                     Self::deposit_event(Event::PublishModuleResult {
                         publisher: account,
                         module: id,
-                        status: ModulePublishStatus::Failure,
+                        status: ModulePublishStatus::Failure(reason.to_string()),
                     });
                 } else {
                     // report success
@@ -171,6 +197,26 @@ pub mod pallet {
                         publisher: account,
                         module: id,
                         status: ModulePublishStatus::Suceess,
+                    });
+                }
+            });
+
+            // Executing submitted scripts
+            ScriptsToExecute::<T>::drain().for_each(|(account, id, script)| {
+                if let Err(reason) =
+                    // TODO: implement after transaction merge
+                    vm.execute_script(&script, vec![], vec![], &mut UnmeteredGasMeter {})
+                {
+                    Self::deposit_event(Event::ExecuteScriptResult {
+                        publisher: account,
+                        script: id,
+                        status: ScriptExecutionStatus::Failure(reason.to_string()),
+                    });
+                } else {
+                    Self::deposit_event(Event::ExecuteScriptResult {
+                        publisher: account,
+                        script: id,
+                        status: ScriptExecutionStatus::Suceess,
                     });
                 }
             });
