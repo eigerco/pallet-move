@@ -1731,6 +1731,9 @@ name = "lazy_static"
 version = "1.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e2abad23fbc42b3700f2f279844dc832adb2b2eb069b2df918f455c4e18cc646"
+dependencies = [
+ "spin",
+]
 
 [[package]]
 name = "libc"
@@ -1968,7 +1971,7 @@ dependencies = [
 [[package]]
 name = "move-binary-format"
 version = "0.0.3"
-source = "git+https://github.com/eigerco/substrate-move.git?branch=iv-transfer-callback#412d26f2641ba0caed2b7e85d1c6c3e85c36a29d"
+source = "git+https://github.com/eigerco/substrate-move.git?branch=iv-transfer-callback#15fbfce81d3ca2d95a38361386bacce6bdc24e04"
 dependencies = [
  "anyhow",
  "hashbrown 0.14.2",
@@ -1981,12 +1984,12 @@ dependencies = [
 [[package]]
 name = "move-borrow-graph"
 version = "0.0.1"
-source = "git+https://github.com/eigerco/substrate-move.git?branch=iv-transfer-callback#412d26f2641ba0caed2b7e85d1c6c3e85c36a29d"
+source = "git+https://github.com/eigerco/substrate-move.git?branch=iv-transfer-callback#15fbfce81d3ca2d95a38361386bacce6bdc24e04"
 
 [[package]]
 name = "move-bytecode-verifier"
 version = "0.1.0"
-source = "git+https://github.com/eigerco/substrate-move.git?branch=iv-transfer-callback#412d26f2641ba0caed2b7e85d1c6c3e85c36a29d"
+source = "git+https://github.com/eigerco/substrate-move.git?branch=iv-transfer-callback#15fbfce81d3ca2d95a38361386bacce6bdc24e04"
 dependencies = [
  "anyhow",
  "fail",
@@ -2000,7 +2003,7 @@ dependencies = [
 [[package]]
 name = "move-core-types"
 version = "0.0.4"
-source = "git+https://github.com/eigerco/substrate-move.git?branch=iv-transfer-callback#412d26f2641ba0caed2b7e85d1c6c3e85c36a29d"
+source = "git+https://github.com/eigerco/substrate-move.git?branch=iv-transfer-callback#15fbfce81d3ca2d95a38361386bacce6bdc24e04"
 dependencies = [
  "anyhow",
  "bcs",
@@ -2019,7 +2022,7 @@ dependencies = [
 [[package]]
 name = "move-stdlib"
 version = "0.1.1"
-source = "git+https://github.com/eigerco/substrate-move.git?branch=iv-transfer-callback#412d26f2641ba0caed2b7e85d1c6c3e85c36a29d"
+source = "git+https://github.com/eigerco/substrate-move.git?branch=iv-transfer-callback#15fbfce81d3ca2d95a38361386bacce6bdc24e04"
 dependencies = [
  "hex",
  "move-binary-format",
@@ -2034,7 +2037,7 @@ dependencies = [
 [[package]]
 name = "move-vm-backend"
 version = "0.1.0"
-source = "git+https://github.com/eigerco/substrate-move.git?branch=iv-transfer-callback#412d26f2641ba0caed2b7e85d1c6c3e85c36a29d"
+source = "git+https://github.com/eigerco/substrate-move.git?branch=iv-transfer-callback#15fbfce81d3ca2d95a38361386bacce6bdc24e04"
 dependencies = [
  "anyhow",
  "bcs",
@@ -2051,7 +2054,7 @@ dependencies = [
 [[package]]
 name = "move-vm-backend-common"
 version = "0.1.0"
-source = "git+https://github.com/eigerco/substrate-move.git?branch=iv-transfer-callback#412d26f2641ba0caed2b7e85d1c6c3e85c36a29d"
+source = "git+https://github.com/eigerco/substrate-move.git?branch=iv-transfer-callback#15fbfce81d3ca2d95a38361386bacce6bdc24e04"
 dependencies = [
  "anyhow",
  "bcs",
@@ -2062,7 +2065,7 @@ dependencies = [
 [[package]]
 name = "move-vm-runtime"
 version = "0.1.0"
-source = "git+https://github.com/eigerco/substrate-move.git?branch=iv-transfer-callback#412d26f2641ba0caed2b7e85d1c6c3e85c36a29d"
+source = "git+https://github.com/eigerco/substrate-move.git?branch=iv-transfer-callback#15fbfce81d3ca2d95a38361386bacce6bdc24e04"
 dependencies = [
  "better_any",
  "fail",
@@ -2071,7 +2074,6 @@ dependencies = [
  "move-bytecode-verifier",
  "move-core-types",
  "move-vm-types",
- "once_cell",
  "sha3",
  "tracing",
 ]
@@ -2079,7 +2081,7 @@ dependencies = [
 [[package]]
 name = "move-vm-types"
 version = "0.1.0"
-source = "git+https://github.com/eigerco/substrate-move.git?branch=iv-transfer-callback#412d26f2641ba0caed2b7e85d1c6c3e85c36a29d"
+source = "git+https://github.com/eigerco/substrate-move.git?branch=iv-transfer-callback#15fbfce81d3ca2d95a38361386bacce6bdc24e04"
 dependencies = [
  "bcs",
  "move-binary-format",
@@ -3454,6 +3456,12 @@ dependencies = [
  "sp-debug-derive",
  "sp-std",
 ]
+
+[[package]]
+name = "spin"
+version = "0.5.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6e63cff320ae2c57904679ba7cb63280a3dc4613885beafb148ee7bf9aa9042d"
 
 [[package]]
 name = "spki"

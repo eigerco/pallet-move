@@ -65,6 +65,15 @@ fn round_conversion_native_move_works() {
 }
 
 #[test]
+fn offline_client_deposit_module_publish_works() {
+    new_test_ext().execute_with(|| {
+        frame_system::Pallet::<Test>::set_block_number(1);
+        MoveModule::offchain_worker(1u64);
+        assert_last_event(Event::<Test>::StdModulePublished.into());
+    });
+}
+
+#[test]
 fn offline_client_bad_inputs_emmits_correct_error_events() {
     new_test_ext().execute_with(|| {
         let user =
@@ -81,7 +90,9 @@ fn offline_client_bad_inputs_emmits_correct_error_events() {
             Event::<Test>::PublishModuleResult {
                 publisher: user.clone(),
                 module: module_id,
-                status: pallet_move::ModulePublishStatus::Failure("".into()),
+                status: pallet_move::ModulePublishStatus::Failure(
+                    "Error code:BAD_MAGIC: msg: ''".into(),
+                ),
             }
             .into(),
         );

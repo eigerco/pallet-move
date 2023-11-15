@@ -1,5 +1,4 @@
 use frame_support::traits::{ConstU128, ConstU16, ConstU32, ConstU64};
-use frame_system::EventRecord;
 use pallet_move::Config;
 use sp_core::H256;
 use sp_runtime::{
@@ -84,7 +83,11 @@ frame_support::construct_runtime!(
     }
 );
 
-pub fn assert_last_event(generic_event: RuntimeEvent) {
+#[cfg(test)]
+#[allow(dead_code)]
+/// function to check last event from runtime.
+/// for test purposes only!
+pub(crate) fn assert_last_event(generic_event: RuntimeEvent) {
     let events = frame_system::Pallet::<Test>::events();
     let system_event: <Test as frame_system::Config>::RuntimeEvent = generic_event.into();
     // compare to the last event record
