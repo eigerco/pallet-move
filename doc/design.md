@@ -223,7 +223,8 @@ As Move have no concept of FFI - only way to achieve similar behaviour is to use
 This struck is intercepted by storage implementor and, in combination with implementor of `SubstrateApi`, provides means to manipulate own balance of coresponding Substrate native address [`T::AccointId`] to Move's `AccountAddress`.
 Deposit with transfer requires additional check and thus is granted for single execution by `execute` extrinsic submitting signer.
 
-<div hidden>
+<details>
+<summary></summary>
 ```
 @startuml depositWorkflow
 !include <archimate/Archimate>
@@ -258,7 +259,7 @@ Rel_Serving_Down(extrinsic, transferToken, "")
 Rel_Serving_Down(extrinsic, storedScript, "")
 @enduml
 ```
-</div>
+</details>
 
 ![](./assets/depositWorkflow.svg)
 
