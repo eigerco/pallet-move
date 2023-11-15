@@ -1,5 +1,7 @@
 use core::convert::TryFrom;
 
+//TODO: either leave it as is when moving to move-vm-backend (then remove this comment) or
+// change it to crate error type
 use anyhow::Error;
 use move_core_types::language_storage::TypeTag;
 use serde::{Deserialize, Serialize};
