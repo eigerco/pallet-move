@@ -101,7 +101,7 @@ pub mod pallet {
                 transaction.args.iter().map(|x| x.as_slice()).collect(),
                 &mut UnmeteredGasMeter, // TODO(asmie): gas handling
             )
-            .map_err(|_err| Error::<T>::PublishModuleFailed)?;
+            .map_err(|_err| Error::<T>::ExecuteFailed)?;
 
             // Emit an event.
             Self::deposit_event(Event::ExecuteCalled { who });
