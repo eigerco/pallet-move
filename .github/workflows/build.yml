@@ -16,6 +16,9 @@ jobs:
     name: Run fmt and clippy
     runs-on: ubuntu-latest
     steps:
+      - name: Install move-cli
+        run: cargo install --path ./language/tools/move-cli/ move-cli
+
       - name: Checkout eigerco/pallet-move
         uses: actions/checkout@v3
         with:
