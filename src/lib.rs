@@ -28,7 +28,7 @@ pub mod pallet {
     use frame_system::pallet_prelude::{BlockNumberFor, *};
     use move_core_types::account_address::AccountAddress;
     use move_vm_backend::{
-        deposit::{DEPOSIT_CODE_ADDRESS, MOVE_DEPOSIT_MODULE_BYTES},
+        deposit::{MOVE_DEPOSIT_MODULE_BYTES, ROOT_ADDRESS, SIGNER_MODULE_BYTES},
         Mvm, SubstrateAPI, TransferError,
     };
     use move_vm_types::gas::UnmeteredGasMeter;
@@ -138,10 +138,10 @@ pub mod pallet {
         SessionTransferTokenCleanupFailed { diff: u32 },
 
         /// Failed to publish DepositModule from offchain_worker
-        DepositModulePublishFailed,
+        StdModulePublishFailed(String),
 
         /// Successfuly published DepositModule from offchain_worker
-        DepositModulePublished,
+        StdModulePublished,
     }
 
     // Pallet hook[s] implementations
@@ -168,15 +168,26 @@ pub mod pallet {
             let storage = Self::move_vm_storage();
 
             let vm = Mvm::new(storage, Gw::<T>::new(PhantomData)).unwrap();
-            if let Err(_e) = vm.publish_module(
-                MOVE_DEPOSIT_MODULE_BYTES.as_ref(),
-                *DEPOSIT_CODE_ADDRESS,
+            // inject std
+            if let Err(e) = vm.publish_module(
+                SIGNER_MODULE_BYTES.as_ref(),
+                *ROOT_ADDRESS,
                 &mut UnmeteredGasMeter {},
             ) {
-                Self::deposit_event(Event::DepositModulePublishFailed);
+                Self::deposit_event(Event::StdModulePublishFailed(e.to_string()));
                 return; // can not proceed without deposit module injected
             }
-            Self::deposit_event(Event::DepositModulePublished);
+            Self::deposit_event(Event::StdModulePublished);
+            // inject deposit
+            if let Err(e) = vm.publish_module(
+                MOVE_DEPOSIT_MODULE_BYTES.as_ref(),
+                *ROOT_ADDRESS,
+                &mut UnmeteredGasMeter {},
+            ) {
+                Self::deposit_event(Event::StdModulePublishFailed(e.to_string()));
+                return; // can not proceed without deposit module injected
+            }
+            Self::deposit_event(Event::StdModulePublished);
 
             // Processing users modules to be published
             ModulesToPublish::<T>::drain().for_each(|(account, id, module)| {
