@@ -73,14 +73,14 @@ pub mod pallet {
     /// Picked up one by one on `offchain_worker` execution
     /// Report of execution is done by emitting `Event::PublishModuleResult{ publisher, module, status }`
     #[pallet::storage]
-    pub(super) type ModulesToPublish<T: Config> =
+    pub type ModulesToPublish<T: Config> =
         StorageDoubleMap<_, Twox64Concat, T::AccountId, Twox64Concat, u128, Vec<u8>>;
 
     /// Set of submitted scripts for execution by `Mvm` instance
     /// Picked up one by one on `offchain_worker` execution
     /// Report of execution is done by emitting `Event::ScriptExecutionResult { publisher, script, status }`
     #[pallet::storage]
-    pub(super) type ScriptsToExecute<T: Config> =
+    pub type ScriptsToExecute<T: Config> =
         StorageDoubleMap<_, Twox64Concat, T::AccountId, Twox64Concat, u128, Vec<u8>>;
 
     /// MoveVM pallet configuration trait

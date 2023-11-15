@@ -1,4 +1,6 @@
 use frame_support::traits::{ConstU128, ConstU16, ConstU32, ConstU64};
+use frame_system::EventRecord;
+use pallet_move::Config;
 use sp_core::H256;
 use sp_runtime::{
     traits::{BlakeTwo256, IdentityLookup},
@@ -55,7 +57,7 @@ impl pallet_balances::Config for Test {
     type RuntimeFreezeReason = ();
 }
 
-impl pallet_move::Config for Test {
+impl Config for Test {
     type Currency = Balances;
     type RuntimeEvent = RuntimeEvent;
     type WeightInfo = ();
@@ -64,10 +66,12 @@ impl pallet_move::Config for Test {
 // Build genesis storage according to the mock runtime.
 #[allow(dead_code)]
 pub fn new_test_ext() -> sp_io::TestExternalities {
-    frame_system::GenesisConfig::<Test>::default()
+    let t = frame_system::GenesisConfig::<Test>::default()
         .build_storage()
-        .unwrap()
-        .into()
+        .unwrap();
+    let mut ext = sp_io::TestExternalities::new(t);
+    ext.execute_with(|| System::set_block_number(0));
+    ext
 }
 
 // Configure a mock runtime to test the pallet.
@@ -79,3 +83,11 @@ frame_support::construct_runtime!(
         MoveModule: pallet_move,
     }
 );
+
+pub fn assert_last_event(generic_event: RuntimeEvent) {
+    let events = frame_system::Pallet::<Test>::events();
+    let system_event: <Test as frame_system::Config>::RuntimeEvent = generic_event.into();
+    // compare to the last event record
+    let frame_system::EventRecord { event, .. } = &events[events.len() - 1];
+    assert_eq!(event, &system_event);
+}

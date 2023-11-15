@@ -1,8 +1,10 @@
 mod mock;
 
-use frame_support::assert_ok;
+use frame_support::{assert_ok, traits::OffchainWorker};
 use mock::*;
 use move_core_types::{identifier::Identifier, language_storage::StructTag};
+use pallet_move::ModulesToPublish;
+use sp_core::blake2_128;
 use sp_runtime::AccountId32;
 
 const EMPTY_ADDR: AccountId32 = AccountId32::new([1u8; 32]);
@@ -23,6 +25,13 @@ fn get_module_correct() {
         let res = MoveModule::publish_module(signed, module.clone(), 0);
 
         assert_ok!(res);
+        assert!(ModulesToPublish::<Test>::contains_key(
+            EMPTY_ADDR,
+            u128::from_be_bytes(blake2_128(&module))
+        ));
+
+        // Process published
+        MoveModule::offchain_worker(0u64);
 
         let res = MoveModule::get_module(&EMPTY_ADDR, "Empty");
 
