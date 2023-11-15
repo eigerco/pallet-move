@@ -28,6 +28,9 @@ jobs:
           components: rustfmt, clippy
           override: true
 
+      - name: Install move-cli
+        run: cargo install --git https://github.com/move-language/move move-cli --branch main
+
       - name: fmt
         run: cargo fmt --all -- --check
 
