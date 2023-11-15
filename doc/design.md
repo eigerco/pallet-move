@@ -15,6 +15,7 @@
   - [The proposed architecture solution](#the-proposed-architecture-solution)
     - [Substrate MoveVM pallet](#substrate-movevm-pallet)
     - [MoveVM module and changes](#movevm-module-and-changes)
+    - [Working with native currency](#working-with-native-currency)
   - [Testing](#testing)
   - [Repository structure](#repository-structure)
 - [Conclusions](#conclusions)
@@ -215,6 +216,51 @@ The MoveVM-backend module `move-vm-backend` will be used as an interface between
 | ![uml-full-picture.png](./assets/uml-full-picture.png) |
 |:--:|
 | *The full architecture overview* |
+
+#### Working with native currency
+
+As Move have no concept of FFI - only way to achieve similar behaviour is to use storage operations interception. With this approach a specific `DepositModule` with predefined static address is created. This Move module exposes `Deposit` type. Which with it's constructor and methods can be used to fetch balances of signer, other addsess or to transfer tokens from signer to other address.
+This struck is intercepted by storage implementor and, in combination with implementor of `SubstrateApi`, provides means to manipulate own balance of coresponding Substrate native address [`T::AccointId`] to Move's `AccountAddress`.
+Deposit with transfer requires additional check and thus is granted for single execution by `execute` extrinsic submitting signer.
+
+<div hidden>
+```
+@startuml depositWorkflow
+!include <archimate/Archimate>
+title Native currency workflow
+rectangle "move_pallet logic" {
+    Business_Object(nativeToken, "Native tokens balance change")
+    Business_Process(apiTransfer,"SubstrateApi transfer implementation")
+    Business_Service(apiImplementor, "SubstraeApi Implementor struct")
+    Business_Service(storageHandler, "Mvm storage implementator struct")
+    Application_DataObject(mvmStore, "Mvm storage")
+}
+rectangle offchain_worker {
+    Application_Component(offchainWorker, "offchain_worker() implementation")
+    Application_DataObject(depositStore, "Mvm::execute(0x42::DepositModule::Deposit)")
+    Application_Function(executeScript, "Mvm script executor function")
+}
+rectangle "execute() extrinsic and on-chain storage" {
+    Technology_Artifact(transferToken,"SessionTransferToken")
+    Technology_Artifact(storedScript, "Stored script for offchain_worker execution")
+    Technology_Service(extrinsic, "execute() extrinsic")
+}
+Rel_Assignment_Right(apiTransfer, nativeToken, "")
+Rel_Serving_Up(apiImplementor, apiTransfer, "")
+Rel_Flow_Right(executeScript, depositStore, "")
+Rel_Specialization_Up(depositStore, storageHandler, "")
+Rel_Specialization_Up(storageHandler, apiImplementor, "if instance of `Deposit`")
+Rel_Serving_Right(storageHandler, mvmStore, "otherwise")
+Rel_Assignment_Left(offchainWorker, executeScript, "")
+Rel_Access_Down(transferToken, apiTransfer, "must have valid token")
+Rel_Access_Down(storedScript, executeScript, "")
+Rel_Serving_Down(extrinsic, transferToken, "")
+Rel_Serving_Down(extrinsic, storedScript, "")
+@enduml
+```
+</div>
+
+![](depositWorkflow.svg)
 
 ## Testing
 We are designing and implementing tests from the start of the project, and each design decision considers the code's testability. The team plans tests on different levels, from unit to integration and end-to-end tests. You can find more in the [Testing Guide](testing_guide.md) document, one of the project deliverables.
