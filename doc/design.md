@@ -260,7 +260,7 @@ Rel_Serving_Down(extrinsic, storedScript, "")
 ```
 </div>
 
-![](depositWorkflow.svg)
+![](./assets/depositWorkflow.svg)
 
 ## Testing
 We are designing and implementing tests from the start of the project, and each design decision considers the code's testability. The team plans tests on different levels, from unit to integration and end-to-end tests. You can find more in the [Testing Guide](testing_guide.md) document, one of the project deliverables.
