@@ -2,7 +2,7 @@ mod mock;
 use frame_support::traits::OffchainWorker;
 use mock::*;
 use move_core_types::account_address::AccountAddress;
-use pallet_move::{Event, ModulesToPublish};
+use pallet_move::{Event, ModulesToPublish, ScriptsToExecute};
 use sp_core::blake2_128;
 
 const MOVE: &str = "0x90b5ab205c6974c9ea841be688864633dc9ca8a357843eeacf2314649965fe22";
@@ -68,6 +68,26 @@ fn round_conversion_native_move_works() {
 fn offline_client_deposit_module_publish_works() {
     new_test_ext().execute_with(|| {
         frame_system::Pallet::<Test>::set_block_number(1);
+        MoveModule::offchain_worker(1u64);
+        assert_last_event(Event::<Test>::StdModulePublished.into());
+    });
+}
+
+#[test]
+#[should_panic]
+// TODO: un-panic after transfer PR is merged
+fn deposit_script_transfer_works() {
+    new_test_ext().execute_with(|| {
+        frame_system::Pallet::<Test>::set_block_number(1);
+        // transfer script
+        let user =
+            MoveModule::move_to_native(&AccountAddress::from_hex_literal(MOVE).unwrap()).unwrap();
+        use move_vm_backend::deposit::DEPOSIT_SCRIPT_BYTES;
+        ScriptsToExecute::<Test>::insert(
+            user,
+            u128::from_be_bytes(blake2_128(DEPOSIT_SCRIPT_BYTES.as_ref())),
+            DEPOSIT_SCRIPT_BYTES.to_vec(),
+        );
         MoveModule::offchain_worker(1u64);
         assert_last_event(Event::<Test>::StdModulePublished.into());
     });
