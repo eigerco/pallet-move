@@ -78,7 +78,7 @@ fn offline_client_bad_inputs_emmits_correct_error_events() {
     new_test_ext().execute_with(|| {
         let user =
             MoveModule::move_to_native(&AccountAddress::from_hex_literal(MOVE).unwrap()).unwrap();
-        let module_id = u128::from_be_bytes(blake2_128(&NOT_A_MODULE.as_bytes()));
+        let module_id = u128::from_be_bytes(blake2_128(NOT_A_MODULE.as_bytes()));
         ModulesToPublish::<Test>::insert(user.clone(), module_id, NOT_A_MODULE.as_bytes());
         assert!(ModulesToPublish::<Test>::contains_key(
             user.clone(),
