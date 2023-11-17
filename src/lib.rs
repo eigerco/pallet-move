@@ -26,7 +26,7 @@ pub mod pallet {
         traits::{Currency, ExistenceRequirement, Hooks, ReservableCurrency},
     };
     use frame_system::pallet_prelude::{BlockNumberFor, *};
-    use move_core_types::account_address::AccountAddress;
+    use move_core_types::{account_address::AccountAddress, language_storage::TypeTag};
     use move_vm_backend::{
         deposit::{MOVE_DEPOSIT_MODULE_BYTES, ROOT_ADDRESS, SIGNER_MODULE_BYTES},
         Mvm, SubstrateAPI, TransferError,
@@ -214,9 +214,25 @@ pub mod pallet {
 
             // Executing submitted scripts
             ScriptsToExecute::<T>::drain().for_each(|(account, id, script)| {
+                let t_args = vec![TypeTag::Signer, TypeTag::Address, TypeTag::U128];
                 if let Err(reason) =
                     // TODO: implement after transaction merge
-                    vm.execute_script(&script, vec![], vec![], &mut UnmeteredGasMeter {})
+                    vm.execute_script(
+                        &script,
+                        t_args,
+                        vec![
+                            &bcs::to_bytes(&Self::native_to_move(&account).unwrap()).unwrap(),
+                            &bcs::to_bytes(
+                                &Self::native_to_move(
+                                    &T::AccountId::decode(&mut [1u8; 32].as_ref()).unwrap(),
+                                )
+                                .unwrap(),
+                            )
+                            .unwrap(),
+                            &bcs::to_bytes(&123u128).unwrap(),
+                        ],
+                        &mut UnmeteredGasMeter {},
+                    )
                 {
                     Self::deposit_event(Event::ExecuteScriptResult {
                         publisher: account,

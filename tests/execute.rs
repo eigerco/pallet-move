@@ -1,5 +1,5 @@
 mod mock;
-use frame_support::traits::OffchainWorker;
+use frame_support::{assert_ok, traits::OffchainWorker};
 use mock::*;
 use move_core_types::account_address::AccountAddress;
 use pallet_move::{Event, ModulesToPublish, ScriptsToExecute};
@@ -74,22 +74,44 @@ fn offline_client_deposit_module_publish_works() {
 }
 
 #[test]
-#[should_panic]
 // TODO: un-panic after transfer PR is merged
 fn deposit_script_transfer_works() {
     new_test_ext().execute_with(|| {
-        frame_system::Pallet::<Test>::set_block_number(1);
-        // transfer script
+        use codec::Decode;
+        let dest =
+            <Test as frame_system::Config>::AccountId::decode(&mut [1u8; 32].as_ref()).unwrap();
+        // set destination balance
+        assert_ok!(<Test as pallet_move::Config>::Currency::force_set_balance(
+            RuntimeOrigin::root(),
+            dest.clone(),
+            10000,
+        ));
         let user =
             MoveModule::move_to_native(&AccountAddress::from_hex_literal(MOVE).unwrap()).unwrap();
+        // set sender balance
+        assert_ok!(<Test as pallet_move::Config>::Currency::force_set_balance(
+            RuntimeOrigin::root(),
+            user.clone(),
+            10000,
+        ));
+        frame_system::Pallet::<Test>::set_block_number(1);
+        // transfer script
         use move_vm_backend::deposit::DEPOSIT_SCRIPT_BYTES;
-        ScriptsToExecute::<Test>::insert(
-            user,
-            u128::from_be_bytes(blake2_128(DEPOSIT_SCRIPT_BYTES.as_ref())),
-            DEPOSIT_SCRIPT_BYTES.to_vec(),
-        );
+        let script_id = u128::from_be_bytes(blake2_128(DEPOSIT_SCRIPT_BYTES.as_ref()));
+        ScriptsToExecute::<Test>::insert(user.clone(), script_id, DEPOSIT_SCRIPT_BYTES.to_vec());
         MoveModule::offchain_worker(1u64);
-        assert_last_event(Event::<Test>::StdModulePublished.into());
+        assert_last_event(
+            Event::<Test>::ExecuteScriptResult {
+                publisher: user,
+                script: script_id,
+                status: pallet_move::ScriptExecutionStatus::Suceess,
+            }
+            .into(),
+        );
+        assert_eq!(
+            <Test as pallet_move::Config>::Currency::free_balance(&dest),
+            10123u128
+        );
     });
 }
 
