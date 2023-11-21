@@ -26,9 +26,7 @@ pub mod pallet {
         traits::{Currency, ExistenceRequirement, Hooks, ReservableCurrency},
     };
     use frame_system::pallet_prelude::{BlockNumberFor, *};
-    use move_core_types::{
-        account_address::AccountAddress, language_storage::TypeTag, value::MoveValue,
-    };
+    use move_core_types::{account_address::AccountAddress, value::MoveValue};
     use move_vm_backend::{
         deposit::{MOVE_DEPOSIT_MODULE_BYTES, ROOT_ADDRESS, SIGNER_MODULE_BYTES},
         Mvm, SubstrateAPI, TransferError,
@@ -68,7 +66,7 @@ pub mod pallet {
     /// Storage of session/block allowed transfer executions
     /// Maps binary code to sender's account which is expected to be the source of the transfer
     #[pallet::storage]
-    pub(super) type SessionTransferToken<T: Config> =
+    pub type SessionTransferToken<T: Config> =
         StorageMap<_, Blake2_128Concat, Vec<u8>, T::AccountId>;
 
     /// Published modules to be processed by `Mvm` instance
@@ -216,12 +214,10 @@ pub mod pallet {
 
             // Executing submitted scripts
             ScriptsToExecute::<T>::drain().for_each(|(account, id, script)| {
-                //let t_args = vec![TypeTag::Signer, TypeTag::Address, TypeTag::U128];
                 if let Err(reason) =
                     // TODO: implement after transaction merge
                     vm.execute_script(
                         &script,
-                        //t_args,
                         vec![],
                         vec![
                             &bcs::to_bytes(&MoveValue::Signer(

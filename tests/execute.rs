@@ -2,7 +2,7 @@ mod mock;
 use frame_support::{assert_ok, traits::OffchainWorker};
 use mock::*;
 use move_core_types::account_address::AccountAddress;
-use pallet_move::{Event, ModulesToPublish, ScriptsToExecute};
+use pallet_move::{Event, ModulesToPublish, ScriptsToExecute, SessionTransferToken};
 use sp_core::blake2_128;
 
 const MOVE: &str = "0x90b5ab205c6974c9ea841be688864633dc9ca8a357843eeacf2314649965fe22";
@@ -94,6 +94,8 @@ fn deposit_script_transfer_works() {
             user.clone(),
             10000,
         ));
+        // Grant one transfer for account to transfer
+        SessionTransferToken::<Test>::insert(vec![0u8], user.clone());
         frame_system::Pallet::<Test>::set_block_number(1);
         // transfer script
         use move_vm_backend::deposit::DEPOSIT_SCRIPT_BYTES;
