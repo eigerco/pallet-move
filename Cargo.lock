@@ -2277,6 +2277,7 @@ dependencies = [
 name = "pallet-move"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "bcs",
  "frame-benchmarking",
  "frame-support",
@@ -2288,6 +2289,7 @@ dependencies = [
  "pallet-balances",
  "parity-scale-codec",
  "scale-info",
+ "serde",
  "sp-core",
  "sp-io",
  "sp-runtime",

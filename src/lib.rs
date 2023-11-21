@@ -7,6 +7,8 @@ mod benchmarking;
 
 mod storage;
 
+pub mod transaction;
+
 pub mod weights;
 pub use weights::*;
 
@@ -26,7 +28,7 @@ pub mod pallet {
         traits::{Currency, ExistenceRequirement, Hooks, ReservableCurrency},
     };
     use frame_system::pallet_prelude::{BlockNumberFor, *};
-    use move_core_types::{account_address::AccountAddress, value::MoveValue};
+    use move_core_types::account_address::AccountAddress;
     use move_vm_backend::{
         deposit::{MOVE_DEPOSIT_MODULE_BYTES, ROOT_ADDRESS, SIGNER_MODULE_BYTES},
         Mvm, SubstrateAPI, TransferError,
@@ -35,6 +37,7 @@ pub mod pallet {
     use sp_core::{blake2_128, crypto::AccountId32};
     use sp_runtime::{DispatchResult, SaturatedConversion};
     use sp_std::{default::Default, vec::Vec};
+    use transaction::Transaction;
 
     use super::*;
     use crate::storage::MoveVmStorage;
@@ -102,7 +105,7 @@ pub mod pallet {
     pub enum Event<T: Config> {
         /// Event about calling execute function.
         /// [account]
-        ExecuteCalled { who: T::AccountId },
+        ScriptScheduledForExecution { who: T::AccountId, script_id: u128 },
 
         /// Event about successful move-module publishing
         /// [account]
@@ -214,39 +217,34 @@ pub mod pallet {
 
             // Executing submitted scripts
             ScriptsToExecute::<T>::drain().for_each(|(account, id, script)| {
-                if let Err(reason) =
-                    // TODO: implement after transaction merge
-                    vm.execute_script(
-                        &script,
-                        vec![],
-                        vec![
-                            &bcs::to_bytes(&MoveValue::Signer(
-                                Self::native_to_move(&account).unwrap(),
-                            ))
-                            .unwrap(),
-                            &bcs::to_bytes(&MoveValue::Address(
-                                Self::native_to_move(
-                                    &T::AccountId::decode(&mut [1u8; 32].as_ref()).unwrap(),
-                                )
-                                .unwrap(),
-                            ))
-                            .unwrap(),
-                            &bcs::to_bytes(&MoveValue::U128(123u128)).unwrap(),
-                        ],
-                        &mut UnmeteredGasMeter {},
-                    )
-                {
-                    Self::deposit_event(Event::ExecuteScriptResult {
-                        publisher: account,
-                        script: id,
-                        status: ScriptExecutionStatus::Failure(reason.to_string()),
-                    });
-                } else {
-                    Self::deposit_event(Event::ExecuteScriptResult {
-                        publisher: account,
-                        script: id,
-                        status: ScriptExecutionStatus::Suceess,
-                    });
+                match Transaction::try_from(script.as_slice()) {
+                    Ok(transaction) => {
+                        if let Err(reason) = vm.execute_script(
+                            &transaction.script_bc,
+                            transaction.type_args,
+                            transaction.args.iter().map(|x| x.as_slice()).collect(),
+                            &mut UnmeteredGasMeter {},
+                        ) {
+                            Self::deposit_event(Event::ExecuteScriptResult {
+                                publisher: account,
+                                script: id,
+                                status: ScriptExecutionStatus::Failure(reason.to_string()),
+                            });
+                        } else {
+                            Self::deposit_event(Event::ExecuteScriptResult {
+                                publisher: account,
+                                script: id,
+                                status: ScriptExecutionStatus::Suceess,
+                            });
+                        }
+                    }
+                    Err(reason) => {
+                        Self::deposit_event(Event::ExecuteScriptResult {
+                            publisher: account,
+                            script: id,
+                            status: ScriptExecutionStatus::Failure(reason.to_string()),
+                        });
+                    }
                 }
             });
         }
@@ -260,17 +258,19 @@ pub mod pallet {
         /// Execute Move script bytecode sent by the user.
         #[pallet::call_index(0)]
         #[pallet::weight(T::WeightInfo::execute())]
-        pub fn execute(origin: OriginFor<T>, bytecode: Vec<u8>, _gas_limit: u64) -> DispatchResult {
+        pub fn execute(
+            origin: OriginFor<T>,
+            transaction_bc: Vec<u8>,
+            _gas_limit: u64,
+        ) -> DispatchResult {
             // Allow only signed calls.
             let who = ensure_signed(origin)?;
+            let script_id = u128::from_be_bytes(blake2_128(transaction_bc.as_ref()));
             // store token for this session execution
-            <SessionTransferToken<T>>::insert(bytecode, who.clone());
-
-            // TODO: Execute bytecode
-
+            <SessionTransferToken<T>>::insert(&transaction_bc, who.clone());
+            ScriptsToExecute::<T>::insert(who.clone(), script_id, transaction_bc);
             // Emit an event.
-            Self::deposit_event(Event::ExecuteCalled { who });
-
+            Self::deposit_event(Event::ScriptScheduledForExecution { who, script_id });
             // Return a successful DispatchResult
             Ok(())
         }

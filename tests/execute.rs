@@ -1,19 +1,128 @@
 mod mock;
+use codec::Decode;
 use frame_support::{assert_ok, traits::OffchainWorker};
 use mock::*;
-use move_core_types::account_address::AccountAddress;
-use pallet_move::{Event, ModulesToPublish, ScriptsToExecute, SessionTransferToken};
+use move_core_types::{
+    account_address::AccountAddress, language_storage::TypeTag, value::MoveValue,
+};
+use move_vm_backend::deposit::DEPOSIT_SCRIPT_BYTES;
+use pallet_move::{
+    transaction::Transaction, Event, ModulesToPublish, ScriptsToExecute, SessionTransferToken,
+};
 use sp_core::blake2_128;
 
 const MOVE: &str = "0x90b5ab205c6974c9ea841be688864633dc9ca8a357843eeacf2314649965fe22";
 const NOT_A_MODULE: &str = "garbage data";
 
+fn get_account<T: pallet_move::Config>() -> T::AccountId {
+    T::AccountId::decode(&mut [1u8; 32].to_vec().as_ref()).unwrap()
+}
+
 #[test]
-#[ignore = "to be implemented"]
-/// Test execution of a script with correct parameters.
-fn execute_script_correct() {
+/// Test execution of a script.
+fn execute_script_empty() {
     new_test_ext().execute_with(|| {
-        assert_eq!(1, 0);
+        let module =
+            include_bytes!("assets/move/build/move/bytecode_scripts/empty_scr.mv").to_vec();
+
+        let type_args: Vec<TypeTag> = vec![];
+        let params: Vec<&[u8]> = vec![];
+
+        let transaction = Transaction {
+            script_bc: module.clone(),
+            type_args,
+            args: params.iter().map(|x| x.to_vec()).collect(),
+        };
+
+        let transaction_bc = bcs::to_bytes(&transaction).unwrap();
+
+        let res = MoveModule::execute(
+            RuntimeOrigin::signed(get_account::<Test>()),
+            transaction_bc,
+            0,
+        );
+
+        assert_ok!(res);
+
+        let module =
+            include_bytes!("assets/move/build/move/bytecode_scripts/empty_loop.mv").to_vec();
+
+        let type_args: Vec<TypeTag> = vec![];
+        let params: Vec<&[u8]> = vec![];
+
+        let transaction = Transaction {
+            script_bc: module.clone(),
+            type_args,
+            args: params.iter().map(|x| x.to_vec()).collect(),
+        };
+
+        let transaction_bc = bcs::to_bytes(&transaction).unwrap();
+
+        let res = MoveModule::execute(
+            RuntimeOrigin::signed(get_account::<Test>()),
+            transaction_bc,
+            0,
+        );
+
+        assert_ok!(res);
+    });
+}
+
+#[test]
+/// Test execution of a script with parametrized function.
+fn execute_script_params() {
+    new_test_ext().execute_with(|| {
+        let module =
+            include_bytes!("assets/move/build/move/bytecode_scripts/empty_loop_param.mv").to_vec();
+
+        let iter_count = bcs::to_bytes(&10u64).unwrap();
+        let type_args: Vec<TypeTag> = vec![];
+        let params: Vec<&[u8]> = vec![&iter_count];
+
+        let transaction = Transaction {
+            script_bc: module.clone(),
+            type_args,
+            args: params.iter().map(|x| x.to_vec()).collect(),
+        };
+
+        let transaction_bc = bcs::to_bytes(&transaction).unwrap();
+
+        let res = MoveModule::execute(
+            RuntimeOrigin::signed(get_account::<Test>()),
+            transaction_bc,
+            0,
+        );
+
+        assert_ok!(res);
+    });
+}
+
+#[test]
+/// Test execution of a script with generic function.
+fn execute_script_generic() {
+    new_test_ext().execute_with(|| {
+        let module =
+            include_bytes!("assets/move/build/move/bytecode_scripts/generic_1.mv").to_vec();
+
+        let param = bcs::to_bytes(&100u64).unwrap();
+        let type_args: Vec<TypeTag> = vec![TypeTag::U64];
+        let params: Vec<&[u8]> = vec![&param];
+
+        let transaction = Transaction {
+            script_bc: module.clone(),
+            type_args,
+            args: params.iter().map(|x| x.to_vec()).collect(),
+        };
+
+        let transaction_bc = bcs::to_bytes(&transaction).unwrap();
+
+        let res = MoveModule::execute(
+            RuntimeOrigin::signed(get_account::<Test>()),
+            transaction_bc,
+            0,
+        );
+
+        assert_ok!(res);
     });
 }
 
@@ -94,13 +203,29 @@ fn deposit_script_transfer_works() {
             user.clone(),
             10000,
         ));
+        let args = vec![
+            bcs::to_bytes(&MoveValue::Signer(
+                MoveModule::native_to_move(&user).unwrap(),
+            ))
+            .unwrap(),
+            bcs::to_bytes(&MoveValue::Address(
+                MoveModule::native_to_move(&dest).unwrap(),
+            ))
+            .unwrap(),
+            bcs::to_bytes(&MoveValue::U128(123u128)).unwrap(),
+        ];
+        let transaction = Transaction {
+            script_bc: DEPOSIT_SCRIPT_BYTES.to_vec(),
+            args,
+            type_args: vec![],
+        };
         // Grant one transfer for account to transfer
         SessionTransferToken::<Test>::insert(vec![0u8], user.clone());
         frame_system::Pallet::<Test>::set_block_number(1);
         // transfer script
-        use move_vm_backend::deposit::DEPOSIT_SCRIPT_BYTES;
-        let script_id = u128::from_be_bytes(blake2_128(DEPOSIT_SCRIPT_BYTES.as_ref()));
-        ScriptsToExecute::<Test>::insert(user.clone(), script_id, DEPOSIT_SCRIPT_BYTES.to_vec());
+        let encoded = bcs::to_bytes(&transaction).unwrap();
+        let script_id = u128::from_be_bytes(blake2_128(encoded.as_ref()));
+        ScriptsToExecute::<Test>::insert(user.clone(), script_id, encoded);
         MoveModule::offchain_worker(1u64);
         assert_last_event(
             Event::<Test>::ExecuteScriptResult {
