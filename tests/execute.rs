@@ -1,8 +1,7 @@
 mod mock;
 use frame_support::assert_ok;
 use mock::*;
-use move_core_types::account_address::AccountAddress;
-use move_core_types::language_storage::TypeTag;
+use move_core_types::{account_address::AccountAddress, language_storage::TypeTag};
 use pallet_move::transaction::Transaction;
 
 #[test]
