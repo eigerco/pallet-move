@@ -5,7 +5,7 @@ use mock::*;
 use move_core_types::{
     account_address::AccountAddress, language_storage::TypeTag, value::MoveValue,
 };
-use move_vm_backend::deposit::DEPOSIT_SCRIPT_BYTES;
+use move_vm_backend::deposit::{CHECK_BALANCE_OF_SCRIPT_BYTES, DEPOSIT_SCRIPT_BYTES};
 use pallet_move::{
     transaction::Transaction, Event, ModulesToPublish, ScriptsToExecute, SessionTransferToken,
 };
@@ -183,7 +183,6 @@ fn offline_client_deposit_module_publish_works() {
 }
 
 #[test]
-// TODO: un-panic after transfer PR is merged
 fn deposit_script_transfer_works() {
     new_test_ext().execute_with(|| {
         use codec::Decode;
@@ -221,15 +220,16 @@ fn deposit_script_transfer_works() {
         };
         // Grant one transfer for account to transfer
         SessionTransferToken::<Test>::insert(vec![0u8], user.clone());
-        frame_system::Pallet::<Test>::set_block_number(1);
         // transfer script
         let encoded = bcs::to_bytes(&transaction).unwrap();
         let script_id = u128::from_be_bytes(blake2_128(encoded.as_ref()));
         ScriptsToExecute::<Test>::insert(user.clone(), script_id, encoded);
+        frame_system::Pallet::<Test>::set_block_number(1);
         MoveModule::offchain_worker(1u64);
+        // verify
         assert_last_event(
             Event::<Test>::ExecuteScriptResult {
-                publisher: user,
+                publisher: user.clone(),
                 script: script_id,
                 status: pallet_move::ScriptExecutionStatus::Suceess,
             }
@@ -238,6 +238,33 @@ fn deposit_script_transfer_works() {
         assert_eq!(
             <Test as pallet_move::Config>::Currency::free_balance(&dest),
             10123u128
+        );
+        // check with move script throug SubstrateApi
+        let args = vec![
+            bcs::to_bytes(&MoveValue::Address(
+                MoveModule::native_to_move(&dest).unwrap(),
+            ))
+            .unwrap(),
+            bcs::to_bytes(&MoveValue::U128(10123u128)).unwrap(),
+        ];
+        let get_balance_transaction = bcs::to_bytes(&Transaction {
+            script_bc: CHECK_BALANCE_OF_SCRIPT_BYTES.to_vec(),
+            args,
+            type_args: vec![],
+        })
+        .unwrap();
+        let balance_script_id = u128::from_be_bytes(blake2_128(&get_balance_transaction));
+        ScriptsToExecute::<Test>::insert(user.clone(), balance_script_id, get_balance_transaction);
+        frame_system::Pallet::<Test>::set_block_number(2);
+        MoveModule::offchain_worker(2u64);
+        // verify
+        assert_last_event(
+            Event::<Test>::ExecuteScriptResult {
+                publisher: user.clone(),
+                script: balance_script_id,
+                status: pallet_move::ScriptExecutionStatus::Suceess,
+            }
+            .into(),
         );
     });
 }
