@@ -30,7 +30,7 @@ pub mod pallet {
     use frame_system::pallet_prelude::{BlockNumberFor, *};
     use move_core_types::account_address::AccountAddress;
     use move_vm_backend::{
-        deposit::{MOVE_DEPOSIT_MODULE_BYTES, ROOT_ADDRESS, SIGNER_MODULE_BYTES},
+        deposit::{CORE_CODE_ADDRESS, MOVE_DEPOSIT_MODULE_BYTES, SIGNER_MODULE_BYTES},
         Mvm, SubstrateAPI, TransferError,
     };
     use move_vm_types::gas::UnmeteredGasMeter;
@@ -174,7 +174,7 @@ pub mod pallet {
             // inject std
             if let Err(e) = vm.publish_module(
                 SIGNER_MODULE_BYTES.as_ref(),
-                *ROOT_ADDRESS,
+                CORE_CODE_ADDRESS,
                 &mut UnmeteredGasMeter {},
             ) {
                 Self::deposit_event(Event::StdModulePublishFailed(e.to_string()));
@@ -184,7 +184,7 @@ pub mod pallet {
             // inject deposit
             if let Err(e) = vm.publish_module(
                 MOVE_DEPOSIT_MODULE_BYTES.as_ref(),
-                *ROOT_ADDRESS,
+                CORE_CODE_ADDRESS,
                 &mut UnmeteredGasMeter {},
             ) {
                 Self::deposit_event(Event::StdModulePublishFailed(e.to_string()));
