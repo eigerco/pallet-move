@@ -229,8 +229,6 @@ fn deposit_script_transfer_works() {
             true,
             0
         ));
-        // Grant one transfer for account to transfer
-        SessionTransferToken::<Test>::insert(script_id, user.clone());
         frame_system::Pallet::<Test>::set_block_number(1);
         MoveModule::offchain_worker(1u64);
         // verify
