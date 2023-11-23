@@ -223,7 +223,12 @@ fn deposit_script_transfer_works() {
         // transfer script
         let encoded = bcs::to_bytes(&transaction).unwrap();
         let script_id = u128::from_be_bytes(blake2_128(encoded.as_ref()));
-        ScriptsToExecute::<Test>::insert(user.clone(), script_id, encoded);
+        assert_ok!(MoveModule::execute(
+            RuntimeOrigin::signed(user.clone()),
+            encoded,
+            true,
+            0
+        ));
         // Grant one transfer for account to transfer
         SessionTransferToken::<Test>::insert(script_id, user.clone());
         frame_system::Pallet::<Test>::set_block_number(1);
@@ -328,13 +333,18 @@ fn deposit_script_should_fail_test() {
         let encoded = bcs::to_bytes(&transaction).unwrap();
         let script_id = u128::from_be_bytes(blake2_128(encoded.as_ref()));
         // insert script
-        ScriptsToExecute::<Test>::insert(user.clone(), script_id, encoded.clone());
+        assert_ok!(MoveModule::execute(
+            RuntimeOrigin::signed(user.clone()),
+            encoded.clone(),
+            false,
+            0
+        ));
         frame_system::Pallet::<Test>::set_block_number(1);
         MoveModule::offchain_worker(1u64);
         // verify no script AND no token for transfer left
         assert!(SessionTransferToken::<Test>::get(script_id).is_none());
         assert!(ScriptsToExecute::<Test>::get(&user, script_id).is_none());
-        // Expected failure #1 - no transfer token
+        // Expected failure #1 - no transfer token as submitted `false` with the extrinsic
         assert_last_event(
             Event::<Test>::ExecuteScriptResult {
                 publisher: user.clone(),
@@ -351,7 +361,12 @@ fn deposit_script_should_fail_test() {
         // Grant one transfer for account to transfer
         SessionTransferToken::<Test>::insert(script_id, user.clone());
         // insert script
-        ScriptsToExecute::<Test>::insert(user.clone(), script_id, encoded.clone());
+        assert_ok!(MoveModule::execute(
+            RuntimeOrigin::signed(user.clone()),
+            encoded.clone(),
+            true,
+            0
+        ));
         frame_system::Pallet::<Test>::set_block_number(2);
         MoveModule::offchain_worker(2u64);
         // verify no script AND no token for transfer left
@@ -381,7 +396,12 @@ fn deposit_script_should_fail_test() {
         // Grant one transfer for account to transfer
         SessionTransferToken::<Test>::insert(script_id, user.clone());
         // insert script
-        ScriptsToExecute::<Test>::insert(user.clone(), script_id, encoded);
+        assert_ok!(MoveModule::execute(
+            RuntimeOrigin::signed(user.clone()),
+            encoded.clone(),
+            true,
+            0
+        ));
         frame_system::Pallet::<Test>::set_block_number(3);
         MoveModule::offchain_worker(3u64);
         // verify no script AND no token for transfer left
