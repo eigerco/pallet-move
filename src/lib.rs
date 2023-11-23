@@ -45,14 +45,14 @@ pub mod pallet {
     /// Reports if module publish succedded or failed
     #[derive(Debug, Encode, Decode, Clone, PartialEq, Eq, TypeInfo)]
     pub enum ModulePublishStatus {
-        Suceess,
+        Success,
         Failure(String),
     }
 
     /// Reports of script execution succedded or failed
     #[derive(Debug, Encode, Decode, Clone, PartialEq, Eq, TypeInfo)]
     pub enum ScriptExecutionStatus {
-        Suceess,
+        Success,
         Failure(String),
     }
 
@@ -69,8 +69,7 @@ pub mod pallet {
     /// Storage of session/block allowed transfer executions
     /// Maps binary code to sender's account which is expected to be the source of the transfer
     #[pallet::storage]
-    pub type SessionTransferToken<T: Config> =
-        StorageMap<_, Blake2_128Concat, Vec<u8>, T::AccountId>;
+    pub type SessionTransferToken<T: Config> = StorageMap<_, Blake2_128Concat, u128, T::AccountId>;
 
     /// Published modules to be processed by `Mvm` instance
     /// Picked up one by one on `offchain_worker` execution
@@ -210,39 +209,53 @@ pub mod pallet {
                     Self::deposit_event(Event::PublishModuleResult {
                         publisher: account,
                         module: id,
-                        status: ModulePublishStatus::Suceess,
+                        status: ModulePublishStatus::Success,
                     });
                 }
             });
 
             // Executing submitted scripts
             ScriptsToExecute::<T>::drain().for_each(|(account, id, script)| {
-                match Transaction::try_from(script.as_slice()) {
-                    Ok(transaction) => {
-                        if let Err(reason) = vm.execute_script(
-                            &transaction.script_bc,
-                            transaction.type_args,
-                            transaction.args.iter().map(|x| x.as_slice()).collect(),
-                            &mut UnmeteredGasMeter {},
-                        ) {
-                            Self::deposit_event(Event::ExecuteScriptResult {
-                                publisher: account,
-                                script: id,
-                                status: ScriptExecutionStatus::Failure(reason.to_string()),
-                            });
-                        } else {
-                            Self::deposit_event(Event::ExecuteScriptResult {
-                                publisher: account,
-                                script: id,
-                                status: ScriptExecutionStatus::Suceess,
-                            });
+                match SessionTransferToken::<T>::take(id) {
+                    Some(token) if token == account => {
+                        match Transaction::try_from(script.as_slice()) {
+                            Ok(transaction) => {
+                                if let Err(reason) = vm.execute_script(
+                                    &transaction.script_bc,
+                                    transaction.type_args,
+                                    transaction.args.iter().map(|x| x.as_slice()).collect(),
+                                    &mut UnmeteredGasMeter {},
+                                ) {
+                                    Self::deposit_event(Event::ExecuteScriptResult {
+                                        publisher: account,
+                                        script: id,
+                                        status: ScriptExecutionStatus::Failure(reason.to_string()),
+                                    });
+                                } else {
+                                    Self::deposit_event(Event::ExecuteScriptResult {
+                                        publisher: account,
+                                        script: id,
+                                        status: ScriptExecutionStatus::Success,
+                                    });
+                                }
+                            }
+                            Err(reason) => {
+                                Self::deposit_event(Event::ExecuteScriptResult {
+                                    publisher: account,
+                                    script: id,
+                                    status: ScriptExecutionStatus::Failure(reason.to_string()),
+                                });
+                            }
                         }
                     }
-                    Err(reason) => {
+                    _ => {
                         Self::deposit_event(Event::ExecuteScriptResult {
-                            publisher: account,
                             script: id,
-                            status: ScriptExecutionStatus::Failure(reason.to_string()),
+                            status: ScriptExecutionStatus::Failure(format!(
+                                "No session token for account {} and script {}",
+                                account, id
+                            )),
+                            publisher: account,
                         });
                     }
                 }
@@ -267,7 +280,7 @@ pub mod pallet {
             let who = ensure_signed(origin)?;
             let script_id = u128::from_be_bytes(blake2_128(transaction_bc.as_ref()));
             // store token for this session execution
-            <SessionTransferToken<T>>::insert(&transaction_bc, who.clone());
+            <SessionTransferToken<T>>::insert(script_id, who.clone());
             ScriptsToExecute::<T>::insert(who.clone(), script_id, transaction_bc);
             // Emit an event.
             Self::deposit_event(Event::ScriptScheduledForExecution { who, script_id });
@@ -459,10 +472,6 @@ pub mod pallet {
             // TODO: add conversion error
             let from = Pallet::<T>::move_to_native(&from)
                 .map_err(|_| TransferError::InsuficientBalance)?;
-            // Verify there's a token
-            if !SessionTransferToken::<T>::iter().any(|v| v.1.eq(&from)) {
-                return Err(TransferError::NoSessionTokenPresent);
-            }
             // TODO: add conversion error
             let to =
                 Pallet::<T>::move_to_native(&to).map_err(|_| TransferError::InsuficientBalance)?;
@@ -473,7 +482,6 @@ pub mod pallet {
                 ExistenceRequirement::KeepAlive,
             )
             .map_err(|_| TransferError::InsuficientBalance)?;
-            //TODO: clean up transfer token
             Ok(())
         }
 

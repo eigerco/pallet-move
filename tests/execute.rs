@@ -185,9 +185,7 @@ fn offline_client_deposit_module_publish_works() {
 #[test]
 fn deposit_script_transfer_works() {
     new_test_ext().execute_with(|| {
-        use codec::Decode;
-        let dest =
-            <Test as frame_system::Config>::AccountId::decode(&mut [1u8; 32].as_ref()).unwrap();
+        let dest = get_account::<Test>();
         // set destination balance
         assert_ok!(<Test as pallet_move::Config>::Currency::force_set_balance(
             RuntimeOrigin::root(),
@@ -218,12 +216,12 @@ fn deposit_script_transfer_works() {
             args,
             type_args: vec![],
         };
-        // Grant one transfer for account to transfer
-        SessionTransferToken::<Test>::insert(vec![0u8], user.clone());
         // transfer script
         let encoded = bcs::to_bytes(&transaction).unwrap();
         let script_id = u128::from_be_bytes(blake2_128(encoded.as_ref()));
         ScriptsToExecute::<Test>::insert(user.clone(), script_id, encoded);
+        // Grant one transfer for account to transfer
+        SessionTransferToken::<Test>::insert(script_id, user.clone());
         frame_system::Pallet::<Test>::set_block_number(1);
         MoveModule::offchain_worker(1u64);
         // verify
@@ -231,7 +229,7 @@ fn deposit_script_transfer_works() {
             Event::<Test>::ExecuteScriptResult {
                 publisher: user.clone(),
                 script: script_id,
-                status: pallet_move::ScriptExecutionStatus::Suceess,
+                status: pallet_move::ScriptExecutionStatus::Success,
             }
             .into(),
         );
@@ -254,6 +252,7 @@ fn deposit_script_transfer_works() {
         })
         .unwrap();
         let balance_script_id = u128::from_be_bytes(blake2_128(&get_balance_transaction));
+        SessionTransferToken::<Test>::insert(balance_script_id, user.clone());
         ScriptsToExecute::<Test>::insert(user.clone(), balance_script_id, get_balance_transaction);
         frame_system::Pallet::<Test>::set_block_number(2);
         MoveModule::offchain_worker(2u64);
@@ -262,7 +261,7 @@ fn deposit_script_transfer_works() {
             Event::<Test>::ExecuteScriptResult {
                 publisher: user.clone(),
                 script: balance_script_id,
-                status: pallet_move::ScriptExecutionStatus::Suceess,
+                status: pallet_move::ScriptExecutionStatus::Success,
             }
             .into(),
         );
@@ -295,5 +294,103 @@ fn offline_client_bad_inputs_emmits_correct_error_events() {
         frame_system::Pallet::<Test>::set_block_number(2);
         // make sure it's purged
         assert!(!ModulesToPublish::<Test>::contains_key(user, module_id));
+    });
+}
+
+#[test]
+fn deposit_script_should_fail_test() {
+    new_test_ext().execute_with(|| {
+        // setup, but partial - no pre-requirements from pallet side fulfilled yet
+        let dest = get_account::<Test>();
+        let user =
+            MoveModule::move_to_native(&AccountAddress::from_hex_literal(MOVE).unwrap()).unwrap();
+        let args = vec![
+            bcs::to_bytes(&MoveValue::Signer(
+                MoveModule::native_to_move(&user).unwrap(),
+            ))
+            .unwrap(),
+            bcs::to_bytes(&MoveValue::Address(
+                MoveModule::native_to_move(&dest).unwrap(),
+            ))
+            .unwrap(),
+            bcs::to_bytes(&MoveValue::U128(123u128)).unwrap(),
+        ];
+        let transaction = Transaction {
+            script_bc: DEPOSIT_SCRIPT_BYTES.to_vec(),
+            args,
+            type_args: vec![],
+        };
+        // transfer script
+        let encoded = bcs::to_bytes(&transaction).unwrap();
+        let script_id = u128::from_be_bytes(blake2_128(encoded.as_ref()));
+        // insert script
+        ScriptsToExecute::<Test>::insert(user.clone(), script_id, encoded.clone());
+        frame_system::Pallet::<Test>::set_block_number(1);
+        MoveModule::offchain_worker(1u64);
+        // verify no script AND no token for transfer left
+        assert!(SessionTransferToken::<Test>::get(script_id).is_none());
+        assert!(ScriptsToExecute::<Test>::get(&user, script_id).is_none());
+        // Expected failure #1 - no transfer token
+        assert_last_event(
+            Event::<Test>::ExecuteScriptResult {
+                publisher: user.clone(),
+                script: script_id,
+                status: pallet_move::ScriptExecutionStatus::Failure(
+                    "No session token for account \
+                    5FLSigC9HGRKVhB9FiEo4Y3koPsNmBmLJbpXg2mp1hXcS59Y and \
+                    script 1906774120454276922783716490891208755"
+                        .into(),
+                ),
+            }
+            .into(),
+        );
+        // Grant one transfer for account to transfer
+        SessionTransferToken::<Test>::insert(script_id, user.clone());
+        // insert script
+        ScriptsToExecute::<Test>::insert(user.clone(), script_id, encoded.clone());
+        frame_system::Pallet::<Test>::set_block_number(2);
+        MoveModule::offchain_worker(2u64);
+        // verify no script AND no token for transfer left
+        assert!(SessionTransferToken::<Test>::get(script_id).is_none());
+        assert!(ScriptsToExecute::<Test>::get(&user, script_id).is_none());
+        // Expected failure #2 - not enough funds to transfer
+        assert_last_event(
+            Event::<Test>::ExecuteScriptResult {
+                publisher: user.clone(),
+                script: script_id,
+                status: pallet_move::ScriptExecutionStatus::Failure("InsuficientBalance".into()),
+            }
+            .into(),
+        );
+        // set sender balance
+        assert_ok!(<Test as pallet_move::Config>::Currency::force_set_balance(
+            RuntimeOrigin::root(),
+            user.clone(),
+            100,
+        ));
+        // set destination balance
+        assert_ok!(<Test as pallet_move::Config>::Currency::force_set_balance(
+            RuntimeOrigin::root(),
+            dest.clone(),
+            10000,
+        ));
+        // Grant one transfer for account to transfer
+        SessionTransferToken::<Test>::insert(script_id, user.clone());
+        // insert script
+        ScriptsToExecute::<Test>::insert(user.clone(), script_id, encoded);
+        frame_system::Pallet::<Test>::set_block_number(3);
+        MoveModule::offchain_worker(3u64);
+        // verify no script AND no token for transfer left
+        assert!(SessionTransferToken::<Test>::get(script_id).is_none());
+        assert!(ScriptsToExecute::<Test>::get(&user, script_id).is_none());
+        // Expected failure #3 - not enough fund with non-zero balance
+        assert_last_event(
+            Event::<Test>::ExecuteScriptResult {
+                publisher: user.clone(),
+                script: script_id,
+                status: pallet_move::ScriptExecutionStatus::Failure("InsuficientBalance".into()),
+            }
+            .into(),
+        );
     });
 }
