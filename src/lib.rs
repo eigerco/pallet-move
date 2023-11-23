@@ -28,7 +28,7 @@ pub mod pallet {
         traits::{Currency, ExistenceRequirement, Hooks, ReservableCurrency},
     };
     use frame_system::pallet_prelude::{BlockNumberFor, *};
-    use move_core_types::account_address::AccountAddress;
+    use move_core_types::{account_address::AccountAddress, value::MoveValue};
     use move_vm_backend::{
         deposit::{CORE_CODE_ADDRESS, MOVE_DEPOSIT_MODULE_BYTES, SIGNER_MODULE_BYTES},
         Mvm, SubstrateAPI, TransferError,
@@ -269,19 +269,34 @@ pub mod pallet {
     #[pallet::call]
     impl<T: Config> Pallet<T> {
         /// Execute Move script bytecode sent by the user.
+        /// Indicating `transfers` as `true` is more expensive but
+        /// will prepand given parameters with origin as `Signer` preventing unauthorized token transfers
         #[pallet::call_index(0)]
         #[pallet::weight(T::WeightInfo::execute())]
         pub fn execute(
             origin: OriginFor<T>,
             transaction_bc: Vec<u8>,
+            transfers: bool,
             _gas_limit: u64,
         ) -> DispatchResult {
             // Allow only signed calls.
             let who = ensure_signed(origin)?;
             let script_id = u128::from_be_bytes(blake2_128(transaction_bc.as_ref()));
-            // store token for this session execution
-            <SessionTransferToken<T>>::insert(script_id, who.clone());
-            ScriptsToExecute::<T>::insert(who.clone(), script_id, transaction_bc);
+            if transfers {
+                // store token for this session execution
+                <SessionTransferToken<T>>::insert(script_id, who.clone());
+                let mut transaction = Transaction::try_from(transaction_bc.as_ref())
+                    .map_err(|_| Error::<T>::ExecuteFailed)?;
+                transaction.args.reverse();
+                transaction.args.push(
+                    bcs::to_bytes(&MoveValue::Signer(Self::native_to_move(&who)?))
+                        .map_err(|_| Error::<T>::InvalidAccountSize)?,
+                );
+                transaction.args.reverse();
+                ScriptsToExecute::<T>::insert(who.clone(), script_id, transaction_bc);
+            } else {
+                ScriptsToExecute::<T>::insert(who.clone(), script_id, transaction_bc);
+            }
             // Emit an event.
             Self::deposit_event(Event::ScriptScheduledForExecution { who, script_id });
             // Return a successful DispatchResult

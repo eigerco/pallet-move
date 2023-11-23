@@ -39,6 +39,7 @@ fn execute_script_empty() {
         let res = MoveModule::execute(
             RuntimeOrigin::signed(get_account::<Test>()),
             transaction_bc,
+            true,
             0,
         );
 
@@ -61,6 +62,7 @@ fn execute_script_empty() {
         let res = MoveModule::execute(
             RuntimeOrigin::signed(get_account::<Test>()),
             transaction_bc,
+            true,
             0,
         );
 
@@ -90,6 +92,7 @@ fn execute_script_params() {
         let res = MoveModule::execute(
             RuntimeOrigin::signed(get_account::<Test>()),
             transaction_bc,
+            true,
             0,
         );
 
@@ -119,6 +122,7 @@ fn execute_script_generic() {
         let res = MoveModule::execute(
             RuntimeOrigin::signed(get_account::<Test>()),
             transaction_bc,
+            true,
             0,
         );
 
