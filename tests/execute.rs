@@ -11,7 +11,6 @@ use move_vm_backend::deposit::{
 use pallet_move::{
     transaction::Transaction, Event, ModulesToPublish, ScriptsToExecute, SessionTransferToken,
 };
-use sp_core::blake2_128;
 use sp_runtime::DispatchError::BadOrigin;
 
 const MOVE: &str = "0x90b5ab205c6974c9ea841be688864633dc9ca8a357843eeacf2314649965fe22";
@@ -225,7 +224,7 @@ fn deposit_script_transfer_works() {
         };
         // transfer script
         let encoded = bcs::to_bytes(&transaction).unwrap();
-        let script_id = u128::from_be_bytes(blake2_128(encoded.as_ref()));
+        let script_id = MoveModule::get_id(&encoded);
         assert_ok!(MoveModule::execute(
             RuntimeOrigin::signed(user.clone()),
             encoded,
@@ -261,7 +260,7 @@ fn deposit_script_transfer_works() {
             type_args: vec![],
         })
         .unwrap();
-        let balance_script_id = u128::from_be_bytes(blake2_128(&get_balance_transaction));
+        let balance_script_id = MoveModule::get_id(&get_balance_transaction);
         SessionTransferToken::<Test>::insert(balance_script_id, user.clone());
         ScriptsToExecute::<Test>::insert(user.clone(), balance_script_id, get_balance_transaction);
         frame_system::Pallet::<Test>::set_block_number(2);
@@ -283,7 +282,7 @@ fn offline_client_bad_inputs_emmits_correct_error_events() {
     new_test_ext().execute_with(|| {
         let user =
             MoveModule::move_to_native(&AccountAddress::from_hex_literal(MOVE).unwrap()).unwrap();
-        let module_id = u128::from_be_bytes(blake2_128(NOT_A_MODULE.as_bytes()));
+        let module_id = MoveModule::get_id(NOT_A_MODULE.as_bytes());
         ModulesToPublish::<Test>::insert(user.clone(), module_id, NOT_A_MODULE.as_bytes());
         assert!(ModulesToPublish::<Test>::contains_key(
             user.clone(),
@@ -332,7 +331,7 @@ fn deposit_script_should_fail_test() {
         };
         // transfer script
         let encoded = bcs::to_bytes(&transaction).unwrap();
-        let script_id = u128::from_be_bytes(blake2_128(encoded.as_ref()));
+        let script_id = MoveModule::get_id(&encoded);
         // insert script
         assert_ok!(MoveModule::execute(
             RuntimeOrigin::signed(user.clone()),
@@ -461,7 +460,7 @@ fn update_std_origins_validation_test() {
                     &AccountAddress::from_hex_literal("0x01").unwrap(),
                 )
                 .unwrap(),
-                module: 1,
+                module: MoveModule::get_id(&*MOVE_DEPOSIT_MODULE_BYTES),
                 status: pallet_move::ModulePublishStatus::Success,
             }
             .into(),

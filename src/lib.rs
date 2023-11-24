@@ -284,7 +284,7 @@ pub mod pallet {
         ) -> DispatchResult {
             // Allow only signed calls.
             let who = ensure_signed(origin)?;
-            let script_id = u128::from_be_bytes(blake2_128(transaction_bc.as_ref()));
+            let script_id = Self::get_id(&transaction_bc);
             if transfers {
                 // store token for this session execution
                 <SessionTransferToken<T>>::insert(script_id, who.clone());
@@ -320,7 +320,7 @@ pub mod pallet {
 
             // TODO: can we check if given bytecode is actually Move module?
             // FIXME: define size checks
-            let module_id = u128::from_be_bytes(blake2_128(&bytecode));
+            let module_id = Self::get_id(&bytecode);
             ModulesToPublish::<T>::insert(who.clone(), module_id, bytecode);
 
             // Emit an event.
@@ -378,7 +378,7 @@ pub mod pallet {
                     &AccountAddress::from_hex_literal("0x01")
                         .map_err(|_| Error::<T>::InvalidAccountSize)?,
                 )?,
-                1,
+                Self::get_id(&module),
                 module,
             );
             // if extrinsic is actually from governing origin and everything executed successfuly - not paying for it
@@ -479,6 +479,11 @@ pub mod pallet {
                 .map_err(|_| Error::InvalidAccountSize)?;
             let account_bytes: [u8; 32] = of.into();
             Ok(AccountAddress::new(account_bytes))
+        }
+
+        // generates u128 id from set of bytes using blake_2_128 hash
+        pub fn get_id(data: impl AsRef<[u8]>) -> u128 {
+            u128::from_be_bytes(blake2_128(data.as_ref()))
         }
     }
 
