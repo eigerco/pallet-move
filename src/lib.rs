@@ -365,8 +365,8 @@ pub mod pallet {
             )
         }
 
-        /// Publish a Move module sent by the user.
-        /// Module is published under its sender's address.
+        /// Publish a Move 'std' module sent by the governing user[s].
+        /// Module is published under `std`'s address.
         #[pallet::call_index(4)]
         #[pallet::weight(T::WeightInfo::update_std())]
         pub fn update_std(origin: OriginFor<T>, module: Vec<u8>) -> DispatchResultWithPostInfo {
