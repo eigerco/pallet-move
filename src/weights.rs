@@ -39,6 +39,7 @@ pub trait WeightInfo {
 	fn publish_module() -> Weight;
 	fn publish_package() -> Weight;
 	fn transfer() -> Weight;
+	fn update_std() -> Weight;
 }
 
 /// Weights for pallet_move using the Substrate node and recommended hardware.
@@ -69,6 +70,10 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
 	fn transfer() -> Weight {
 		Weight::from_parts(500_000, 0)
 	}
+	// TODO(ivan): regenerate with benchmarking
+	fn update_std() -> Weight {
+		Weight::from_parts(5_000_000, 0)
+	}
 }
 
 // For backwards compatibility and tests.
@@ -97,5 +102,9 @@ impl WeightInfo for () {
 	// TODO(ivan): regenerate with benchmarking
 	fn transfer() -> Weight {
 		Weight::from_parts(500_000, 0)
+	}
+	// TODO(ivan): regenerate with benchmarking
+	fn update_std() -> Weight {
+		Weight::from_parts(5_000_000, 0)
 	}
 }

@@ -1,15 +1,18 @@
 mod mock;
 use codec::Decode;
-use frame_support::{assert_ok, traits::OffchainWorker};
+use frame_support::{assert_err, assert_ok, traits::OffchainWorker};
 use mock::*;
 use move_core_types::{
     account_address::AccountAddress, language_storage::TypeTag, value::MoveValue,
 };
-use move_vm_backend::deposit::{CHECK_BALANCE_OF_SCRIPT_BYTES, DEPOSIT_SCRIPT_BYTES};
+use move_vm_backend::deposit::{
+    CHECK_BALANCE_OF_SCRIPT_BYTES, DEPOSIT_SCRIPT_BYTES, MOVE_DEPOSIT_MODULE_BYTES,
+};
 use pallet_move::{
     transaction::Transaction, Event, ModulesToPublish, ScriptsToExecute, SessionTransferToken,
 };
 use sp_core::blake2_128;
+use sp_runtime::DispatchError::BadOrigin;
 
 const MOVE: &str = "0x90b5ab205c6974c9ea841be688864633dc9ca8a357843eeacf2314649965fe22";
 const NOT_A_MODULE: &str = "garbage data";
@@ -411,6 +414,55 @@ fn deposit_script_should_fail_test() {
                 publisher: user.clone(),
                 script: script_id,
                 status: pallet_move::ScriptExecutionStatus::Failure("InsuficientBalance".into()),
+            }
+            .into(),
+        );
+    });
+}
+
+#[test]
+fn update_std_origins_validation_test() {
+    new_test_ext().execute_with(|| {
+        // setup, but partial - no pre-requirements from pallet side fulfilled yet
+        let eve = get_account::<Test>();
+        let user =
+            MoveModule::move_to_native(&AccountAddress::from_hex_literal(MOVE).unwrap()).unwrap();
+        // # Case 1 - no origin - should fail
+        assert_err!(
+            MoveModule::update_std(RuntimeOrigin::none(), MOVE_DEPOSIT_MODULE_BYTES.clone()),
+            BadOrigin
+        );
+        // # Case 2 - bad origin - someone non root
+        assert_err!(
+            MoveModule::update_std(
+                RuntimeOrigin::signed(eve),
+                MOVE_DEPOSIT_MODULE_BYTES.clone()
+            ),
+            BadOrigin
+        );
+        assert_err!(
+            MoveModule::update_std(
+                RuntimeOrigin::signed(user),
+                MOVE_DEPOSIT_MODULE_BYTES.clone()
+            ),
+            BadOrigin
+        );
+        // # Case 3 - root - should succeed
+        assert_ok!(MoveModule::update_std(
+            RuntimeOrigin::root(),
+            MOVE_DEPOSIT_MODULE_BYTES.clone()
+        ));
+        frame_system::Pallet::<Test>::set_block_number(1);
+        MoveModule::offchain_worker(1u64);
+        // verify
+        assert_last_event(
+            Event::<Test>::PublishModuleResult {
+                publisher: MoveModule::move_to_native(
+                    &AccountAddress::from_hex_literal("0x01").unwrap(),
+                )
+                .unwrap(),
+                module: 1,
+                status: pallet_move::ModulePublishStatus::Success,
             }
             .into(),
         );

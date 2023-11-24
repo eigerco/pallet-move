@@ -24,7 +24,7 @@ pub mod pallet {
     use codec::{FullCodec, FullEncode};
     use frame_support::{
         dispatch::{DispatchResultWithPostInfo, PostDispatchInfo},
-        pallet_prelude::*,
+        pallet_prelude::{Pays, *},
         traits::{Currency, ExistenceRequirement, Hooks, ReservableCurrency},
     };
     use frame_system::pallet_prelude::{BlockNumberFor, *};
@@ -96,6 +96,9 @@ pub mod pallet {
 
         /// Type representing the weight of this pallet
         type WeightInfo: WeightInfo;
+
+        /// Government origin - allowes `MoveVM std` updates
+        type GoverningOrigin: EnsureOrigin<<Self as frame_system::Config>::RuntimeOrigin>;
     }
 
     // Pallets use events to inform users when important changes are made.
@@ -360,6 +363,26 @@ pub mod pallet {
                 amount.saturated_into(),
                 ExistenceRequirement::KeepAlive,
             )
+        }
+
+        /// Publish a Move module sent by the user.
+        /// Module is published under its sender's address.
+        #[pallet::call_index(4)]
+        #[pallet::weight(T::WeightInfo::update_std())]
+        pub fn update_std(origin: OriginFor<T>, module: Vec<u8>) -> DispatchResultWithPostInfo {
+            // make sure it's governance
+            T::GoverningOrigin::ensure_origin(origin)?;
+            // schedule `std` update
+            ModulesToPublish::<T>::insert(
+                Self::move_to_native(
+                    &AccountAddress::from_hex_literal("0x01")
+                        .map_err(|_| Error::<T>::InvalidAccountSize)?,
+                )?,
+                1,
+                module,
+            );
+            // if extrinsic is actually from governing origin and everything executed successfuly - not paying for it
+            Ok(Pays::No.into())
         }
     }
 

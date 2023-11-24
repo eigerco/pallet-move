@@ -1,4 +1,5 @@
 use frame_support::traits::{ConstU128, ConstU16, ConstU32, ConstU64};
+use frame_system::EnsureRoot;
 use pallet_move::Config;
 use sp_core::H256;
 use sp_runtime::{
@@ -60,6 +61,7 @@ impl Config for Test {
     type Currency = Balances;
     type RuntimeEvent = RuntimeEvent;
     type WeightInfo = ();
+    type GoverningOrigin = EnsureRoot<<Test as frame_system::Config>::AccountId>;
 }
 
 // Build genesis storage according to the mock runtime.
