@@ -28,7 +28,10 @@ pub mod pallet {
         traits::{Currency, ExistenceRequirement, Hooks, ReservableCurrency},
     };
     use frame_system::pallet_prelude::{BlockNumberFor, *};
-    use move_core_types::{account_address::AccountAddress, value::MoveValue};
+    use move_core_types::{
+        account_address::AccountAddress,
+        value::{MoveTypeLayout, MoveValue},
+    };
     use move_vm_backend::{
         deposit::{CORE_CODE_ADDRESS, MOVE_DEPOSIT_MODULE_BYTES, SIGNER_MODULE_BYTES},
         Mvm, SubstrateAPI, TransferError,
@@ -290,6 +293,22 @@ pub mod pallet {
                 <SessionTransferToken<T>>::insert(script_id, who.clone());
                 let mut transaction = Transaction::try_from(transaction_bc.as_ref())
                     .map_err(|_| Error::<T>::ExecuteFailed)?;
+                // make sure no `Signer` is injected into the script without signatures for security reasons
+                transaction.args = transaction
+                    .args
+                    .into_iter()
+                    .filter(|a| {
+                        // everything which is of a `Signer` type or not a `MoveValue` is removed
+                        match MoveValue::simple_deserialize(a.as_ref(), &MoveTypeLayout::Signer)
+                            .unwrap_or(MoveValue::Signer(
+                                // this is nufailable and allows non-movevalue cleanups
+                                AccountAddress::from_hex_literal("0xCAFE").unwrap(),
+                            )) {
+                            MoveValue::Signer(_) => false,
+                            _ => true,
+                        }
+                    })
+                    .collect();
                 transaction.args.reverse();
                 transaction.args.push(
                     bcs::to_bytes(&MoveValue::Signer(Self::native_to_move(&who)?))
