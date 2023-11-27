@@ -297,16 +297,14 @@ pub mod pallet {
                 transaction.args = transaction
                     .args
                     .into_iter()
-                    .filter(|a| {
+                    .filter_map(|a| {
                         // everything which is of a `Signer` type or not a `MoveValue` is removed
-                        match MoveValue::simple_deserialize(a.as_ref(), &MoveTypeLayout::Signer)
-                            .unwrap_or(MoveValue::Signer(
-                                // this is nufailable and allows non-movevalue cleanups
-                                AccountAddress::from_hex_literal("0xCAFE").unwrap(),
-                            )) {
-                            MoveValue::Signer(_) => false,
-                            _ => true,
-                        }
+                        let Ok(_) =
+                            MoveValue::simple_deserialize(a.as_ref(), &MoveTypeLayout::Signer)
+                        else {
+                            return Some(a);
+                        };
+                        None
                     })
                     .collect();
                 transaction.args.reverse();
@@ -315,7 +313,11 @@ pub mod pallet {
                         .map_err(|_| Error::<T>::InvalidAccountSize)?,
                 );
                 transaction.args.reverse();
-                ScriptsToExecute::<T>::insert(who.clone(), script_id, transaction_bc);
+                ScriptsToExecute::<T>::insert(
+                    who.clone(),
+                    script_id,
+                    bcs::to_bytes(&transaction).map_err(|_| Error::<T>::ExecuteFailed)?,
+                );
             } else {
                 ScriptsToExecute::<T>::insert(who.clone(), script_id, transaction_bc);
             }

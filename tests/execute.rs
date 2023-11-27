@@ -467,3 +467,72 @@ fn update_std_origins_validation_test() {
         );
     });
 }
+
+#[test]
+fn execute_script_signer_and_parameters_test() {
+    new_test_ext().execute_with(|| {
+        const A_LOT: u128 = 10_000_000_000_000;
+        // setup, but partial - no pre-requirements from pallet side fulfilled yet
+        let eve = get_account::<Test>();
+        // target
+        let user =
+            MoveModule::move_to_native(&AccountAddress::from_hex_literal(MOVE).unwrap()).unwrap();
+        // set target's balance to alot
+        assert_ok!(<Test as pallet_move::Config>::Currency::force_set_balance(
+            RuntimeOrigin::root(),
+            user.clone(),
+            A_LOT,
+        ));
+        // arguments with injected someone else's data
+        // trying to send from user's account but submitting as eve
+        let args = vec![
+            bcs::to_bytes(&MoveValue::Signer(
+                MoveModule::native_to_move(&user).unwrap(),
+            ))
+            .unwrap(),
+            bcs::to_bytes(&MoveValue::Address(
+                MoveModule::native_to_move(&eve).unwrap(),
+            ))
+            .unwrap(),
+            bcs::to_bytes(&MoveValue::U128(10_000_000u128)).unwrap(),
+        ];
+        let transaction = Transaction {
+            script_bc: DEPOSIT_SCRIPT_BYTES.to_vec(),
+            args,
+            type_args: vec![],
+        };
+        // transfer script
+        let encoded = bcs::to_bytes(&transaction).unwrap();
+        let script_id = MoveModule::get_id(&encoded);
+        // insert script with wrong Signer
+        // param of script is `Signer(user)` but extrinsic is signed as `eve`
+        assert_ok!(MoveModule::execute(
+            RuntimeOrigin::signed(eve.clone()),
+            encoded.clone(),
+            true,
+            0
+        ));
+        // execute
+        frame_system::Pallet::<Test>::set_block_number(1);
+        MoveModule::offchain_worker(1u64);
+        // verify `user`'s balance was not modified and eve had insufficient balance to transfer
+        assert_last_event(
+            Event::<Test>::ExecuteScriptResult {
+                publisher: eve.clone(),
+                script: script_id,
+                status: pallet_move::ScriptExecutionStatus::Success,
+            }
+            .into(),
+        );
+        // nothing came in here
+        assert_eq!(
+            <Test as pallet_move::Config>::Currency::free_balance(&eve),
+            0
+        );
+        // nothing gone here
+        assert_eq!(
+            <Test as pallet_move::Config>::Currency::free_balance(&user),
+            A_LOT
+        );
+    });
+}
