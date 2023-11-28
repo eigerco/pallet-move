@@ -28,13 +28,10 @@ pub mod pallet {
         traits::{Currency, ExistenceRequirement, Hooks, ReservableCurrency},
     };
     use frame_system::pallet_prelude::{BlockNumberFor, *};
-    use move_core_types::{
-        account_address::AccountAddress,
-        value::{MoveTypeLayout, MoveValue},
-    };
+    use move_core_types::{account_address::AccountAddress, value::MoveValue};
     use move_vm_backend::{
         deposit::{CORE_CODE_ADDRESS, MOVE_DEPOSIT_MODULE_BYTES, SIGNER_MODULE_BYTES},
-        Mvm, SubstrateAPI, TransferError,
+        CompiledScript, Mvm, SignatureToken, SubstrateAPI, TransferError,
     };
     use move_vm_types::gas::UnmeteredGasMeter;
     use sp_core::{blake2_128, crypto::AccountId32};
@@ -289,25 +286,27 @@ pub mod pallet {
             let who = ensure_signed(origin)?;
             let script_id = Self::get_id(&transaction_bc);
             if transfers {
-                // store token for this session execution
-                <SessionTransferToken<T>>::insert(script_id, who.clone());
                 let mut transaction = Transaction::try_from(transaction_bc.as_ref())
                     .map_err(|_| Error::<T>::ExecuteFailed)?;
+                let loaded_script = CompiledScript::deserialize(&transaction.script_bc)
+                    .map_err(|_| Error::<T>::ExecuteFailed)?;
                 // make sure no `Signer` is injected into the script without signatures for security reasons
-                transaction.args = transaction
-                    .args
-                    .into_iter()
-                    .filter_map(|a| {
-                        // everything which is of a `Signer` type or not a `MoveValue` is removed
-                        let Ok(_) =
-                            MoveValue::simple_deserialize(a.as_ref(), &MoveTypeLayout::Signer)
-                        else {
-                            return Some(a);
-                        };
-                        None
-                    })
-                    .collect();
+                // FIXME: are TypeParameter, Struct() and StructInstantiation also able to become Signer?
+                if loaded_script.signatures.iter().skip(1).any(|s| {
+                    s.0.contains(&SignatureToken::Signer)
+                        || s.0
+                            .contains(&SignatureToken::Vector(Box::new(SignatureToken::Signer)))
+                        || s.0
+                            .contains(&SignatureToken::Reference(Box::new(SignatureToken::Signer)))
+                        || s.0.contains(&SignatureToken::MutableReference(Box::new(
+                            SignatureToken::Signer,
+                        )))
+                }) {
+                    return Err(Error::<T>::ExecuteFailed.into());
+                }
                 transaction.args.reverse();
+                // replace first one with proper signer regardless of what was given
+                drop(transaction.args.pop());
                 transaction.args.push(
                     bcs::to_bytes(&MoveValue::Signer(Self::native_to_move(&who)?))
                         .map_err(|_| Error::<T>::InvalidAccountSize)?,
@@ -318,6 +317,8 @@ pub mod pallet {
                     script_id,
                     bcs::to_bytes(&transaction).map_err(|_| Error::<T>::ExecuteFailed)?,
                 );
+                // store token for this session execution
+                <SessionTransferToken<T>>::insert(script_id, who.clone());
             } else {
                 ScriptsToExecute::<T>::insert(who.clone(), script_id, transaction_bc);
             }

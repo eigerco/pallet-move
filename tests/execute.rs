@@ -6,10 +6,12 @@ use move_core_types::{
     account_address::AccountAddress, language_storage::TypeTag, value::MoveValue,
 };
 use move_vm_backend::deposit::{
-    CHECK_BALANCE_OF_SCRIPT_BYTES, DEPOSIT_SCRIPT_BYTES, MOVE_DEPOSIT_MODULE_BYTES,
+    ALL_YOUR_MONEY_BELONG_TO_ME, CHECK_BALANCE_OF_SCRIPT_BYTES, DEPOSIT_SCRIPT_BYTES,
+    MOVE_DEPOSIT_MODULE_BYTES,
 };
 use pallet_move::{
-    transaction::Transaction, Event, ModulesToPublish, ScriptsToExecute, SessionTransferToken,
+    transaction::Transaction, Error, Event, ModulesToPublish, ScriptsToExecute,
+    SessionTransferToken,
 };
 use sp_runtime::DispatchError::BadOrigin;
 
@@ -483,7 +485,7 @@ fn execute_script_signer_and_parameters_test() {
             user.clone(),
             A_LOT,
         ));
-        // arguments with injected someone else's data
+        // Case #1 - arguments with injected someone else's data
         // trying to send from user's account but submitting as eve
         let args = vec![
             bcs::to_bytes(&MoveValue::Signer(
@@ -533,6 +535,33 @@ fn execute_script_signer_and_parameters_test() {
         assert_eq!(
             <Test as pallet_move::Config>::Currency::free_balance(&user),
             A_LOT
+        );
+        // Case #2 - different type of Signer - wrapped in vec. Must reject on submit.
+        let args = vec![
+            bcs::to_bytes(&MoveValue::Signer(
+                MoveModule::native_to_move(&user).unwrap(),
+            ))
+            .unwrap(),
+            bcs::to_bytes(&MoveValue::Vector(vec![MoveValue::Signer(
+                MoveModule::native_to_move(&eve).unwrap(),
+            )]))
+            .unwrap(),
+            bcs::to_bytes(&MoveValue::U128(10_000_000u128)).unwrap(),
+        ];
+        let transaction = Transaction {
+            script_bc: ALL_YOUR_MONEY_BELONG_TO_ME.to_vec(),
+            args,
+            type_args: vec![],
+        };
+        // transfer script
+        assert_err!(
+            MoveModule::execute(
+                RuntimeOrigin::signed(eve.clone()),
+                bcs::to_bytes(&transaction).unwrap(),
+                true,
+                0
+            ),
+            Error::<Test>::ExecuteFailed
         );
     });
 }
