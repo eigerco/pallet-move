@@ -66,11 +66,6 @@ pub mod pallet {
     #[pallet::storage]
     pub type VMStorage<T> = StorageMap<_, Blake2_128Concat, Vec<u8>, Vec<u8>>;
 
-    /// Storage of session/block allowed transfer executions
-    /// Maps binary code to sender's account which is expected to be the source of the transfer
-    #[pallet::storage]
-    pub type SessionTransferToken<T: Config> = StorageMap<_, Blake2_128Concat, u128, T::AccountId>;
-
     /// Published modules to be processed by `Mvm` instance
     /// Picked up one by one on `offchain_worker` execution
     /// Report of execution is done by emitting `Event::PublishModuleResult{ publisher, module, status }`
@@ -152,22 +147,6 @@ pub mod pallet {
     // Pallet hook[s] implementations
     #[pallet::hooks]
     impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
-        fn on_finalize(_now: BlockNumberFor<T>) {
-            let unused: u32 = <SessionTransferToken<T>>::iter().count().saturated_into();
-            // if we failed to use permission to transfer tokens
-            // TODO: make payed execute a separate extrinsic?
-            if unused > 0 {
-                // remove everything
-                let deleted =
-                    <SessionTransferToken<T>>::clear(unused.saturated_into(), None).unique;
-                // report if something failed to be cleaned up - potential security risk
-                if unused > deleted {
-                    Self::deposit_event(Event::SessionTransferTokenCleanupFailed {
-                        diff: unused.saturating_sub(deleted),
-                    })
-                }
-            }
-        }
         // Offchain worker with Mvm initialization
         fn offchain_worker(_block_number: BlockNumberFor<T>) {
             let storage = Self::move_vm_storage();
@@ -219,46 +198,32 @@ pub mod pallet {
 
             // Executing submitted scripts
             ScriptsToExecute::<T>::drain().for_each(|(account, id, script)| {
-                match SessionTransferToken::<T>::take(id) {
-                    Some(token) if token == account => {
-                        match Transaction::try_from(script.as_slice()) {
-                            Ok(transaction) => {
-                                if let Err(reason) = vm.execute_script(
-                                    &transaction.script_bc,
-                                    transaction.type_args,
-                                    transaction.args.iter().map(|x| x.as_slice()).collect(),
-                                    &mut UnmeteredGasMeter {},
-                                ) {
-                                    Self::deposit_event(Event::ExecuteScriptResult {
-                                        publisher: account,
-                                        script: id,
-                                        status: ScriptExecutionStatus::Failure(reason.to_string()),
-                                    });
-                                } else {
-                                    Self::deposit_event(Event::ExecuteScriptResult {
-                                        publisher: account,
-                                        script: id,
-                                        status: ScriptExecutionStatus::Success,
-                                    });
-                                }
-                            }
-                            Err(reason) => {
-                                Self::deposit_event(Event::ExecuteScriptResult {
-                                    publisher: account,
-                                    script: id,
-                                    status: ScriptExecutionStatus::Failure(reason.to_string()),
-                                });
-                            }
+                match Transaction::try_from(script.as_slice()) {
+                    Ok(transaction) => {
+                        if let Err(reason) = vm.execute_script(
+                            &transaction.script_bc,
+                            transaction.type_args,
+                            transaction.args.iter().map(|x| x.as_slice()).collect(),
+                            &mut UnmeteredGasMeter {},
+                        ) {
+                            Self::deposit_event(Event::ExecuteScriptResult {
+                                publisher: account,
+                                script: id,
+                                status: ScriptExecutionStatus::Failure(reason.to_string()),
+                            });
+                        } else {
+                            Self::deposit_event(Event::ExecuteScriptResult {
+                                publisher: account,
+                                script: id,
+                                status: ScriptExecutionStatus::Success,
+                            });
                         }
                     }
-                    _ => {
+                    Err(reason) => {
                         Self::deposit_event(Event::ExecuteScriptResult {
-                            script: id,
-                            status: ScriptExecutionStatus::Failure(format!(
-                                "No session token for account {} and script {}",
-                                account, id
-                            )),
                             publisher: account,
+                            script: id,
+                            status: ScriptExecutionStatus::Failure(reason.to_string()),
                         });
                     }
                 }
@@ -285,20 +250,26 @@ pub mod pallet {
             // Allow only signed calls.
             let who = ensure_signed(origin)?;
             let script_id = Self::get_id(&transaction_bc);
-            if transfers {
-                let mut transaction = Transaction::try_from(transaction_bc.as_ref())
-                    .map_err(|_| Error::<T>::ExecuteFailed)?;
-                let loaded_script = CompiledScript::deserialize(&transaction.script_bc)
-                    .map_err(|_| Error::<T>::ExecuteFailed)?;
-                // make sure no `Signer` is injected into the script without signatures for security reasons
-                // FIXME: are TypeParameter, Struct() and StructInstantiation also able to become Signer?
-                if loaded_script.signatures.iter().skip(1).any(|s| {
+            let mut transaction = Transaction::try_from(transaction_bc.as_ref())
+                .map_err(|_| Error::<T>::ExecuteFailed)?;
+            let loaded_script = CompiledScript::deserialize(&transaction.script_bc)
+                .map_err(|_| Error::<T>::ExecuteFailed)?;
+            // make sure no `Signer` is injected into the script without signatures for security reasons
+            // FIXME: are TypeParameter, Struct() and StructInstantiation also able to become Signer?
+            if loaded_script
+                .signatures
+                .iter()
+                // we allow first signer if transfers, reject otherwise
+                .skip(if transfers { 1 } else { 0 })
+                .any(|s| {
                     s.0.contains(&SignatureToken::Signer)
                         || s.0
                             .contains(&SignatureToken::Vector(Box::new(SignatureToken::Signer)))
-                }) {
-                    return Err(Error::<T>::ExecuteFailed.into());
-                }
+                })
+            {
+                return Err(Error::<T>::ExecuteFailed.into());
+            }
+            if transfers {
                 transaction.args.reverse();
                 // replace first one with proper signer regardless of what was given
                 drop(transaction.args.pop());
@@ -312,9 +283,8 @@ pub mod pallet {
                     script_id,
                     bcs::to_bytes(&transaction).map_err(|_| Error::<T>::ExecuteFailed)?,
                 );
-                // store token for this session execution
-                <SessionTransferToken<T>>::insert(script_id, who.clone());
             } else {
+                // no signer - do as you please
                 ScriptsToExecute::<T>::insert(who.clone(), script_id, transaction_bc);
             }
             // Emit an event.
@@ -415,8 +385,6 @@ pub mod pallet {
         BalanceConversionFailed,
         /// Invalid account size (expected 32 bytes)
         InvalidAccountSize,
-        /// No token for signer account present for transfer execution in `SessionExecutionToken`
-        TransferNotAllowed,
     }
 
     /// Prepare a storage adapter ready for the Virtual Machine.

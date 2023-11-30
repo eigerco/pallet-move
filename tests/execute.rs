@@ -9,10 +9,7 @@ use move_vm_backend::deposit::{
     ALL_YOUR_MONEY_BELONG_TO_ME, CHECK_BALANCE_OF_SCRIPT_BYTES, DEPOSIT_SCRIPT_BYTES,
     MOVE_DEPOSIT_MODULE_BYTES,
 };
-use pallet_move::{
-    transaction::Transaction, Error, Event, ModulesToPublish, ScriptsToExecute,
-    SessionTransferToken,
-};
+use pallet_move::{transaction::Transaction, Error, Event, ModulesToPublish, ScriptsToExecute};
 use sp_runtime::DispatchError::BadOrigin;
 
 const MOVE: &str = "0x90b5ab205c6974c9ea841be688864633dc9ca8a357843eeacf2314649965fe22";
@@ -263,7 +260,6 @@ fn deposit_script_transfer_works() {
         })
         .unwrap();
         let balance_script_id = MoveModule::get_id(&get_balance_transaction);
-        SessionTransferToken::<Test>::insert(balance_script_id, user.clone());
         ScriptsToExecute::<Test>::insert(user.clone(), balance_script_id, get_balance_transaction);
         frame_system::Pallet::<Test>::set_block_number(2);
         MoveModule::offchain_worker(2u64);
@@ -338,43 +334,14 @@ fn deposit_script_should_fail_test() {
         assert_ok!(MoveModule::execute(
             RuntimeOrigin::signed(user.clone()),
             encoded.clone(),
-            false,
+            true,
             0
         ));
         frame_system::Pallet::<Test>::set_block_number(1);
         MoveModule::offchain_worker(1u64);
-        // verify no script AND no token for transfer left
-        assert!(SessionTransferToken::<Test>::get(script_id).is_none());
         assert!(ScriptsToExecute::<Test>::get(&user, script_id).is_none());
-        // Expected failure #1 - no transfer token as submitted `false` with the extrinsic
-        assert_last_event(
-            Event::<Test>::ExecuteScriptResult {
-                publisher: user.clone(),
-                script: script_id,
-                status: pallet_move::ScriptExecutionStatus::Failure(
-                    "No session token for account \
-                    5FLSigC9HGRKVhB9FiEo4Y3koPsNmBmLJbpXg2mp1hXcS59Y and \
-                    script 1906774120454276922783716490891208755"
-                        .into(),
-                ),
-            }
-            .into(),
-        );
-        // Grant one transfer for account to transfer
-        SessionTransferToken::<Test>::insert(script_id, user.clone());
-        // insert script
-        assert_ok!(MoveModule::execute(
-            RuntimeOrigin::signed(user.clone()),
-            encoded.clone(),
-            true,
-            0
-        ));
-        frame_system::Pallet::<Test>::set_block_number(2);
-        MoveModule::offchain_worker(2u64);
-        // verify no script AND no token for transfer left
-        assert!(SessionTransferToken::<Test>::get(script_id).is_none());
         assert!(ScriptsToExecute::<Test>::get(&user, script_id).is_none());
-        // Expected failure #2 - not enough funds to transfer
+        // Expected failure #1- not enough funds to transfer
         assert_last_event(
             Event::<Test>::ExecuteScriptResult {
                 publisher: user.clone(),
@@ -395,8 +362,6 @@ fn deposit_script_should_fail_test() {
             dest.clone(),
             10000,
         ));
-        // Grant one transfer for account to transfer
-        SessionTransferToken::<Test>::insert(script_id, user.clone());
         // insert script
         assert_ok!(MoveModule::execute(
             RuntimeOrigin::signed(user.clone()),
@@ -404,12 +369,11 @@ fn deposit_script_should_fail_test() {
             true,
             0
         ));
-        frame_system::Pallet::<Test>::set_block_number(3);
-        MoveModule::offchain_worker(3u64);
-        // verify no script AND no token for transfer left
-        assert!(SessionTransferToken::<Test>::get(script_id).is_none());
+        frame_system::Pallet::<Test>::set_block_number(2);
+        MoveModule::offchain_worker(2u64);
+        // verify no script for transfer left
         assert!(ScriptsToExecute::<Test>::get(&user, script_id).is_none());
-        // Expected failure #3 - not enough fund with non-zero balance
+        // Expected failure #2 - not enough fund with non-zero balance
         assert_last_event(
             Event::<Test>::ExecuteScriptResult {
                 publisher: user.clone(),
