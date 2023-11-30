@@ -296,11 +296,6 @@ pub mod pallet {
                     s.0.contains(&SignatureToken::Signer)
                         || s.0
                             .contains(&SignatureToken::Vector(Box::new(SignatureToken::Signer)))
-                        || s.0
-                            .contains(&SignatureToken::Reference(Box::new(SignatureToken::Signer)))
-                        || s.0.contains(&SignatureToken::MutableReference(Box::new(
-                            SignatureToken::Signer,
-                        )))
                 }) {
                     return Err(Error::<T>::ExecuteFailed.into());
                 }
