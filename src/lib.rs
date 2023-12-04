@@ -260,12 +260,9 @@ pub mod pallet {
                 .signatures
                 .iter()
                 // we allow first signer if transfers, reject otherwise
+                .flat_map(|s| &s.0)
                 .skip(if transfers { 1 } else { 0 })
-                .any(|s| {
-                    s.0.contains(&SignatureToken::Signer)
-                        || s.0
-                            .contains(&SignatureToken::Vector(Box::new(SignatureToken::Signer)))
-                })
+                .any(contains_signer)
             {
                 return Err(Error::<T>::ExecuteFailed.into());
             }
@@ -515,6 +512,19 @@ pub mod pallet {
 
         fn get_balance(&self, of: AccountAddress) -> u128 {
             Pallet::<T>::get_move_balance(&of).unwrap_or(0)
+        }
+    }
+
+    fn contains_signer(v: &SignatureToken) -> bool {
+        match v {
+            SignatureToken::Signer => true,
+            SignatureToken::Vector(v) => contains_signer(v),
+            SignatureToken::Reference(v) => contains_signer(v),
+            SignatureToken::MutableReference(v) => contains_signer(v),
+            // FIXME: have to check all StructHandle->Abilities for `SIGNER`
+            //SignatureToken::Struct(v) => check_not_signer(v),
+            SignatureToken::StructInstantiation(_, v) => v.iter().all(contains_signer),
+            _ => false,
         }
     }
 }
