@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use codec::Codec;
-use frame_support::{dispatch::Vec, weights::Weight};
+use frame_support::weights::Weight;
 use jsonrpsee::{
     core::{Error as JsonRpseeError, RpcResult},
     proc_macros::rpc,

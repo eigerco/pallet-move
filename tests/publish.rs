@@ -2,6 +2,7 @@ mod mock;
 
 use frame_support::assert_ok;
 use mock::*;
+use sp_runtime::AccountId32;
 
 #[test]
 /// Test that the module is published correctly.
@@ -12,7 +13,7 @@ fn publish_module_as_user_correct() {
         let res = MoveModule::publish_module(
             // Just for now - as Move module address account is 0xCAFE, we need to sign it the same
             // address. But in tests, AccountId is u64, so we need to convert it (0xCAFE -> 0xFECA000000000000 - endian welcome)
-            RuntimeOrigin::signed(0xFECA000000000000),
+            RuntimeOrigin::signed(AccountId32::new([1u8; 32])),
             module,
             0,
         );

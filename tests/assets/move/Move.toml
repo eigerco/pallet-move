@@ -7,5 +7,5 @@ MoveStdlib = { git = "https://github.com/move-language/move.git", subdir = "lang
 
 [addresses]
 std =  "0x1"
-TestAccount = "0xCAFE"
+TestAccount = "0x101010101010101010101010101010101010101010101010101010101010101"
 Bob = "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty"

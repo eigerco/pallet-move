@@ -38,6 +38,8 @@ pub trait WeightInfo {
 	fn execute() -> Weight;
 	fn publish_module() -> Weight;
 	fn publish_package() -> Weight;
+	fn transfer() -> Weight;
+	fn update_std() -> Weight;
 }
 
 /// Weights for pallet_move using the Substrate node and recommended hardware.
@@ -64,6 +66,14 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
 		// Minimum execution time: 5_336_000 picoseconds.
 		Weight::from_parts(5_700_000, 0)
 	}
+	// TODO(ivan): regenerate with benchmarking
+	fn transfer() -> Weight {
+		Weight::from_parts(500_000, 0)
+	}
+	// TODO(ivan): regenerate with benchmarking
+	fn update_std() -> Weight {
+		Weight::from_parts(5_000_000, 0)
+	}
 }
 
 // For backwards compatibility and tests.
@@ -88,5 +98,13 @@ impl WeightInfo for () {
 		//  Estimated: `0`
 		// Minimum execution time: 5_336_000 picoseconds.
 		Weight::from_parts(5_700_000, 0)
+	}
+	// TODO(ivan): regenerate with benchmarking
+	fn transfer() -> Weight {
+		Weight::from_parts(500_000, 0)
+	}
+	// TODO(ivan): regenerate with benchmarking
+	fn update_std() -> Weight {
+		Weight::from_parts(5_000_000, 0)
 	}
 }
