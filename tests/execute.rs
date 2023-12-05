@@ -1,14 +1,18 @@
 mod mock;
 use codec::Decode;
 use frame_support::{assert_err, assert_ok, traits::OffchainWorker};
+use frame_system::RawOrigin;
 use mock::*;
 use move_core_types::{
-    account_address::AccountAddress, language_storage::TypeTag, value::MoveValue,
+    account_address::AccountAddress,
+    language_storage::{TypeTag, CORE_CODE_ADDRESS},
+    value::MoveValue,
 };
 use move_vm_backend::deposit::{
-    ALL_YOUR_MONEY_BELONG_TO_ME, CHECK_BALANCE_OF_SCRIPT_BYTES, DEPOSIT_SCRIPT_BYTES,
-    MOVE_DEPOSIT_MODULE_BYTES,
+    ALL_YOUR_MONEY_BELONG_TO_ME, BOGUS_SIGNER_WRAPPER_MODULE, BOGUS_SIGNER_WRAPPER_SCRIPT,
+    CHECK_BALANCE_OF_SCRIPT_BYTES, DEPOSIT_SCRIPT_BYTES, MOVE_DEPOSIT_MODULE_BYTES,
 };
+use move_vm_types::gas::UnmeteredGasMeter;
 use pallet_move::{transaction::Transaction, Error, Event, ModulesToPublish, ScriptsToExecute};
 use sp_runtime::DispatchError::BadOrigin;
 
@@ -499,13 +503,33 @@ fn execute_script_signer_and_parameters_test() {
         ];
         let transaction = Transaction {
             script_bc: ALL_YOUR_MONEY_BELONG_TO_ME.to_vec(),
-            args,
+            args: args.clone(),
             type_args: vec![],
         };
         // transfer script
         assert_err!(
             MoveModule::execute(
                 RuntimeOrigin::signed(eve.clone()),
+                bcs::to_bytes(&transaction).unwrap(),
+                true,
+                0
+            ),
+            Error::<Test>::ExecuteFailed
+        );
+        // #Case 3 - bogus structure
+        assert_ok!(MoveModule::publish_module(
+            RawOrigin::Signed(MoveModule::move_to_native(&CORE_CODE_ADDRESS).unwrap()).into(),
+            BOGUS_SIGNER_WRAPPER_MODULE.to_vec(),
+            0
+        ));
+        let transaction = Transaction {
+            script_bc: BOGUS_SIGNER_WRAPPER_SCRIPT.to_vec(),
+            args,
+            type_args: vec![],
+        };
+        assert_err!(
+            MoveModule::execute(
+                RawOrigin::Signed(eve).into(),
                 bcs::to_bytes(&transaction).unwrap(),
                 true,
                 0
