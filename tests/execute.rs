@@ -12,7 +12,6 @@ use move_vm_backend::deposit::{
     ALL_YOUR_MONEY_BELONG_TO_ME, BOGUS_SIGNER_WRAPPER_MODULE, BOGUS_SIGNER_WRAPPER_SCRIPT,
     CHECK_BALANCE_OF_SCRIPT_BYTES, DEPOSIT_SCRIPT_BYTES, MOVE_DEPOSIT_MODULE_BYTES,
 };
-use move_vm_types::gas::UnmeteredGasMeter;
 use pallet_move::{transaction::Transaction, Error, Event, ModulesToPublish, ScriptsToExecute};
 use sp_runtime::DispatchError::BadOrigin;
 
