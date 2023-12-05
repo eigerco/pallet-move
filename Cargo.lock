@@ -1971,7 +1971,7 @@ dependencies = [
 [[package]]
 name = "move-binary-format"
 version = "0.0.3"
-source = "git+https://github.com/eigerco/substrate-move.git?branch=iv-transfer-callback#4c9f70477e442d430e2d9c530df7f72001959400"
+source = "git+https://github.com/eigerco/substrate-move.git?branch=iv-transfer-callback#e496a4e3fbf1119dc0e6a387b796c754944c39aa"
 dependencies = [
  "anyhow",
  "hashbrown 0.14.2",
@@ -1984,12 +1984,12 @@ dependencies = [
 [[package]]
 name = "move-borrow-graph"
 version = "0.0.1"
-source = "git+https://github.com/eigerco/substrate-move.git?branch=iv-transfer-callback#4c9f70477e442d430e2d9c530df7f72001959400"
+source = "git+https://github.com/eigerco/substrate-move.git?branch=iv-transfer-callback#e496a4e3fbf1119dc0e6a387b796c754944c39aa"
 
 [[package]]
 name = "move-bytecode-verifier"
 version = "0.1.0"
-source = "git+https://github.com/eigerco/substrate-move.git?branch=iv-transfer-callback#4c9f70477e442d430e2d9c530df7f72001959400"
+source = "git+https://github.com/eigerco/substrate-move.git?branch=iv-transfer-callback#e496a4e3fbf1119dc0e6a387b796c754944c39aa"
 dependencies = [
  "anyhow",
  "fail",
@@ -2003,7 +2003,7 @@ dependencies = [
 [[package]]
 name = "move-core-types"
 version = "0.0.4"
-source = "git+https://github.com/eigerco/substrate-move.git?branch=iv-transfer-callback#4c9f70477e442d430e2d9c530df7f72001959400"
+source = "git+https://github.com/eigerco/substrate-move.git?branch=iv-transfer-callback#e496a4e3fbf1119dc0e6a387b796c754944c39aa"
 dependencies = [
  "anyhow",
  "bcs",
@@ -2022,7 +2022,7 @@ dependencies = [
 [[package]]
 name = "move-stdlib"
 version = "0.1.1"
-source = "git+https://github.com/eigerco/substrate-move.git?branch=iv-transfer-callback#4c9f70477e442d430e2d9c530df7f72001959400"
+source = "git+https://github.com/eigerco/substrate-move.git?branch=iv-transfer-callback#e496a4e3fbf1119dc0e6a387b796c754944c39aa"
 dependencies = [
  "hex",
  "move-binary-format",
@@ -2037,7 +2037,7 @@ dependencies = [
 [[package]]
 name = "move-vm-backend"
 version = "0.1.0"
-source = "git+https://github.com/eigerco/substrate-move.git?branch=iv-transfer-callback#4c9f70477e442d430e2d9c530df7f72001959400"
+source = "git+https://github.com/eigerco/substrate-move.git?branch=iv-transfer-callback#e496a4e3fbf1119dc0e6a387b796c754944c39aa"
 dependencies = [
  "anyhow",
  "bcs",
@@ -2054,7 +2054,7 @@ dependencies = [
 [[package]]
 name = "move-vm-backend-common"
 version = "0.1.0"
-source = "git+https://github.com/eigerco/substrate-move.git?branch=iv-transfer-callback#4c9f70477e442d430e2d9c530df7f72001959400"
+source = "git+https://github.com/eigerco/substrate-move.git?branch=iv-transfer-callback#e496a4e3fbf1119dc0e6a387b796c754944c39aa"
 dependencies = [
  "anyhow",
  "bcs",
@@ -2065,7 +2065,7 @@ dependencies = [
 [[package]]
 name = "move-vm-runtime"
 version = "0.1.0"
-source = "git+https://github.com/eigerco/substrate-move.git?branch=iv-transfer-callback#4c9f70477e442d430e2d9c530df7f72001959400"
+source = "git+https://github.com/eigerco/substrate-move.git?branch=iv-transfer-callback#e496a4e3fbf1119dc0e6a387b796c754944c39aa"
 dependencies = [
  "better_any",
  "fail",
@@ -2081,7 +2081,7 @@ dependencies = [
 [[package]]
 name = "move-vm-types"
 version = "0.1.0"
-source = "git+https://github.com/eigerco/substrate-move.git?branch=iv-transfer-callback#4c9f70477e442d430e2d9c530df7f72001959400"
+source = "git+https://github.com/eigerco/substrate-move.git?branch=iv-transfer-callback#e496a4e3fbf1119dc0e6a387b796c754944c39aa"
 dependencies = [
  "bcs",
  "move-binary-format",

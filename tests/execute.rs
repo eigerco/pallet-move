@@ -463,32 +463,17 @@ fn execute_script_signer_and_parameters_test() {
             bcs::to_bytes(&MoveValue::U128(10_000_000u128)).unwrap(),
         ];
         let transaction = Transaction {
-            script_bc: DEPOSIT_SCRIPT_BYTES.to_vec(),
+            script_bc: ALL_YOUR_MONEY_BELONG_TO_ME.to_vec(),
             args,
             type_args: vec![],
         };
         // transfer script
         let encoded = bcs::to_bytes(&transaction).unwrap();
-        let script_id = MoveModule::get_id(&encoded);
         // insert script with wrong Signer
         // param of script is `Signer(user)` but extrinsic is signed as `eve`
-        assert_ok!(MoveModule::execute(
-            RuntimeOrigin::signed(eve.clone()),
-            encoded.clone(),
-            true,
-            0
-        ));
-        // execute
-        frame_system::Pallet::<Test>::set_block_number(1);
-        MoveModule::offchain_worker(1u64);
-        // verify `user`'s balance was not modified and eve had insufficient balance to transfer
-        assert_last_event(
-            Event::<Test>::ExecuteScriptResult {
-                publisher: eve.clone(),
-                script: script_id,
-                status: pallet_move::ScriptExecutionStatus::Success,
-            }
-            .into(),
+        assert_err!(
+            MoveModule::execute(RuntimeOrigin::signed(eve.clone()), encoded.clone(), true, 0),
+            Error::<Test>::ExecuteFailed
         );
         // nothing came in here
         assert_eq!(

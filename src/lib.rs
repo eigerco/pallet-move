@@ -262,7 +262,7 @@ pub mod pallet {
                 // we allow first signer if transfers, reject otherwise
                 .flat_map(|s| &s.0)
                 .skip(if transfers { 1 } else { 0 })
-                .any(contains_signer)
+                .any(Self::contains_signer)
             {
                 return Err(Error::<T>::ExecuteFailed.into());
             }
@@ -467,6 +467,25 @@ pub mod pallet {
         pub fn get_id(data: impl AsRef<[u8]>) -> u128 {
             u128::from_be_bytes(blake2_128(data.as_ref()))
         }
+
+        fn contains_signer(v: &SignatureToken) -> bool {
+            match v {
+                SignatureToken::Signer => true,
+                SignatureToken::Vector(v) => Self::contains_signer(&v),
+                SignatureToken::Reference(v) => Self::contains_signer(&v),
+                SignatureToken::MutableReference(v) => Self::contains_signer(&v),
+                // FIXME: have to check all StructHandle->Abilities for `SIGNER`
+                SignatureToken::Struct(v) => {
+                    Mvm::new(Self::move_vm_storage(), Gw::<T>::new(PhantomData))
+                        .unwrap() // FIXME: ?
+                        .get_struct_members(*v)
+                        .iter()
+                        .all(Self::contains_signer)
+                }
+                SignatureToken::StructInstantiation(_, v) => v.iter().all(Self::contains_signer),
+                _ => false,
+            }
+        }
     }
 
     /// Implementing structure for 'SubstrateApi'
@@ -512,19 +531,6 @@ pub mod pallet {
 
         fn get_balance(&self, of: AccountAddress) -> u128 {
             Pallet::<T>::get_move_balance(&of).unwrap_or(0)
-        }
-    }
-
-    fn contains_signer(v: &SignatureToken) -> bool {
-        match v {
-            SignatureToken::Signer => true,
-            SignatureToken::Vector(v) => contains_signer(v),
-            SignatureToken::Reference(v) => contains_signer(v),
-            SignatureToken::MutableReference(v) => contains_signer(v),
-            // FIXME: have to check all StructHandle->Abilities for `SIGNER`
-            //SignatureToken::Struct(v) => check_not_signer(v),
-            SignatureToken::StructInstantiation(_, v) => v.iter().all(contains_signer),
-            _ => false,
         }
     }
 }
