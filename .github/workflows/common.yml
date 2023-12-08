@@ -29,6 +29,9 @@ jobs:
         run: |
           echo "$GITHUB_WORKSPACE" >> $GITHUB_PATH
           chmod +x "$GITHUB_WORKSPACE/smove"
+      - name: Test smove
+        shell: bash
+        run: smove
       - name: Checkout code
         uses: actions/checkout@v3
 
