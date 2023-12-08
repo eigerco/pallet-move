@@ -11,7 +11,9 @@ mod storage;
 
 pub mod transaction;
 
+mod result;
 pub mod weights;
+
 pub use weights::*;
 
 // The pallet is defined below.
@@ -85,7 +87,7 @@ pub mod pallet {
             origin: OriginFor<T>,
             transaction_bc: Vec<u8>,
             _gas_limit: u64,
-        ) -> DispatchResult {
+        ) -> DispatchResultWithPostInfo {
             // Allow only signed calls.
             let who = ensure_signed(origin)?;
 
@@ -95,19 +97,21 @@ pub mod pallet {
             let transaction = Transaction::try_from(transaction_bc.as_slice())
                 .map_err(|_| Error::<T>::ExecuteFailed)?;
 
-            vm.execute_script(
+            let result = vm.execute_script(
                 transaction.script_bc.as_slice(),
                 transaction.type_args,
                 transaction.args.iter().map(|x| x.as_slice()).collect(),
                 &mut UnmeteredGasMeter, // TODO(asmie): gas handling
-            )
-            .map_err(|_err| Error::<T>::ExecuteFailed)?;
+            );
+
+            // produce result with spended gas:
+            let result = result::from_vm_result::<T>(result)?;
 
             // Emit an event.
             Self::deposit_event(Event::ExecuteCalled { who });
 
-            // Return a successful DispatchResult
-            Ok(())
+            // Return a successful DispatchResultWithPostInfo
+            Ok(result)
         }
 
         /// Publish a Move module sent by the user.
@@ -129,18 +133,20 @@ pub mod pallet {
             // - Substrate address to Move address conversion is missing in the move-cli
             let vm = Mvm::new(storage).map_err(|_err| Error::<T>::PublishModuleFailed)?;
 
-            vm.publish_module(
+            let result = vm.publish_module(
                 bytecode.as_slice(),
                 address::to_move_address(&who),
                 &mut UnmeteredGasMeter, // TODO(asmie): gas handling
-            )
-            .map_err(|_err| Error::<T>::PublishModuleFailed)?;
+            );
+
+            // produce result with spended gas:
+            let result = result::from_vm_result::<T>(result)?;
 
             // Emit an event.
             Self::deposit_event(Event::ModulePublished { who });
 
             // Return a successful DispatchResultWithPostInfo
-            Ok(PostDispatchInfo::default())
+            Ok(result)
         }
 
         /// Publish a Move module packages sent by the user.
@@ -164,12 +170,398 @@ pub mod pallet {
 
     #[pallet::error]
     pub enum Error<T> {
+        // General errors
         /// Error returned when executing Move script bytecode failed.
         ExecuteFailed,
         /// Error returned when publishing Move module failed.
         PublishModuleFailed,
         /// Error returned when publishing Move module package failed.
         PublishPackageFailed,
+
+        // Errors that can be received from MoveVM
+        /// Unknown validation status
+        UnknownValidationStatus,
+        /// The transaction has a bad signature
+        InvalidSignature,
+        /// Bad account authentication key
+        InvalidAuthKey,
+        /// Sequence number is too old
+        SequenceNumberTooOld,
+        /// Sequence number is too new
+        SequenceNumberTooNew,
+        /// The sequence number is too large and would overflow if the transaction were executed
+        SequenceNumberTooBig,
+        /// Insufficient balance to pay minimum transaction fee
+        InsufficientBalanceForTransactionFee,
+        /// The transaction has expired
+        TransactionExpired,
+        /// The sending account does not exist
+        SendingAccountDoesNotExist,
+        /// This write set transaction was rejected because it did not meet the requirements for one.
+        RejectedWriteSet,
+        /// This write set transaction cannot be applied to the current state.
+        InvalidWriteSet,
+        /// Length of program field in raw transaction exceeded max length
+        ExceededMaxTransactionSize,
+        /// This script is not in our allowlist of scripts.
+        UnknownScript,
+        /// Transaction is trying to publish a new module.
+        UnknownModule,
+        /// Max gas units submitted with transaction exceeds max gas units bound in VM
+        MaxGasUnitsExceedsMaxGasUnitsBound,
+        /// Max gas units submitted with transaction not enough to cover the intrinsic cost of the transaction.
+        MaxGasUnitsBelowMinTransactionGasUnits,
+        /// Gas unit price submitted with transaction is below minimum gas price set in the VM.
+        GasUnitPriceBelowMinBound,
+        /// Gas unit price submitted with the transaction is above the maximum gas price set in the VM.
+        GasUnitPriceAboveMaxBound,
+        /// Gas specifier submitted is either malformed (not a valid identifier), or does not refer to an accepted gas specifier
+        InvalidGasSpecifier,
+        /// The sending account is frozen
+        SendingAccountFrozen,
+        /// Unable to deserialize the account blob
+        UnableToDeserializeAccount,
+        /// The currency info was unable to be found
+        CurrencyInfoDoesNotExist,
+        /// The account sender doesn't have permissions to publish modules
+        InvalidModulePublisher,
+        /// The sending account has no role
+        NoAccountRole,
+        /// The transaction's chain_id does not match the one published on-chain
+        BadChainId,
+        /// Unknown verification error
+        UnknownVerificationError,
+        /// Index out of bounds
+        IndexOutOfBounds,
+        /// Invalid signature token
+        InvalidSignatureToken,
+        /// Recursive struct definition
+        RecursiveStructDefinition,
+        /// Invalid resource field
+        InvalidResourceField,
+        /// Invalid fall through
+        InvalidFallThrough,
+        /// Negative stack size within block
+        NegativeStackSizeWithinBlock,
+        /// Invalid main function signature
+        InvalidMainFunctionSignature,
+        /// Duplicate element
+        DuplicateElement,
+        /// Invalid module handle
+        InvalidModuleHandle,
+        /// Unimplemented handle
+        UnimplementedHandle,
+        /// Lookup failed
+        LookupFailed,
+        /// Type mismatch
+        TypeMismatch,
+        /// Missing dependency
+        MissingDependency,
+        /// Pop resource error
+        PopResourceError,
+        /// Br type mismatch
+        BrTypeMismatchError,
+        /// Abort type mismatch error
+        AbortTypeMismatchError,
+        /// Stloc type mismatch error
+        StlocTypeMismatchError,
+        /// Stloc unsafe to destroy error
+        StlocUnsafeToDestroyError,
+        /// Unsafe ret local or resource still borrowed
+        UnsafeRetLocalOrResourceStillBorrowed,
+        /// Ret type mismatch error
+        RetTypeMismatchError,
+        /// Ret borrowed mutable reference error
+        RetBorrowedMutableReferenceError,
+        /// Freezeref type mismatch error
+        FreezerefTypeMismatchError,
+        /// Freezeref exists mutable borrow error
+        FreezerefExistsMutableBorrowError,
+        /// Borrowfield type mismatch error
+        BorrowfieldTypeMismatchError,
+        /// Borrowfield bad field error
+        BorrowfieldBadFieldError,
+        /// Borrowfield exists mutable borrow error
+        BorrowfieldExistsMutableBorrowError,
+        /// Copyloc unavailable error
+        CopylocUnavailableError,
+        /// Copyloc resource error
+        CopylocResourceError,
+        /// Copyloc exists borrow error
+        CopylocExistsBorrowError,
+        /// Moveloc unavailable error
+        MovelocUnavailableError,
+        /// Moveloc exists borrow error
+        MovelocExistsBorrowError,
+        /// Borrowloc reference error
+        BorrowlocReferenceError,
+        /// Borrowloc unavailable error
+        BorrowlocUnavailableError,
+        /// Borrowloc exists borrow error
+        BorrowlocExistsBorrowError,
+        /// Call type mismatch error
+        CallTypeMismatchError,
+        /// Call borrowed mutable reference error
+        CallBorrowedMutableReferenceError,
+        /// Pack type mismatch error
+        PackTypeMismatchError,
+        /// Unpack type mismatch error
+        UnpackTypeMismatchError,
+        /// Readref type mismatch error
+        ReadrefTypeMismatchError,
+        /// Readref resource error
+        ReadrefResourceError,
+        /// Readref exists mutable borrow error
+        ReadrefExistsMutableBorrowError,
+        /// Writeref type mismatch error
+        WriterefTypeMismatchError,
+        /// Writeref resource error
+        WriterefResourceError,
+        /// Writeref exists borrow error
+        WriterefExistsBorrowError,
+        /// Writeref no mutable reference error
+        WriterefNoMutableReferenceError,
+        /// Integer op type mismatch error
+        IntegerOpTypeMismatchError,
+        /// Boolean op type mismatch error
+        BooleanOpTypeMismatchError,
+        /// Equality op type mismatch error
+        EqualityOpTypeMismatchError,
+        /// Exists resource type mismatch error
+        ExistsResourceTypeMismatchError,
+        /// Borrowglobal type mismatch error
+        BorrowglobalTypeMismatchError,
+        /// Borrowglobal no resource error
+        BorrowglobalNoResourceError,
+        /// Movefrom Type mismatch error
+        MovefromTypeMismatchError,
+        /// Movefrom no resource error
+        MovefromNoResourceError,
+        /// Moveto type mismatch error
+        MovetoTypeMismatchError,
+        /// Moveto no resource error
+        MovetoNoResourceError,
+        /// The self address of a module the transaction is publishing is not the sender address
+        ModuleAddressDoesNotMatchSender,
+        /// The module does not have any module handles. Each module or script must have at least one module handle.
+        NoModuleHandles,
+        /// Positive stack size at block end
+        PositiveStackSizeAtBlockEnd,
+        /// Missing acquires resource annotation error
+        MissingAcquiresResourceAnnotationError,
+        /// Extraneous acquires resource annotation error
+        ExtraneousAcquiresResourceAnnotationError,
+        /// Duplicate acquires resource annotation error
+        DuplicateAcquiresResourceAnnotationError,
+        /// Invalid acquires resource annotation error
+        InvalidAcquiresResourceAnnotationError,
+        /// Global reference error
+        GlobalReferenceError,
+        /// Constraint kind mismatch
+        ConstraintKindMismatch,
+        /// Number of type arguments mismatch
+        NumberOfTypeArgumentsMismatch,
+        /// Loop in instantiation graph
+        LoopInInstantiationGraph,
+        /// Zero sized struct.
+        ZeroSizedStruct,
+        /// Linker error
+        LinkerError,
+        /// Invalid constant type
+        InvalidConstantType,
+        /// Malformed constant data
+        MalformedConstantData,
+        /// Empty code unit
+        EmptyCodeUnit,
+        /// Invalid loop split
+        InvalidLoopSplit,
+        /// Invalid loop break
+        InvalidLoopBreak,
+        /// Invalid loop continue
+        InvalidLoopContinue,
+        /// Unsafe fet unused resources
+        UnsafeRetUnusedResources,
+        /// Too many locals
+        TooManyLocals,
+        /// Generic member opcode mismatch
+        GenericMemberOpcodeMismatch,
+        /// Function resolution failure
+        FunctionResolutionFailure,
+        /// Invalid operation in script
+        InvalidOperationInScript,
+        /// The sender is trying to publish a module named `M`, but the sender's account already contains a module with this name.
+        DuplicateModuleName,
+        /// Unknown invariant violation error
+        UnknownInvariantViolationError,
+        /// Empty value stack
+        EmptyValueStack,
+        /// Pc overflow
+        PcOverflow,
+        /// Verification error
+        VerificationError,
+        /// Storage error
+        StorageError,
+        /// Internal type error
+        InternalTypeError,
+        /// Event key mismatch
+        EventKeyMismatch,
+        /// Unreachable
+        Unreachable,
+        /// vm startup failure
+        VmStartupFailure,
+        /// Unexpected error from known move function
+        UnexpectedErrorFromKnownMoveFunction,
+        /// Verifier invariant violation
+        VerifierInvariantViolation,
+        /// Unexpected verifier error
+        UnexpectedVerifierError,
+        /// Unexpected deserialization error
+        UnexpectedDeserializationError,
+        /// Failed to serialize write set changes
+        FailedToSerializeWriteSetChanges,
+        /// Failed to deserialize resource
+        FailedToDeserializeResource,
+        /// Failed to resolve type due to linking being broken after verification
+        TypeResolutionFailure,
+        /// Unknown binary error
+        UnknownBinaryError,
+        /// Malformed
+        Malformed,
+        /// Bad magic
+        BadMagic,
+        /// Unknown version
+        UnknownVersion,
+        /// Unknown table type
+        UnknownTableType,
+        /// Unknown signature type
+        UnknownSignatureType,
+        /// Unknown serialized type
+        UnknownSerializedType,
+        /// Unknown opcode
+        UnknownOpcode,
+        /// BadHeader table
+        BadHeaderTable,
+        /// Unexpected signature type
+        UnexpectedSignatureType,
+        /// Duplicate table
+        DuplicateTable,
+        /// Unknown kind
+        UnknownKind,
+        /// Unknown native struct flag
+        UnknownNativeStructFlag,
+        /// Bad U64
+        BadU64,
+        /// Bad U128
+        BadU128,
+        /// Value serialization error
+        ValueSerializationError,
+        /// Value deserialization error
+        ValueDeserializationError,
+        /// Code deserialization error
+        CodeDeserializationError,
+        /// Unknown runtime status
+        UnknownRuntimeStatus,
+        /// Out of gas
+        OutOfGas,
+        /// We tried to access a resource that does not exist under the account.
+        ResourceDoesNotExist,
+        /// We tried to create a resource under an account where that resource already exists.
+        ResourceAlreadyExists,
+        /// Missing data
+        MissingData,
+        /// Data format error
+        DataFormatError,
+        /// Aborted
+        Aborted,
+        /// Arithmetic error
+        ArithmeticError,
+        /// Execution stack overflow
+        ExecutionStackOverflow,
+        /// Call stack overflow
+        CallStackOverflow,
+        /// Vm max type depth reached
+        VmMaxTypeDepthReached,
+        /// Vm max value depth reached
+        VmMaxValueDepthReached,
+        /// Unknown status.
+        UnknownStatus,
+
+        // Documentation_missing
+        BadTransactionFeeCurrency,
+        // Documentation_missing
+        FeatureUnderGating,
+        // Documentation_missing
+        FieldMissingTypeAbility,
+        // Documentation_missing
+        PopWithoutDropAbility,
+        // Documentation_missing
+        CopylocWithoutCopyAbility,
+        // Documentation_missing
+        ReadrefWithoutCopyAbility,
+        // Documentation_missing
+        WriterefWithoutDropAbility,
+        // Documentation_missing
+        ExistsWithoutKeyAbilityOrBadArgument,
+        // Documentation_missing
+        BorrowglobalWithoutKeyAbility,
+        // Documentation_missing
+        MovefromWithoutKeyAbility,
+        // Documentation_missing
+        MovetoWithoutKeyAbility,
+        // Documentation_missing
+        MissingAcquiresAnnotation,
+        // Documentation_missing
+        ExtraneousAcquiresAnnotation,
+        // Documentation_missing
+        DuplicateAcquiresAnnotation,
+        // Documentation_missing
+        InvalidAcquiresAnnotation,
+        // Documentation_missing
+        ConstraintNotSatisfied,
+        // Documentation_missing
+        UnsafeRetUnusedValuesWithoutDrop,
+        // Documentation_missing
+        BackwardIncompatibleModuleUpdate,
+        // Documentation_missing
+        CyclicModuleDependency,
+        // Documentation_missing
+        NumberOfArgumentsMismatch,
+        // Documentation_missing
+        InvalidParamTypeForDeserialization,
+        // Documentation_missing
+        FailedToDeserializeArgument,
+        // Documentation_missing
+        NumberOfSignerArgumentsMismatch,
+        // Documentation_missing
+        CalledScriptVisibleFromNonScriptVisible,
+        // Documentation_missing
+        ExecuteScriptFunctionCalledOnNonScriptVisible,
+        // Documentation_missing
+        InvalidFriendDeclWithSelf,
+        // Documentation_missing
+        InvalidFriendDeclWithModulesOutsideAccountAddress,
+        // Documentation_missing
+        InvalidFriendDeclWithModulesInDependencies,
+        // Documentation_missing
+        CyclicModuleFriendship,
+        // Documentation_missing
+        UnknownAbility,
+        // Documentation_missing
+        InvalidFlagBits,
+        // Wrong secondary keys addresses count
+        SecondaryKeysAddressesCountMismatch,
+        // List of signers contain duplicates
+        SignersContainDuplicates,
+        // Invalid sequence nonce
+        SequenceNonceInvalid,
+        // Invalid phantom type param position
+        InvalidPhantomTypeParamPosition,
+        // Documentation_missing
+        VecUpdateExistsMutableBorrowError,
+        // Documentation_missing
+        VecBorrowElementExistsMutableBorrowError,
+        // Found duplicate of native function
+        DuplicateNativeFunction,
     }
 
     /// Prepare a storage adapter ready for the Virtual Machine.
