@@ -29,9 +29,6 @@ jobs:
         run: |
           echo "$GITHUB_WORKSPACE" >> $GITHUB_PATH
           chmod +x "$GITHUB_WORKSPACE/smove"
-      - name: Test smove
-        shell: bash
-        run: smove
       - name: Checkout code
         uses: actions/checkout@v3
 
@@ -47,7 +44,9 @@ jobs:
         run: cargo fmt --all -- --check
 
       - name: clippy
-        run: cargo clippy --all-targets -- -D warnings
+        run: | 
+          smove 
+          cargo clippy --all-targets -- -D warnings
 
       # You can edit this part when you add tests
       # - name: Test
