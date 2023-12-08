@@ -31,7 +31,21 @@ jobs:
       - name: fmt
         run: cargo fmt --all -- --check
 
+      - name: Get smove
+        uses: robinraju/release-downloader@v1.8
+        with:
+          repository: "eigerco/smove"
+          fileName: "smove.zip"
+          latest: true
+          extract: true
+      - name: Setup smove
+        shell: bash
+        run: |
+          echo "$GITHUB_WORKSPACE" >> $GITHUB_PATH
+          chmod +x "$GITHUB_WORKSPACE/smove"
+
       - name: clippy
+        shell: bash
         run: cargo clippy --all-targets -- -D warnings
 
       # You can edit this part when you add tests
