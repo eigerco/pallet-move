@@ -31,8 +31,7 @@ pub mod pallet {
     };
     use frame_system::pallet_prelude::*;
     use move_core_types::account_address::AccountAddress;
-    use move_vm_backend::Mvm;
-    use move_vm_types::gas::UnmeteredGasMeter;
+    use move_vm_backend::{types::GasStrategy, Mvm};
     use sp_std::{default::Default, vec::Vec};
     use transaction::Transaction;
 
@@ -86,7 +85,7 @@ pub mod pallet {
         pub fn execute(
             origin: OriginFor<T>,
             transaction_bc: Vec<u8>,
-            _gas_limit: u64,
+            gas_limit: u64,
         ) -> DispatchResultWithPostInfo {
             // Allow only signed calls.
             let who = ensure_signed(origin)?;
@@ -101,7 +100,7 @@ pub mod pallet {
                 transaction.script_bc.as_slice(),
                 transaction.type_args,
                 transaction.args.iter().map(|x| x.as_slice()).collect(),
-                &mut UnmeteredGasMeter, // TODO(asmie): gas handling
+                GasStrategy::Metered(gas_limit),
             );
 
             // produce result with spended gas:
@@ -121,7 +120,7 @@ pub mod pallet {
         pub fn publish_module(
             origin: OriginFor<T>,
             bytecode: Vec<u8>,
-            _gas_limit: u64,
+            gas_limit: u64,
         ) -> DispatchResultWithPostInfo {
             // Allow only signed calls.
             let who = ensure_signed(origin)?;
@@ -136,7 +135,7 @@ pub mod pallet {
             let result = vm.publish_module(
                 bytecode.as_slice(),
                 address::to_move_address(&who),
-                &mut UnmeteredGasMeter, // TODO(asmie): gas handling
+                GasStrategy::Metered(gas_limit),
             );
 
             // produce result with spended gas:
