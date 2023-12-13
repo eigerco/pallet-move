@@ -25,7 +25,11 @@ pub mod pallet {
     use alloc::format;
 
     use codec::{FullCodec, FullEncode};
-    use frame_support::{dispatch::DispatchResultWithPostInfo, pallet_prelude::*};
+    use frame_support::{
+        dispatch::DispatchResultWithPostInfo,
+        pallet_prelude::*,
+        traits::{Currency, ReservableCurrency},
+    };
     use frame_system::pallet_prelude::*;
     use move_core_types::account_address::AccountAddress;
     use move_vm_backend::{types::GasStrategy, Mvm};
@@ -50,8 +54,12 @@ pub mod pallet {
     pub trait Config: frame_system::Config {
         /// Because this pallet emits events, it depends on the runtime's definition of an event.
         type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
+
         /// Type representing the weight of this pallet
         type WeightInfo: WeightInfo;
+
+        /// The currency mechanism.
+        type Currency: Currency<Self::AccountId> + ReservableCurrency<Self::AccountId>;
     }
 
     // Pallets use events to inform users when important changes are made.
