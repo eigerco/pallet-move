@@ -158,8 +158,8 @@ Let's dive into the crucial aspects of pallet architecture:
 3) Storage: It defines the data structures and how they are accessed and modified. The MoveVM pallet would use it to store data in the map of key-value pairs and provide a storage adapter for the Move Virtual Machine storage.
 4) Dispatchable Functions - extrinsics: The MoveVM pallet will expose dispatchable functions, which users can call via transactions. Currently, there are three extrinsics defined:
 - 'execute' - executes a Move script;
-- 'publishModule' - publishes a Move module;
-- 'publishPackage' - publishes a Move package.
+- 'publish_module' - publishes a Move module;
+- 'publish_module_bundle' - publishes a bundle of Move modules.
 5) Events: Events inform about changes within the pallet. The MoveVM pallet defines separate events for completing each extrinsic call. Somebody can subscribe to them, allowing external applications to react to specific changes or triggers within the blockchain.
 6) Configuration: The MoveVM pallet is configured during the runtime's setup to customize its behaviour. Configuration is done in a standard way, like it's done for other pallets.
 7) Traits: The MoveVM pallet defines a set of traits which can be used further in the runtime or RPC node.

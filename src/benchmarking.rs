@@ -31,12 +31,12 @@ mod benchmarks {
     }
 
     #[benchmark]
-    fn publish_package() {
+    fn publish_module_bundle() {
         let caller: T::AccountId = whitelisted_caller();
         let module =
             include_bytes!("../tests/assets/move/build/move/bytecode_modules/Empty.mv").to_vec();
         #[extrinsic_call]
-        publish_package(RawOrigin::Signed(caller), module, 1_500_000);
+        publish_module_bundle(RawOrigin::Signed(caller), module, 1_500_000);
     }
 
     impl_benchmark_test_suite!(MovePallet, crate::mock::new_test_ext(), crate::mock::Test);

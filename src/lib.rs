@@ -25,14 +25,11 @@ pub mod pallet {
     use alloc::format;
 
     use codec::{FullCodec, FullEncode};
-    use frame_support::{
-        dispatch::{DispatchResultWithPostInfo, PostDispatchInfo},
-        pallet_prelude::*,
-    };
+    use frame_support::{dispatch::DispatchResultWithPostInfo, pallet_prelude::*};
     use frame_system::pallet_prelude::*;
     use move_core_types::account_address::AccountAddress;
     use move_vm_backend::{types::GasStrategy, Mvm};
-    use sp_std::{default::Default, vec::Vec};
+    use sp_std::vec::Vec;
     use transaction::Transaction;
 
     use super::*;
@@ -69,9 +66,9 @@ pub mod pallet {
         /// [account]
         ModulePublished { who: T::AccountId },
 
-        /// Event about successful move-package published
+        /// Event about successful move-bundle published
         /// [account]
-        PackagePublished { who: T::AccountId },
+        BundlePublished { who: T::AccountId },
     }
 
     // Dispatchable functions allows users to interact with the pallet and invoke state changes.
@@ -103,13 +100,12 @@ pub mod pallet {
                 GasStrategy::Metered(gas_limit),
             );
 
-            // produce result with spended gas:
+            // Produce a result with gas spent.
             let result = result::from_vm_result::<T>(result)?;
 
             // Emit an event.
             Self::deposit_event(Event::ExecuteCalled { who });
 
-            // Return a successful DispatchResultWithPostInfo
             Ok(result)
         }
 
@@ -137,41 +133,41 @@ pub mod pallet {
                 GasStrategy::Metered(gas_limit),
             );
 
-            // produce result with spended gas:
+            // Produce a result with gas spent.
             let result = result::from_vm_result::<T>(result)?;
 
             // Emit an event.
             Self::deposit_event(Event::ModulePublished { who });
 
-            // Return a successful DispatchResultWithPostInfo
             Ok(result)
         }
 
-        /// Publish a Move module packages sent by the user.
+        /// Publish a Move bundle sent by the user.
+        // TODO(rqnsom): write proper tests for this extrinsic
         #[pallet::call_index(2)]
-        #[pallet::weight(T::WeightInfo::publish_package())]
-        pub fn publish_package(
+        #[pallet::weight(T::WeightInfo::publish_module_bundle())]
+        pub fn publish_module_bundle(
             origin: OriginFor<T>,
-            package: Vec<u8>,
+            bundle: Vec<u8>,
             gas_limit: u64,
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
 
             let storage = Self::move_vm_storage();
 
-            let vm = Mvm::new(storage).map_err(|_err| Error::<T>::PublishModuleFailed)?;
+            let vm = Mvm::new(storage).map_err(|_err| Error::<T>::PublishBundleFailed)?;
 
             let result = vm.publish_module_bundle(
-                package.as_slice(),
+                bundle.as_slice(),
                 address::to_move_address(&who),
                 GasStrategy::Metered(gas_limit),
             );
 
-            // produce result with spended gas:
+            // Produce a result with gas spent.
             let result = result::from_vm_result::<T>(result)?;
 
             // Emit an event.
-            Self::deposit_event(Event::PackagePublished { who });
+            Self::deposit_event(Event::BundlePublished { who });
 
             Ok(result)
         }
@@ -184,8 +180,8 @@ pub mod pallet {
         ExecuteFailed,
         /// Error returned when publishing Move module failed.
         PublishModuleFailed,
-        /// Error returned when publishing Move module package failed.
-        PublishPackageFailed,
+        /// Error returned when publishing Move bundle failed.
+        PublishBundleFailed,
 
         // Errors that can be received from MoveVM
         /// Unknown validation status
