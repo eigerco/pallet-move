@@ -4,6 +4,8 @@ use mock::*;
 use move_core_types::language_storage::TypeTag;
 use pallet_move::transaction::Transaction;
 
+const INFINITE_GAS: u64 = u64::MAX;
+
 #[test]
 /// Test execution of a script.
 fn execute_script_empty() {
@@ -22,7 +24,11 @@ fn execute_script_empty() {
 
         let transaction_bc = bcs::to_bytes(&transaction).unwrap();
 
-        let res = MoveModule::execute(RuntimeOrigin::signed(0xFECA000000000000), transaction_bc, 0);
+        let res = MoveModule::execute(
+            RuntimeOrigin::signed(0xFECA000000000000),
+            transaction_bc,
+            INFINITE_GAS,
+        );
 
         assert_ok!(res);
 
@@ -40,7 +46,11 @@ fn execute_script_empty() {
 
         let transaction_bc = bcs::to_bytes(&transaction).unwrap();
 
-        let res = MoveModule::execute(RuntimeOrigin::signed(0xFECA000000000000), transaction_bc, 0);
+        let res = MoveModule::execute(
+            RuntimeOrigin::signed(0xFECA000000000000),
+            transaction_bc,
+            INFINITE_GAS,
+        );
 
         assert_ok!(res);
     });
@@ -65,7 +75,11 @@ fn execute_script_params() {
 
         let transaction_bc = bcs::to_bytes(&transaction).unwrap();
 
-        let res = MoveModule::execute(RuntimeOrigin::signed(0xFECA000000000000), transaction_bc, 0);
+        let res = MoveModule::execute(
+            RuntimeOrigin::signed(0xFECA000000000000),
+            transaction_bc,
+            INFINITE_GAS,
+        );
 
         assert_ok!(res);
     });
@@ -90,7 +104,11 @@ fn execute_script_generic() {
 
         let transaction_bc = bcs::to_bytes(&transaction).unwrap();
 
-        let res = MoveModule::execute(RuntimeOrigin::signed(0xFECA000000000000), transaction_bc, 0);
+        let res = MoveModule::execute(
+            RuntimeOrigin::signed(0xFECA000000000000),
+            transaction_bc,
+            INFINITE_GAS,
+        );
 
         assert_ok!(res);
     });
