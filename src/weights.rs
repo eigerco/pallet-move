@@ -37,7 +37,7 @@ use core::marker::PhantomData;
 pub trait WeightInfo {
 	fn execute() -> Weight;
 	fn publish_module() -> Weight;
-	fn publish_package() -> Weight;
+	fn publish_module_bundle() -> Weight;
 }
 
 /// Weights for pallet_move using the Substrate node and recommended hardware.
@@ -57,7 +57,7 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
 		// Minimum execution time: 5_284_000 picoseconds.
 		Weight::from_parts(5_814_000, 0)
 	}
-	fn publish_package() -> Weight {
+	fn publish_module_bundle() -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `0`
 		//  Estimated: `0`
@@ -82,7 +82,7 @@ impl WeightInfo for () {
 		// Minimum execution time: 5_284_000 picoseconds.
 		Weight::from_parts(5_814_000, 0)
 	}
-	fn publish_package() -> Weight {
+	fn publish_module_bundle() -> Weight {
 		// Proof Size summary in bytes:
 		//  Measured:  `0`
 		//  Estimated: `0`
