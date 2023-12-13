@@ -129,7 +129,6 @@ pub mod pallet {
 
             //TODO(asmie): future work:
             // - put Mvm initialization to some other place, to avoid doing it every time
-            // - Substrate address to Move address conversion is missing in the move-cli
             let vm = Mvm::new(storage).map_err(|_err| Error::<T>::PublishModuleFailed)?;
 
             let result = vm.publish_module(
@@ -153,17 +152,28 @@ pub mod pallet {
         #[pallet::weight(T::WeightInfo::publish_package())]
         pub fn publish_package(
             origin: OriginFor<T>,
-            _package: Vec<u8>,
-            _gas_limit: u64,
+            package: Vec<u8>,
+            gas_limit: u64,
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
 
-            // TODO: Publish module package
+            let storage = Self::move_vm_storage();
+
+            let vm = Mvm::new(storage).map_err(|_err| Error::<T>::PublishModuleFailed)?;
+
+            let result = vm.publish_module_bundle(
+                package.as_slice(),
+                address::to_move_address(&who),
+                GasStrategy::Metered(gas_limit),
+            );
+
+            // produce result with spended gas:
+            let result = result::from_vm_result::<T>(result)?;
 
             // Emit an event.
             Self::deposit_event(Event::PackagePublished { who });
 
-            Ok(PostDispatchInfo::default())
+            Ok(result)
         }
     }
 
