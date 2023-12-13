@@ -9,14 +9,14 @@ description = 'RPC methods for the Move pallet'
 targets = ["x86_64-unknown-linux-gnu"]
 
 [dependencies]
-codec = { package = "parity-scale-codec", version = "3.6.1", default-features = false, features = ["derive",] }
-jsonrpsee = { version = "0.16.2", features = ["server", "macros"] }
+codec = { package = "parity-scale-codec", version = "3.6", default-features = false, features = ["derive"] }
+jsonrpsee = { version = "0.16", features = ["server", "macros"] }
 
 # Substrate packages
-frame-support = { version = "4.0.0-dev", default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v1.0.0" }
-sp-api = { default-features = false, version = "4.0.0-dev", git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v1.0.0" }
-sp-blockchain = { default-features = false, version = "4.0.0-dev", git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v1.0.0" }
-sp-runtime = { default-features = false, version = "24.0.0", git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v1.0.0" }
+frame-support = { default-features = false, git = "https://github.com/paritytech/polkadot-sdk.git", branch = "release-polkadot-v1.4.0" }
+sp-api = { default-features = false, git = "https://github.com/paritytech/polkadot-sdk.git", branch = "release-polkadot-v1.4.0" }
+sp-blockchain = { default-features = false, git = "https://github.com/paritytech/polkadot-sdk.git", branch = "release-polkadot-v1.4.0" }
+sp-runtime = { default-features = false, git = "https://github.com/paritytech/polkadot-sdk.git", branch = "release-polkadot-v1.4.0" }
 
 # local packages
 pallet-move-runtime-api = { path = "./runtime-api", default-features = false }

@@ -2,8 +2,8 @@
 
 extern crate alloc;
 
-use frame_support::{dispatch::Vec, weights::Weight};
-use alloc::string::String;
+use frame_support::weights::Weight;
+use alloc::{string::String, vec::Vec};
 
 // Here we declare the runtime API. It is implemented it the `impl` block in
 // runtime file (the `runtime/src/lib.rs` of the node)
