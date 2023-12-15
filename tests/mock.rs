@@ -1,8 +1,9 @@
 use frame_support::traits::{ConstU128, ConstU16, ConstU32, ConstU64};
-use sp_core::H256;
+use move_core_types::account_address::AccountAddress;
+use sp_core::{crypto::Ss58Codec, sr25519::Public, H256};
 use sp_runtime::{
     traits::{BlakeTwo256, IdentityLookup},
-    BuildStorage,
+    AccountId32, BuildStorage,
 };
 
 type Block = frame_system::mocking::MockBlock<Test>;
@@ -17,7 +18,7 @@ impl frame_system::Config for Test {
     type Nonce = u64;
     type Hash = H256;
     type Hashing = BlakeTwo256;
-    type AccountId = u64;
+    type AccountId = AccountId32;
     type Lookup = IdentityLookup<Self::AccountId>;
     type Block = Block;
     type RuntimeEvent = RuntimeEvent;
@@ -79,3 +80,24 @@ frame_support::construct_runtime!(
         MoveModule: pallet_move,
     }
 );
+
+// Common constants accross the tests.
+#[allow(dead_code)]
+pub const INFINITE_GAS: u64 = u64::MAX;
+pub const CAFE_ADDR: &str = "0xCAFE";
+pub const BOB_ADDR: &str = "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty";
+lazy_static::lazy_static! {
+    pub static ref CAFE_ADDR_MOVE: AccountAddress = {
+        AccountAddress::from_hex_literal(CAFE_ADDR).unwrap()
+    };
+    pub static ref CAFE_ADDR_NATIVE: AccountId32 = {
+        MoveModule::to_native_account(&CAFE_ADDR_MOVE).unwrap()
+    };
+    pub static ref BOB_ADDR_NATIVE: AccountId32 = {
+        let (pk, _) = Public::from_ss58check_with_version(BOB_ADDR).unwrap();
+        pk.into()
+    };
+    pub static ref BOB_ADDR_MOVE: AccountAddress = {
+        MoveModule::to_move_address(&BOB_ADDR_NATIVE).unwrap()
+    };
+}

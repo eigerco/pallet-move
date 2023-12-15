@@ -1,15 +1,16 @@
 mod mock;
+
 use frame_support::assert_ok;
 use mock::*;
 use move_core_types::language_storage::TypeTag;
 use pallet_move::transaction::Transaction;
 
-const INFINITE_GAS: u64 = u64::MAX;
-
 #[test]
 /// Test execution of a script.
 fn execute_script_empty() {
     new_test_ext().execute_with(|| {
+        let addr_native = CAFE_ADDR_NATIVE.clone();
+
         let module =
             include_bytes!("assets/move/build/move/bytecode_scripts/empty_scr.mv").to_vec();
 
@@ -25,7 +26,7 @@ fn execute_script_empty() {
         let transaction_bc = bcs::to_bytes(&transaction).unwrap();
 
         let res = MoveModule::execute(
-            RuntimeOrigin::signed(0xFECA000000000000),
+            RuntimeOrigin::signed(addr_native.clone()),
             transaction_bc,
             INFINITE_GAS,
         );
@@ -47,7 +48,7 @@ fn execute_script_empty() {
         let transaction_bc = bcs::to_bytes(&transaction).unwrap();
 
         let res = MoveModule::execute(
-            RuntimeOrigin::signed(0xFECA000000000000),
+            RuntimeOrigin::signed(addr_native),
             transaction_bc,
             INFINITE_GAS,
         );
@@ -60,6 +61,8 @@ fn execute_script_empty() {
 /// Test execution of a script with parametrized function.
 fn execute_script_params() {
     new_test_ext().execute_with(|| {
+        let addr_native = CAFE_ADDR_NATIVE.clone();
+
         let module =
             include_bytes!("assets/move/build/move/bytecode_scripts/empty_loop_param.mv").to_vec();
 
@@ -76,7 +79,7 @@ fn execute_script_params() {
         let transaction_bc = bcs::to_bytes(&transaction).unwrap();
 
         let res = MoveModule::execute(
-            RuntimeOrigin::signed(0xFECA000000000000),
+            RuntimeOrigin::signed(addr_native),
             transaction_bc,
             INFINITE_GAS,
         );
@@ -89,6 +92,8 @@ fn execute_script_params() {
 /// Test execution of a script with generic function.
 fn execute_script_generic() {
     new_test_ext().execute_with(|| {
+        let addr_native = CAFE_ADDR_NATIVE.clone();
+
         let module =
             include_bytes!("assets/move/build/move/bytecode_scripts/generic_1.mv").to_vec();
 
@@ -105,7 +110,7 @@ fn execute_script_generic() {
         let transaction_bc = bcs::to_bytes(&transaction).unwrap();
 
         let res = MoveModule::execute(
-            RuntimeOrigin::signed(0xFECA000000000000),
+            RuntimeOrigin::signed(addr_native),
             transaction_bc,
             INFINITE_GAS,
         );

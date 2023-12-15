@@ -10,13 +10,19 @@ fn publish_module_as_user_correct() {
         let module = include_bytes!("assets/move/build/move/bytecode_modules/Empty.mv").to_vec();
 
         let res = MoveModule::publish_module(
-            // Just for now - as Move module address account is 0xCAFE, we need to sign it the same
-            // address. But in tests, AccountId is u64, so we need to convert it (0xCAFE -> 0xFECA000000000000 - endian welcome)
-            RuntimeOrigin::signed(0xFECA000000000000),
+            RuntimeOrigin::signed(CAFE_ADDR_NATIVE.clone()),
             module,
-            0,
+            INFINITE_GAS,
         );
+        assert_ok!(res);
 
+        let module = include_bytes!("assets/move/build/move/bytecode_modules/EmptyBob.mv").to_vec();
+
+        let res = MoveModule::publish_module(
+            RuntimeOrigin::signed(BOB_ADDR_NATIVE.clone()),
+            module,
+            INFINITE_GAS,
+        );
         assert_ok!(res);
     });
 }
@@ -49,9 +55,23 @@ fn publish_module_as_user_corrupted_bytecode() {
 }
 
 #[test]
+/// Test that the bundle is published correctly.
+fn publish_bundle_as_user_correct() {
+    new_test_ext().execute_with(|| {
+        let bundle = include_bytes!("assets/move-projects/using_stdlib_natives/build/using_stdlib_natives/bundles/using_stdlib_natives.mvb").to_vec();
+
+        let res = MoveModule::publish_module_bundle(
+            RuntimeOrigin::signed(BOB_ADDR_NATIVE.clone()), bundle, INFINITE_GAS
+        );
+
+        assert_ok!(res);
+    });
+}
+
+#[test]
 #[ignore = "to be implemented"]
-/// Test that the package is published correctly.
-fn publish_package_as_user_correct() {
+/// Test that the bundle is not published if the user is not the owner.
+fn publish_bundle_as_user_wrong_user() {
     new_test_ext().execute_with(|| {
         assert_eq!(1, 0);
     });
@@ -59,8 +79,8 @@ fn publish_package_as_user_correct() {
 
 #[test]
 #[ignore = "to be implemented"]
-/// Test that the package is not published if the user is not the owner.
-fn publish_package_as_user_wrong_user() {
+/// Test that the bundle is not published if the user does not have enough gas.
+fn publish_bundle_as_user_insufficient_gas() {
     new_test_ext().execute_with(|| {
         assert_eq!(1, 0);
     });
@@ -68,17 +88,8 @@ fn publish_package_as_user_wrong_user() {
 
 #[test]
 #[ignore = "to be implemented"]
-/// Test that the package is not published if the user does not have enough gas.
-fn publish_package_as_user_insufficient_gas() {
-    new_test_ext().execute_with(|| {
-        assert_eq!(1, 0);
-    });
-}
-
-#[test]
-#[ignore = "to be implemented"]
-/// Test that the package is not published if the bytecode is corrupted.
-fn publish_package_as_user_corrupted_bytecode() {
+/// Test that the bundle is not published if the bytecode is corrupted.
+fn publish_bundle_as_user_corrupted_bytecode() {
     new_test_ext().execute_with(|| {
         assert_eq!(1, 0);
     });

@@ -1,6 +1,7 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 pub use pallet::*;
+pub use weights::*;
 
 pub mod address;
 
@@ -13,8 +14,6 @@ pub mod transaction;
 
 mod result;
 pub mod weights;
-
-pub use weights::*;
 
 // The pallet is defined below.
 #[frame_support::pallet]
@@ -32,7 +31,9 @@ pub mod pallet {
     };
     use frame_system::pallet_prelude::*;
     use move_core_types::account_address::AccountAddress;
-    use move_vm_backend::{types::GasStrategy, Mvm};
+    pub use move_vm_backend::types::GasStrategy;
+    use move_vm_backend::{types::VmResult, Mvm};
+    use sp_core::crypto::AccountId32;
     use sp_std::vec::Vec;
     use transaction::Transaction;
 
@@ -128,21 +129,12 @@ pub mod pallet {
         ) -> DispatchResultWithPostInfo {
             // Allow only signed calls.
             let who = ensure_signed(origin)?;
+            let gas = GasStrategy::Metered(gas_limit);
 
-            let storage = Self::move_vm_storage();
-
-            //TODO(asmie): future work:
-            // - put Mvm initialization to some other place, to avoid doing it every time
-            let vm = Mvm::new(storage).map_err(|_err| Error::<T>::PublishModuleFailed)?;
-
-            let result = vm.publish_module(
-                bytecode.as_slice(),
-                address::to_move_address(&who),
-                GasStrategy::Metered(gas_limit),
-            );
+            let vm_result = Self::raw_publish_module(&who, bytecode, gas)?;
 
             // Produce a result with gas spent.
-            let result = result::from_vm_result::<T>(result)?;
+            let result = result::from_vm_result::<T>(vm_result)?;
 
             // Emit an event.
             Self::deposit_event(Event::ModulePublished { who });
@@ -160,19 +152,12 @@ pub mod pallet {
             gas_limit: u64,
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
+            let gas = GasStrategy::Metered(gas_limit);
 
-            let storage = Self::move_vm_storage();
-
-            let vm = Mvm::new(storage).map_err(|_err| Error::<T>::PublishBundleFailed)?;
-
-            let result = vm.publish_module_bundle(
-                bundle.as_slice(),
-                address::to_move_address(&who),
-                GasStrategy::Metered(gas_limit),
-            );
+            let vm_result = Self::raw_publish_bundle(&who, bundle, gas)?;
 
             // Produce a result with gas spent.
-            let result = result::from_vm_result::<T>(result)?;
+            let result = result::from_vm_result::<T>(vm_result)?;
 
             // Emit an event.
             Self::deposit_event(Event::BundlePublished { who });
@@ -190,6 +175,8 @@ pub mod pallet {
         PublishModuleFailed,
         /// Error returned when publishing Move bundle failed.
         PublishBundleFailed,
+        /// Invalid account size (expected 32 bytes).
+        InvalidAccountSize,
 
         // Errors that can be received from MoveVM
         /// Unknown validation status
@@ -597,13 +584,58 @@ pub mod pallet {
             })
         }
 
+        /// Convert Move address to Substrate native account.
+        pub fn to_native_account(address: &AccountAddress) -> Result<T::AccountId, Error<T>> {
+            T::AccountId::decode(&mut address.as_ref()).map_err(|_| Error::InvalidAccountSize)
+        }
+
+        /// Convert a native address to a Move address.
+        pub fn to_move_address(address: &T::AccountId) -> Result<AccountAddress, Error<T>> {
+            let address = AccountId32::decode(&mut address.encode().as_ref())
+                .map_err(|_| Error::InvalidAccountSize)?;
+
+            let account_bytes: [u8; 32] = address.into();
+            Ok(AccountAddress::new(account_bytes))
+        }
+
+        /// Publish the module using the appropriate gas strategy.
+        pub fn raw_publish_module(
+            address: &T::AccountId,
+            bytecode: Vec<u8>,
+            gas: GasStrategy,
+        ) -> Result<VmResult, Error<T>> {
+            let storage = Self::move_vm_storage();
+            let vm = Mvm::new(storage).map_err(|_err| Error::<T>::PublishModuleFailed)?;
+            let address = Self::to_move_address(address)?;
+
+            let result = vm.publish_module(&bytecode, address, gas);
+
+            Ok(result)
+        }
+
+        /// Publish the bundle using the appropriate gas strategy.
+        pub fn raw_publish_bundle(
+            address: &T::AccountId,
+            bundle: Vec<u8>,
+            gas: GasStrategy,
+        ) -> Result<VmResult, Error<T>> {
+            let storage = Self::move_vm_storage();
+            let vm = Mvm::new(storage).map_err(|_err| Error::<T>::PublishBundleFailed)?;
+            let address = Self::to_move_address(address)?;
+
+            let result = vm.publish_module_bundle(&bundle, address, gas);
+
+            Ok(result)
+        }
+
         pub fn get_module_abi(
             address: &T::AccountId,
             name: &str,
         ) -> Result<Option<Vec<u8>>, Vec<u8>> {
             let vm = Self::move_vm()?;
 
-            let address = address::to_move_address(&address);
+            // TODO: Return a normal message to the RPC caller
+            let address = Self::to_move_address(address).map_err(|_| vec![])?;
 
             vm.get_module_abi(address, name)
                 .map_err(|e| format!("error in get_module_abi: {:?}", e).into())
@@ -612,7 +644,8 @@ pub mod pallet {
         pub fn get_module(address: &T::AccountId, name: &str) -> Result<Option<Vec<u8>>, Vec<u8>> {
             let vm = Self::move_vm()?;
 
-            let address = address::to_move_address(&address);
+            // TODO: Return a normal message to the RPC caller
+            let address = Self::to_move_address(address).map_err(|_| vec![])?;
 
             vm.get_module(address, name)
                 .map_err(|e| format!("error in get_module: {:?}", e).into())
@@ -623,12 +656,11 @@ pub mod pallet {
             tag: &[u8],
         ) -> Result<Option<Vec<u8>>, Vec<u8>> {
             let vm = Self::move_vm()?;
+            // TODO: Return a normal message to the RPC caller
+            let address = Self::to_move_address(account).map_err(|_| vec![])?;
 
-            vm.get_resource(
-                &AccountAddress::new(address::account_to_bytes(account)),
-                tag,
-            )
-            .map_err(|e| format!("error in get_resource: {:?}", e).into())
+            vm.get_resource(&address, tag)
+                .map_err(|e| format!("error in get_resource: {:?}", e).into())
         }
     }
 }
