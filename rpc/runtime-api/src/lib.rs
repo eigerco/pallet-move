@@ -18,7 +18,10 @@ sp_api::decl_runtime_apis! {
         fn weight_to_gas(weight: Weight) -> u64;
 
         // Estimate gas for publish module.
-        fn estimate_gas_publish(account: AccountId, bytecode: Vec<u8>) -> u64;
+        fn estimate_gas_publish_module(account: AccountId, bytecode: Vec<u8>) -> u64;
+
+        // Estimate gas for publish bundle.
+        fn estimate_gas_publish_bundle(account: AccountId, bytecode: Vec<u8>) -> u64;
 
         // Estimate gas for execute script.
         fn estimate_gas_execute(account: AccountId, bytecode: Vec<u8>) -> u64;
