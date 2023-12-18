@@ -15,24 +15,33 @@ use sp_runtime::traits::Block as BlockT;
 /// Public RPC API of the Move pallet.
 #[rpc(server)]
 pub trait MoveApi<BlockHash, AccountId> {
-    /// Convert gas to weight
+    /// Convert gas to weight.
     #[method(name = "mvm_gasToWeight")]
     fn gas_to_weight(&self, gas: u64, at: Option<BlockHash>) -> RpcResult<Weight>;
 
-    /// Convert weight to gas
+    /// Convert weight to gas.
     #[method(name = "mvm_weightToGas")]
     fn weight_to_gas(&self, weight: Weight, at: Option<BlockHash>) -> RpcResult<u64>;
 
-    /// Estimate gas for publishing module
-    #[method(name = "mvm_estimateGasPublish")]
-    fn estimate_gas_publish(
+    /// Estimate gas for publishing module.
+    #[method(name = "mvm_estimateGasPublishModule")]
+    fn estimate_gas_publish_module(
         &self,
         account: AccountId,
         bytecode: Vec<u8>,
         at: Option<BlockHash>,
     ) -> RpcResult<u64>;
 
-    /// Estimate gas for executing Move script
+    /// Estimate gas for publishing bundle.
+    #[method(name = "mvm_estimateGasPublishBundle")]
+    fn estimate_gas_publish_bundle(
+        &self,
+        account: AccountId,
+        bytecode: Vec<u8>,
+        at: Option<BlockHash>,
+    ) -> RpcResult<u64>;
+
+    /// Estimate gas for executing Move script.
     #[method(name = "mvm_estimateGasExecute")]
     fn estimate_gas_execute(
         &self,
@@ -41,7 +50,7 @@ pub trait MoveApi<BlockHash, AccountId> {
         at: Option<BlockHash>,
     ) -> RpcResult<u64>;
 
-    /// Get resource
+    /// Get resource.
     #[method(name = "mvm_getResource")]
     fn get_resource(
         &self,
@@ -50,7 +59,7 @@ pub trait MoveApi<BlockHash, AccountId> {
         at: Option<BlockHash>,
     ) -> RpcResult<Option<Vec<u8>>>;
 
-    /// Get module ABI using address
+    /// Get module ABI using address.
     #[method(name = "mvm_getModuleABI")]
     fn get_module_abi(
         &self,
@@ -59,7 +68,7 @@ pub trait MoveApi<BlockHash, AccountId> {
         at: Option<BlockHash>,
     ) -> RpcResult<Option<Vec<u8>>>;
 
-    /// Get module binary using address
+    /// Get module binary using address.
     #[method(name = "mvm_getModule")]
     fn get_module(
         &self,
@@ -106,14 +115,30 @@ where
         res.map_err(runtime_error_into_rpc_err)
     }
 
-    fn estimate_gas_publish(
+    fn estimate_gas_publish_module(
         &self,
         account: AccountId,
         bytecode: Vec<u8>,
         at: Option<<Block as BlockT>::Hash>,
     ) -> RpcResult<u64> {
         let api = self.client.runtime_api();
-        let res = api.estimate_gas_publish(
+        let res = api.estimate_gas_publish_module(
+            at.unwrap_or_else(|| self.client.info().best_hash),
+            account,
+            bytecode,
+        );
+
+        res.map_err(runtime_error_into_rpc_err)
+    }
+
+    fn estimate_gas_publish_bundle(
+        &self,
+        account: AccountId,
+        bytecode: Vec<u8>,
+        at: Option<<Block as BlockT>::Hash>,
+    ) -> RpcResult<u64> {
+        let api = self.client.runtime_api();
+        let res = api.estimate_gas_publish_bundle(
             at.unwrap_or_else(|| self.client.info().best_hash),
             account,
             bytecode,
