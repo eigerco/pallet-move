@@ -29,7 +29,6 @@ pub trait MoveApi<BlockHash, AccountId> {
         &self,
         account: AccountId,
         bytecode: Vec<u8>,
-        gas_limit: u64,
         at: Option<BlockHash>,
     ) -> RpcResult<u64>;
 
@@ -39,7 +38,6 @@ pub trait MoveApi<BlockHash, AccountId> {
         &self,
         account: AccountId,
         bytecode: Vec<u8>,
-        gas_limit: u64,
         at: Option<BlockHash>,
     ) -> RpcResult<u64>;
 
@@ -112,7 +110,6 @@ where
         &self,
         account: AccountId,
         bytecode: Vec<u8>,
-        gas_limit: u64,
         at: Option<<Block as BlockT>::Hash>,
     ) -> RpcResult<u64> {
         let api = self.client.runtime_api();
@@ -120,7 +117,6 @@ where
             at.unwrap_or_else(|| self.client.info().best_hash),
             account,
             bytecode,
-            gas_limit,
         );
 
         res.map_err(runtime_error_into_rpc_err)
@@ -130,7 +126,6 @@ where
         &self,
         account: AccountId,
         bytecode: Vec<u8>,
-        gas_limit: u64,
         at: Option<<Block as BlockT>::Hash>,
     ) -> RpcResult<u64> {
         let api = self.client.runtime_api();
@@ -138,7 +133,6 @@ where
             at.unwrap_or_else(|| self.client.info().best_hash),
             account,
             bytecode,
-            gas_limit,
         );
 
         res.map_err(runtime_error_into_rpc_err)
