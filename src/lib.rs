@@ -34,7 +34,7 @@ pub mod pallet {
     pub use move_vm_backend::types::GasStrategy;
     use move_vm_backend::{types::VmResult, Mvm};
     use sp_core::crypto::AccountId32;
-    use sp_std::vec::Vec;
+    use sp_std::{vec, vec::Vec};
     use transaction::Transaction;
 
     use super::*;

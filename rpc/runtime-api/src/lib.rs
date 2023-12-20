@@ -2,8 +2,11 @@
 
 extern crate alloc;
 
-use frame_support::weights::Weight;
+pub mod types;
+
 use alloc::{string::String, vec::Vec};
+
+use frame_support::weights::Weight;
 
 // Here we declare the runtime API. It is implemented it the `impl` block in
 // runtime file (the `runtime/src/lib.rs` of the node)
@@ -18,13 +21,13 @@ sp_api::decl_runtime_apis! {
         fn weight_to_gas(weight: Weight) -> u64;
 
         // Estimate gas for publish module.
-        fn estimate_gas_publish_module(account: AccountId, bytecode: Vec<u8>) -> u64;
+        fn estimate_gas_publish_module(account: AccountId, bytecode: Vec<u8>) -> Result<types::MoveApiEstimation, sp_runtime::DispatchError>;
 
         // Estimate gas for publish bundle.
-        fn estimate_gas_publish_bundle(account: AccountId, bytecode: Vec<u8>) -> u64;
+        fn estimate_gas_publish_bundle(account: AccountId, bytecode: Vec<u8>) -> Result<types::MoveApiEstimation, sp_runtime::DispatchError>;
 
         // Estimate gas for execute script.
-        fn estimate_gas_execute(account: AccountId, bytecode: Vec<u8>) -> u64;
+        fn estimate_gas_execute(account: AccountId, bytecode: Vec<u8>) -> Result<types::MoveApiEstimation, sp_runtime::DispatchError>;
 
         // Get module binary by its address
         fn get_module(address: String, name: String) -> Result<Option<Vec<u8>>, Vec<u8>>;
