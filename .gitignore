@@ -6,3 +6,5 @@
 # Files generated/used by direnv
 .envrc
 .direnv/
+
+Cargo.lock
