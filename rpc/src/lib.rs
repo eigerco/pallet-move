@@ -7,10 +7,30 @@ use jsonrpsee::{
     proc_macros::rpc,
     types::error::{CallError, ErrorObject},
 };
+use pallet_move_runtime_api::types::MoveApiEstimation;
 pub use pallet_move_runtime_api::MoveApi as MoveRuntimeApi;
+use serde::{Deserialize, Serialize};
 use sp_api::ProvideRuntimeApi;
 use sp_blockchain::HeaderBackend;
 use sp_runtime::traits::Block as BlockT;
+
+/// Gas estimation information.
+#[derive(Serialize, Deserialize)]
+pub struct Estimation {
+    /// Gas used.
+    pub gas_used: u64,
+    /// Status code for the MoveVM execution.
+    pub vm_status_code: u64,
+}
+
+impl From<MoveApiEstimation> for Estimation {
+    fn from(estimate: MoveApiEstimation) -> Self {
+        Self {
+            gas_used: estimate.gas_used,
+            vm_status_code: estimate.vm_status_code,
+        }
+    }
+}
 
 /// Public RPC API of the Move pallet.
 #[rpc(server)]
@@ -30,7 +50,7 @@ pub trait MoveApi<BlockHash, AccountId> {
         account: AccountId,
         bytecode: Vec<u8>,
         at: Option<BlockHash>,
-    ) -> RpcResult<u64>;
+    ) -> RpcResult<Estimation>;
 
     /// Estimate gas for publishing bundle.
     #[method(name = "mvm_estimateGasPublishBundle")]
@@ -39,7 +59,7 @@ pub trait MoveApi<BlockHash, AccountId> {
         account: AccountId,
         bytecode: Vec<u8>,
         at: Option<BlockHash>,
-    ) -> RpcResult<u64>;
+    ) -> RpcResult<Estimation>;
 
     /// Estimate gas for executing Move script.
     #[method(name = "mvm_estimateGasExecute")]
@@ -48,7 +68,7 @@ pub trait MoveApi<BlockHash, AccountId> {
         account: AccountId,
         bytecode: Vec<u8>,
         at: Option<BlockHash>,
-    ) -> RpcResult<u64>;
+    ) -> RpcResult<Estimation>;
 
     /// Get resource.
     #[method(name = "mvm_getResource")]
@@ -120,15 +140,19 @@ where
         account: AccountId,
         bytecode: Vec<u8>,
         at: Option<<Block as BlockT>::Hash>,
-    ) -> RpcResult<u64> {
+    ) -> RpcResult<Estimation> {
         let api = self.client.runtime_api();
-        let res = api.estimate_gas_publish_module(
-            at.unwrap_or_else(|| self.client.info().best_hash),
-            account,
-            bytecode,
-        );
+        let res = api
+            .estimate_gas_publish_module(
+                at.unwrap_or_else(|| self.client.info().best_hash),
+                account,
+                bytecode,
+            )
+            .map_err(runtime_error_into_rpc_err)?;
 
-        res.map_err(runtime_error_into_rpc_err)
+        let move_api_estimation = res.map_err(runtime_error_into_rpc_err)?;
+
+        Ok(Estimation::from(move_api_estimation))
     }
 
     fn estimate_gas_publish_bundle(
@@ -136,15 +160,19 @@ where
         account: AccountId,
         bytecode: Vec<u8>,
         at: Option<<Block as BlockT>::Hash>,
-    ) -> RpcResult<u64> {
+    ) -> RpcResult<Estimation> {
         let api = self.client.runtime_api();
-        let res = api.estimate_gas_publish_bundle(
-            at.unwrap_or_else(|| self.client.info().best_hash),
-            account,
-            bytecode,
-        );
+        let res = api
+            .estimate_gas_publish_bundle(
+                at.unwrap_or_else(|| self.client.info().best_hash),
+                account,
+                bytecode,
+            )
+            .map_err(runtime_error_into_rpc_err)?;
 
-        res.map_err(runtime_error_into_rpc_err)
+        let move_api_estimation = res.map_err(runtime_error_into_rpc_err)?;
+
+        Ok(Estimation::from(move_api_estimation))
     }
 
     fn estimate_gas_execute(
@@ -152,15 +180,19 @@ where
         account: AccountId,
         bytecode: Vec<u8>,
         at: Option<<Block as BlockT>::Hash>,
-    ) -> RpcResult<u64> {
+    ) -> RpcResult<Estimation> {
         let api = self.client.runtime_api();
-        let res = api.estimate_gas_execute(
-            at.unwrap_or_else(|| self.client.info().best_hash),
-            account,
-            bytecode,
-        );
+        let res = api
+            .estimate_gas_execute(
+                at.unwrap_or_else(|| self.client.info().best_hash),
+                account,
+                bytecode,
+            )
+            .map_err(runtime_error_into_rpc_err)?;
 
-        res.map_err(runtime_error_into_rpc_err)
+        let move_api_estimation = res.map_err(runtime_error_into_rpc_err)?;
+
+        Ok(Estimation::from(move_api_estimation))
     }
 
     fn get_resource(

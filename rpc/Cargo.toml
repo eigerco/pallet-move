@@ -10,6 +10,7 @@ targets = ["x86_64-unknown-linux-gnu"]
 
 [dependencies]
 codec = { package = "parity-scale-codec", version = "3.6", default-features = false, features = ["derive"] }
+serde = { version = "1.0", features = [ "derive" ], default-features = false }
 jsonrpsee = { version = "0.16", features = ["server", "macros"] }
 
 # Substrate packages
