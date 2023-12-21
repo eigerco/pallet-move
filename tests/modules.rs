@@ -1,3 +1,4 @@
+mod assets;
 mod mock;
 
 use frame_support::assert_ok;
@@ -8,7 +9,8 @@ use move_core_types::{identifier::Identifier, language_storage::StructTag};
 /// Test getting a module.
 fn get_module_correct() {
     new_test_ext().execute_with(|| {
-        let module = include_bytes!("assets/move/build/move/bytecode_modules/Empty.mv").to_vec();
+        let module_name = "Empty";
+        let module = assets::read_module_from_project("move-basics", module_name);
         let addr_native = CAFE_ADDR_NATIVE.clone();
 
         let res = MoveModule::publish_module(
@@ -19,7 +21,7 @@ fn get_module_correct() {
 
         assert_ok!(res);
 
-        let res = MoveModule::get_module(&addr_native, "Empty");
+        let res = MoveModule::get_module(&addr_native, module_name);
 
         assert_eq!(res, Ok(Some(module)));
     });
@@ -43,7 +45,7 @@ fn get_resource_correct() {
         let addr = *CAFE_ADDR_MOVE;
         let addr_native = MoveModule::to_native_account(&addr).unwrap();
 
-        let module = include_bytes!("assets/move/build/move/bytecode_modules/Empty.mv").to_vec();
+        let module = assets::read_module_from_project("move-basics", "Empty");
         let resource_bytes = [0u8; 32]; // For now as we need to investigate what the resource looks like
 
         let res = MoveModule::publish_module(
@@ -74,11 +76,11 @@ fn get_resource_non_existent() {
         let addr = *CAFE_ADDR_MOVE;
         let addr_native = MoveModule::to_native_account(&addr).unwrap();
 
-        let module = include_bytes!("assets/move/build/move/bytecode_modules/Empty.mv").to_vec();
+        let module = assets::read_module_from_project("move-basics", "Empty");
 
         let res = MoveModule::publish_module(
             RuntimeOrigin::signed(addr_native.clone()),
-            module.clone(),
+            module,
             INFINITE_GAS,
         );
 

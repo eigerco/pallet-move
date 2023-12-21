@@ -1,5 +1,5 @@
 [package]
-name = "move"
+name = "move-basics"
 version = "0.0.0"
 
 [dependencies]

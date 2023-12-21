@@ -1,3 +1,4 @@
+mod assets;
 mod mock;
 
 use frame_support::assert_ok;
@@ -11,14 +12,13 @@ fn execute_script_empty() {
     new_test_ext().execute_with(|| {
         let addr_native = CAFE_ADDR_NATIVE.clone();
 
-        let module =
-            include_bytes!("assets/move/build/move/bytecode_scripts/empty_scr.mv").to_vec();
+        let script = assets::read_script_from_project("move-basics", "empty_scr");
 
         let type_args: Vec<TypeTag> = vec![];
         let params: Vec<&[u8]> = vec![];
 
         let transaction = Transaction {
-            script_bc: module.clone(),
+            script_bc: script,
             type_args,
             args: params.iter().map(|x| x.to_vec()).collect(),
         };
@@ -33,14 +33,13 @@ fn execute_script_empty() {
 
         assert_ok!(res);
 
-        let module =
-            include_bytes!("assets/move/build/move/bytecode_scripts/empty_loop.mv").to_vec();
+        let script = assets::read_script_from_project("move-basics", "empty_loop");
 
         let type_args: Vec<TypeTag> = vec![];
         let params: Vec<&[u8]> = vec![];
 
         let transaction = Transaction {
-            script_bc: module.clone(),
+            script_bc: script,
             type_args,
             args: params.iter().map(|x| x.to_vec()).collect(),
         };
@@ -63,15 +62,14 @@ fn execute_script_params() {
     new_test_ext().execute_with(|| {
         let addr_native = CAFE_ADDR_NATIVE.clone();
 
-        let module =
-            include_bytes!("assets/move/build/move/bytecode_scripts/empty_loop_param.mv").to_vec();
+        let script = assets::read_script_from_project("move-basics", "empty_loop_param");
 
         let iter_count = bcs::to_bytes(&10u64).unwrap();
         let type_args: Vec<TypeTag> = vec![];
         let params: Vec<&[u8]> = vec![&iter_count];
 
         let transaction = Transaction {
-            script_bc: module.clone(),
+            script_bc: script,
             type_args,
             args: params.iter().map(|x| x.to_vec()).collect(),
         };
@@ -94,15 +92,14 @@ fn execute_script_generic() {
     new_test_ext().execute_with(|| {
         let addr_native = CAFE_ADDR_NATIVE.clone();
 
-        let module =
-            include_bytes!("assets/move/build/move/bytecode_scripts/generic_1.mv").to_vec();
+        let script = assets::read_script_from_project("move-basics", "generic_1");
 
         let param = bcs::to_bytes(&100u64).unwrap();
         let type_args: Vec<TypeTag> = vec![TypeTag::U64];
         let params: Vec<&[u8]> = vec![&param];
 
         let transaction = Transaction {
-            script_bc: module.clone(),
+            script_bc: script,
             type_args,
             args: params.iter().map(|x| x.to_vec()).collect(),
         };

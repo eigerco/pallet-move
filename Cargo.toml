@@ -51,3 +51,6 @@ std = [
 ]
 runtime-benchmarks = ["frame-benchmarking/runtime-benchmarks"]
 try-runtime = ["frame-support/try-runtime"]
+
+# Builds move projects for test purposes.
+build-move-projects-for-test = []

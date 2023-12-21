@@ -1,4 +1,6 @@
-//! A set of IO helpers for accessing assests in `tests/assets` directory.
+#![allow(unused)]
+
+//! A set of IO helpers for accessing assests in the `tests/assets` directory.
 
 const MOVE_PROJECTS: &str = "tests/assets/move-projects";
 
