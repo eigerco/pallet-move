@@ -8,3 +8,6 @@
 .direnv/
 
 Cargo.lock
+
+# Move Build Output
+build/

@@ -1,3 +1,4 @@
+mod assets;
 mod mock;
 
 use frame_support::assert_ok;
@@ -7,7 +8,7 @@ use mock::*;
 /// Test that the module is published correctly.
 fn publish_module_as_user_correct() {
     new_test_ext().execute_with(|| {
-        let module = include_bytes!("assets/move/build/move/bytecode_modules/Empty.mv").to_vec();
+        let module = assets::read_module_from_project("move-basics", "Empty");
 
         let res = MoveModule::publish_module(
             RuntimeOrigin::signed(CAFE_ADDR_NATIVE.clone()),
@@ -16,7 +17,7 @@ fn publish_module_as_user_correct() {
         );
         assert_ok!(res);
 
-        let module = include_bytes!("assets/move/build/move/bytecode_modules/EmptyBob.mv").to_vec();
+        let module = assets::read_module_from_project("move-basics", "EmptyBob");
 
         let res = MoveModule::publish_module(
             RuntimeOrigin::signed(BOB_ADDR_NATIVE.clone()),
@@ -58,10 +59,13 @@ fn publish_module_as_user_corrupted_bytecode() {
 /// Test that the bundle is published correctly.
 fn publish_bundle_as_user_correct() {
     new_test_ext().execute_with(|| {
-        let bundle = include_bytes!("assets/move-projects/using_stdlib_natives/build/using_stdlib_natives/bundles/using_stdlib_natives.mvb").to_vec();
+        let bundle =
+            assets::read_bundle_from_project("using_stdlib_natives", "using_stdlib_natives");
 
         let res = MoveModule::publish_module_bundle(
-            RuntimeOrigin::signed(BOB_ADDR_NATIVE.clone()), bundle, INFINITE_GAS
+            RuntimeOrigin::signed(BOB_ADDR_NATIVE.clone()),
+            bundle,
+            INFINITE_GAS,
         );
 
         assert_ok!(res);
