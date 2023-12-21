@@ -4,6 +4,7 @@ mod mock;
 use frame_support::assert_ok;
 use mock::*;
 use move_core_types::language_storage::TypeTag;
+use move_vm_backend::types::MAX_GAS_AMOUNT;
 use pallet_move::transaction::Transaction;
 
 #[test]
@@ -28,7 +29,7 @@ fn execute_script_empty() {
         let res = MoveModule::execute(
             RuntimeOrigin::signed(addr_native.clone()),
             transaction_bc,
-            INFINITE_GAS,
+            MAX_GAS_AMOUNT,
         );
 
         assert_ok!(res);
@@ -49,7 +50,7 @@ fn execute_script_empty() {
         let res = MoveModule::execute(
             RuntimeOrigin::signed(addr_native),
             transaction_bc,
-            INFINITE_GAS,
+            MAX_GAS_AMOUNT,
         );
 
         assert_ok!(res);
@@ -79,7 +80,7 @@ fn execute_script_params() {
         let res = MoveModule::execute(
             RuntimeOrigin::signed(addr_native),
             transaction_bc,
-            INFINITE_GAS,
+            MAX_GAS_AMOUNT,
         );
 
         assert_ok!(res);
@@ -109,7 +110,7 @@ fn execute_script_generic() {
         let res = MoveModule::execute(
             RuntimeOrigin::signed(addr_native),
             transaction_bc,
-            INFINITE_GAS,
+            MAX_GAS_AMOUNT,
         );
 
         assert_ok!(res);

@@ -4,6 +4,7 @@ mod mock;
 use frame_support::assert_ok;
 use mock::*;
 use move_core_types::{identifier::Identifier, language_storage::StructTag};
+use move_vm_backend::types::MAX_GAS_AMOUNT;
 
 #[test]
 /// Test getting a module.
@@ -16,7 +17,7 @@ fn get_module_correct() {
         let res = MoveModule::publish_module(
             RuntimeOrigin::signed(addr_native.clone()),
             module.clone(),
-            INFINITE_GAS,
+            MAX_GAS_AMOUNT,
         );
 
         assert_ok!(res);
@@ -81,7 +82,7 @@ fn get_resource_non_existent() {
         let res = MoveModule::publish_module(
             RuntimeOrigin::signed(addr_native.clone()),
             module,
-            INFINITE_GAS,
+            MAX_GAS_AMOUNT,
         );
 
         assert_ok!(res);
