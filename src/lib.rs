@@ -31,7 +31,7 @@ pub mod pallet {
     };
     use frame_system::pallet_prelude::*;
     use move_core_types::account_address::AccountAddress;
-    pub use move_vm_backend::types::GasStrategy;
+    pub use move_vm_backend::types::{GasAmount, GasStrategy};
     use move_vm_backend::{types::VmResult, Mvm};
     use sp_core::crypto::AccountId32;
     use sp_std::{vec, vec::Vec};
@@ -95,6 +95,8 @@ pub mod pallet {
         ) -> DispatchResultWithPostInfo {
             // Allow only signed calls.
             let who = ensure_signed(origin)?;
+            let gas_amount =
+                GasAmount::new(gas_limit).map_err(|_err| Error::<T>::GasLimitExceeded)?;
 
             let storage = Self::move_vm_storage();
             let vm = Mvm::new(storage).map_err(|_err| Error::<T>::ExecuteFailed)?;
@@ -106,7 +108,7 @@ pub mod pallet {
                 transaction.script_bc.as_slice(),
                 transaction.type_args,
                 transaction.args.iter().map(|x| x.as_slice()).collect(),
-                GasStrategy::Metered(gas_limit),
+                GasStrategy::Metered(gas_amount),
             );
 
             // Produce a result with gas spent.
@@ -129,7 +131,9 @@ pub mod pallet {
         ) -> DispatchResultWithPostInfo {
             // Allow only signed calls.
             let who = ensure_signed(origin)?;
-            let gas = GasStrategy::Metered(gas_limit);
+            let gas_amount =
+                GasAmount::new(gas_limit).map_err(|_err| Error::<T>::GasLimitExceeded)?;
+            let gas = GasStrategy::Metered(gas_amount);
 
             let vm_result = Self::raw_publish_module(&who, bytecode, gas)?;
 
@@ -152,7 +156,9 @@ pub mod pallet {
             gas_limit: u64,
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
-            let gas = GasStrategy::Metered(gas_limit);
+            let gas_amount =
+                GasAmount::new(gas_limit).map_err(|_err| Error::<T>::GasLimitExceeded)?;
+            let gas = GasStrategy::Metered(gas_amount);
 
             let vm_result = Self::raw_publish_bundle(&who, bundle, gas)?;
 
@@ -177,6 +183,8 @@ pub mod pallet {
         PublishBundleFailed,
         /// Invalid account size (expected 32 bytes).
         InvalidAccountSize,
+        /// Gas limit too big (maximum gas limit is: 2^64 / 1000).
+        GasLimitExceeded,
 
         // Errors that can be received from MoveVM
         /// Unknown validation status

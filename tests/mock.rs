@@ -83,7 +83,6 @@ frame_support::construct_runtime!(
 
 // Common constants accross the tests.
 #[allow(dead_code)]
-pub const INFINITE_GAS: u64 = u64::MAX;
 pub const CAFE_ADDR: &str = "0xCAFE";
 pub const BOB_ADDR: &str = "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty";
 lazy_static::lazy_static! {
