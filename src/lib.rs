@@ -32,7 +32,7 @@ pub mod pallet {
     use frame_system::pallet_prelude::*;
     use move_core_types::account_address::AccountAddress;
     pub use move_vm_backend::types::{GasAmount, GasStrategy};
-    use move_vm_backend::{types::VmResult, Mvm};
+    use move_vm_backend::{genesis::VmGenesisConfig, types::VmResult, Mvm};
     use sp_core::crypto::AccountId32;
     use sp_std::{vec, vec::Vec};
     use transaction::Transaction;
@@ -78,6 +78,33 @@ pub mod pallet {
         /// Event about successful move-bundle published
         /// [account]
         BundlePublished { who: T::AccountId },
+    }
+
+    #[pallet::genesis_config]
+    #[derive(frame_support::DefaultNoBound)]
+    pub struct GenesisConfig<T: Config> {
+        #[serde(skip)]
+        pub _phantom: core::marker::PhantomData<T>,
+
+        /// Use this option to override the default stdlib provided by the move-vm-backend.
+        pub change_default_stdlib_bundle_to: Option<Vec<u8>>,
+    }
+
+    #[pallet::genesis_build]
+    impl<T: Config> BuildGenesisConfig for GenesisConfig<T> {
+        fn build(&self) {
+            let mut genesis_cfg = VmGenesisConfig::default();
+            if let Some(ref stdlib_bundle) = self.change_default_stdlib_bundle_to {
+                genesis_cfg.configure_stdlib(stdlib_bundle.clone());
+            }
+
+            let storage = Pallet::<T>::move_vm_storage();
+
+            assert!(
+                genesis_cfg.apply(storage).is_ok(),
+                "failed to apply the move-vm genesis config"
+            );
+        }
     }
 
     // Dispatchable functions allows users to interact with the pallet and invoke state changes.
@@ -131,6 +158,7 @@ pub mod pallet {
         ) -> DispatchResultWithPostInfo {
             // Allow only signed calls.
             let who = ensure_signed(origin)?;
+
             let gas_amount =
                 GasAmount::new(gas_limit).map_err(|_err| Error::<T>::GasLimitExceeded)?;
             let gas = GasStrategy::Metered(gas_amount);
@@ -147,7 +175,6 @@ pub mod pallet {
         }
 
         /// Publish a Move bundle sent by the user.
-        // TODO(rqnsom): write proper tests for this extrinsic
         #[pallet::call_index(2)]
         #[pallet::weight(T::WeightInfo::publish_module_bundle())]
         pub fn publish_module_bundle(
