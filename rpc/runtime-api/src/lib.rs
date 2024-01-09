@@ -5,8 +5,8 @@ extern crate alloc;
 pub mod types;
 
 use alloc::{string::String, vec::Vec};
-
 use frame_support::weights::Weight;
+use pallet_move::types::ModuleAbi;
 
 // Here we declare the runtime API. It is implemented it the `impl` block in
 // runtime file (the `runtime/src/lib.rs` of the node)
@@ -33,7 +33,7 @@ sp_api::decl_runtime_apis! {
         fn get_module(address: String, name: String) -> Result<Option<Vec<u8>>, Vec<u8>>;
 
         // Get module ABI by its address
-        fn get_module_abi(address: String, name: String) -> Result<Option<Vec<u8>>, Vec<u8>>;
+        fn get_module_abi(address: String, name: String) -> Result<Option<ModuleAbi>, Vec<u8>>;
 
         // Get resource
         fn get_resource(account: AccountId, tag: Vec<u8>) -> Result<Option<Vec<u8>>, Vec<u8>>;

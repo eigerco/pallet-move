@@ -7,6 +7,7 @@ use jsonrpsee::{
     proc_macros::rpc,
     types::error::{CallError, ErrorObject},
 };
+use pallet_move::types::ModuleAbi;
 use pallet_move_runtime_api::types::MoveApiEstimation;
 pub use pallet_move_runtime_api::MoveApi as MoveRuntimeApi;
 use serde::{Deserialize, Serialize};
@@ -86,7 +87,7 @@ pub trait MoveApi<BlockHash, AccountId> {
         address: &str,
         name: &str,
         at: Option<BlockHash>,
-    ) -> RpcResult<Option<Vec<u8>>>;
+    ) -> RpcResult<Option<ModuleAbi>>;
 
     /// Get module binary using address.
     #[method(name = "mvm_getModule")]
@@ -217,7 +218,7 @@ where
         address: &str,
         name: &str,
         at: Option<<Block as BlockT>::Hash>,
-    ) -> RpcResult<Option<Vec<u8>>> {
+    ) -> RpcResult<Option<ModuleAbi>> {
         let api = self.client.runtime_api();
         let res = api.get_module_abi(
             at.unwrap_or_else(|| self.client.info().best_hash),

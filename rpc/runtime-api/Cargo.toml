@@ -14,10 +14,13 @@ frame-support = { git = "https://github.com/paritytech/polkadot-sdk.git", branch
 sp-api = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "release-polkadot-v1.4.0", default-features = false }
 sp-runtime = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "release-polkadot-v1.4.0", default-features = false  }
 
+pallet-move = { path = "../..", default-features = false }
+
 [features]
 default = ["std"]
 std = [
 	"codec/std",
 	"frame-support/std",
+    "pallet-move/std",
 	"sp-api/std",
 ]
