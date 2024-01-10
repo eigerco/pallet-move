@@ -28,6 +28,7 @@ move-core-types = { default-features = false, git = 'https://github.com/eigerco/
 
 # MoveVM backend dependency
 move-vm-backend = { default-features = false, git = 'https://github.com/eigerco/substrate-move.git', branch = "main" }
+move-vm-backend-common = { default-features = false, git = 'https://github.com/eigerco/substrate-move.git', branch = "main" }
 
 [dev-dependencies]
 hex = "0.4"

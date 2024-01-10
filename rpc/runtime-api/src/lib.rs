@@ -5,6 +5,7 @@ extern crate alloc;
 pub mod types;
 
 use alloc::{string::String, vec::Vec};
+
 use frame_support::weights::Weight;
 pub use pallet_move::pallet::ModuleAbi;
 
