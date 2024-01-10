@@ -45,6 +45,7 @@ std = [
     "frame-support/std",
     "frame-system/std",
     "scale-info/std",
+    "serde/std",
     "sp-std/std",
     "move-core-types/std",
     "move-vm-backend/std",

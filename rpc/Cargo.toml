@@ -20,14 +20,12 @@ sp-blockchain = { default-features = false, git = "https://github.com/paritytech
 sp-runtime = { default-features = false, git = "https://github.com/paritytech/polkadot-sdk.git", branch = "release-polkadot-v1.4.0" }
 
 # local packages
-pallet-move = { path = "..", default-features = false }
 pallet-move-runtime-api = { path = "./runtime-api", default-features = false }
 
 [features]
 default = ["std"]
 std = [
-  "sp-api/std",
-  "sp-runtime/std",
-  "pallet-move/std",
-  "pallet-move-runtime-api/std"
+    "sp-api/std",
+    "sp-runtime/std",
+    "pallet-move-runtime-api/std"
 ]

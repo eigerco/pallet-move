@@ -7,9 +7,8 @@ use jsonrpsee::{
     proc_macros::rpc,
     types::error::{CallError, ErrorObject},
 };
-use pallet_move::types::ModuleAbi;
-use pallet_move_runtime_api::types::MoveApiEstimation;
 pub use pallet_move_runtime_api::MoveApi as MoveRuntimeApi;
+use pallet_move_runtime_api::{ModuleAbi, MoveApiEstimation};
 use serde::{Deserialize, Serialize};
 use sp_api::ProvideRuntimeApi;
 use sp_blockchain::HeaderBackend;
