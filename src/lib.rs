@@ -12,8 +12,6 @@ mod storage;
 
 pub mod transaction;
 
-pub mod types;
-
 mod result;
 pub mod weights;
 
@@ -34,7 +32,7 @@ pub mod pallet {
     use frame_system::pallet_prelude::*;
     use move_core_types::account_address::AccountAddress;
     pub use move_vm_backend::{
-        abi::ModuleAbi as OModuleAbi,
+        abi::ModuleAbi,
         types::{GasAmount, GasStrategy},
     };
     use move_vm_backend::{genesis::VmGenesisConfig, types::VmResult, Mvm};
@@ -43,10 +41,7 @@ pub mod pallet {
     use transaction::Transaction;
 
     use super::*;
-    use crate::{
-        storage::MoveVmStorage,
-        types::ModuleAbi,
-    };
+    use crate::storage::MoveVmStorage;
 
     #[pallet::pallet]
     #[pallet::without_storage_info] // Allows to define storage items without fixed size
@@ -680,11 +675,8 @@ pub mod pallet {
             // TODO: Return a normal message to the RPC caller
             let address = Self::to_move_address(address).map_err(|_| vec![])?;
 
-            let r_o_abi: Result<Option<OModuleAbi>, Vec<u8>> = vm.get_module_abi(address, name)
-                .map_err(|e| format!("error in get_module_abi: {:?}", e).into());
-            let o_abi = r_o_abi?;
-
-            Ok(o_abi.map(|abi| abi.into()))
+            vm.get_module_abi(address, name)
+                .map_err(|e| format!("error in get_module_abi: {:?}", e).into())
         }
 
         pub fn get_module(address: &T::AccountId, name: &str) -> Result<Option<Vec<u8>>, Vec<u8>> {
