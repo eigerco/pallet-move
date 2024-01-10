@@ -87,16 +87,22 @@ pub mod pallet {
         #[serde(skip)]
         pub _phantom: core::marker::PhantomData<T>,
 
-        /// Use this option to override the default stdlib provided by the move-vm-backend.
-        pub change_default_stdlib_bundle_to: Option<Vec<u8>>,
+        /// Use this option to override the default move-stdlib provided by the move-vm-backend.
+        pub change_default_move_stdlib_bundle_to: Option<Vec<u8>>,
+
+        /// Use this option to override the default substrate-stdlib provided by the move-vm-backend.
+        pub change_default_substrate_stdlib_bundle_to: Option<Vec<u8>>,
     }
 
     #[pallet::genesis_build]
     impl<T: Config> BuildGenesisConfig for GenesisConfig<T> {
         fn build(&self) {
             let mut genesis_cfg = VmGenesisConfig::default();
-            if let Some(ref stdlib_bundle) = self.change_default_stdlib_bundle_to {
-                genesis_cfg.configure_stdlib(stdlib_bundle.clone());
+            if let Some(ref bundle) = self.change_default_move_stdlib_bundle_to {
+                genesis_cfg.configure_stdlib(bundle.clone());
+            }
+            if let Some(ref bundle) = self.change_default_substrate_stdlib_bundle_to {
+                genesis_cfg.configure_substrate_stdlib(bundle.clone());
             }
 
             let storage = Pallet::<T>::move_vm_storage();

@@ -1,4 +1,4 @@
-name: Common jobs (fmt, clippy)
+name: Common jobs (fmt, clippy, test)
 
 on:
   pull_request:
@@ -28,9 +28,6 @@ jobs:
           components: rustfmt, clippy
           override: true
 
-      - name: fmt
-        run: cargo fmt --all -- --check
-
       - name: Get smove
         uses: robinraju/release-downloader@v1.8
         with:
@@ -44,10 +41,13 @@ jobs:
           echo "$GITHUB_WORKSPACE" >> $GITHUB_PATH
           chmod +x "$GITHUB_WORKSPACE/smove"
 
+      - name: fmt
+        run: cargo fmt --all -- --check
+
       - name: clippy
         shell: bash
         run: cargo clippy --all-targets -- -D warnings
 
-      # You can edit this part when you add tests
-      # - name: Test
-      #   run: cargo test --verbose
+      - name: test
+        shell: bash
+        run: cargo test --verbose --features build-move-projects-for-test
