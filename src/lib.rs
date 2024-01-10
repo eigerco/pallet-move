@@ -31,11 +31,9 @@ pub mod pallet {
     };
     use frame_system::pallet_prelude::*;
     use move_core_types::account_address::AccountAddress;
-    pub use move_vm_backend::{
-        abi::ModuleAbi,
-        types::{GasAmount, GasStrategy},
-    };
+    pub use move_vm_backend::types::{GasAmount, GasStrategy};
     use move_vm_backend::{genesis::VmGenesisConfig, types::VmResult, Mvm};
+    pub use move_vm_backend_common::abi::ModuleAbi;
     use sp_core::crypto::AccountId32;
     use sp_std::{vec, vec::Vec};
     use transaction::Transaction;
