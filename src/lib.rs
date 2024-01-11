@@ -8,6 +8,7 @@ pub mod address;
 #[cfg(feature = "runtime-benchmarks")]
 mod benchmarking;
 
+mod balance;
 mod storage;
 
 pub mod transaction;
@@ -39,7 +40,7 @@ pub mod pallet {
     use transaction::Transaction;
 
     use super::*;
-    use crate::storage::MoveVmStorage;
+    use crate::{balance::BalanceAdapter, storage::MoveVmStorage};
 
     #[pallet::pallet]
     #[pallet::without_storage_info] // Allows to define storage items without fixed size
@@ -133,7 +134,10 @@ pub mod pallet {
                 GasAmount::new(gas_limit).map_err(|_err| Error::<T>::GasLimitExceeded)?;
 
             let storage = Self::move_vm_storage();
-            let vm = Mvm::new(storage).map_err(|_err| Error::<T>::ExecuteFailed)?;
+            let balance = BalanceAdapter::new();
+
+            let vm =
+                Mvm::new(storage, balance.clone()).map_err(|_err| Error::<T>::ExecuteFailed)?;
 
             let transaction = Transaction::try_from(transaction_bc.as_slice())
                 .map_err(|_| Error::<T>::ExecuteFailed)?;
@@ -618,10 +622,14 @@ pub mod pallet {
 
     impl<T: Config> Pallet<T> {
         // Internal helper for creating new MoveVM instance with StorageAdapter.
-        fn move_vm() -> Result<Mvm<crate::storage::StorageAdapter<VMStorage<T>>>, Vec<u8>> {
+        fn move_vm(
+        ) -> Result<Mvm<crate::storage::StorageAdapter<VMStorage<T>>, BalanceAdapter>, Vec<u8>>
+        {
+            // Balance won't actually be used here.
+            let balance = BalanceAdapter::new();
             let storage = Self::move_vm_storage();
 
-            Mvm::new(storage).map_err::<Vec<u8>, _>(|err| {
+            Mvm::new(storage, balance).map_err::<Vec<u8>, _>(|err| {
                 format!("error while creating the vm {:?}", err).into()
             })
         }
@@ -647,7 +655,9 @@ pub mod pallet {
             gas: GasStrategy,
         ) -> Result<VmResult, Error<T>> {
             let storage = Self::move_vm_storage();
-            let vm = Mvm::new(storage).map_err(|_err| Error::<T>::PublishModuleFailed)?;
+
+            let vm = Mvm::new(storage, BalanceAdapter::new())
+                .map_err(|_err| Error::<T>::PublishModuleFailed)?;
             let address = Self::to_move_address(address)?;
 
             let result = vm.publish_module(&bytecode, address, gas);
@@ -662,7 +672,9 @@ pub mod pallet {
             gas: GasStrategy,
         ) -> Result<VmResult, Error<T>> {
             let storage = Self::move_vm_storage();
-            let vm = Mvm::new(storage).map_err(|_err| Error::<T>::PublishBundleFailed)?;
+
+            let vm = Mvm::new(storage, BalanceAdapter::new())
+                .map_err(|_err| Error::<T>::PublishBundleFailed)?;
             let address = Self::to_move_address(address)?;
 
             let result = vm.publish_module_bundle(&bundle, address, gas);
