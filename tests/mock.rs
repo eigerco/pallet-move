@@ -35,7 +35,7 @@ impl frame_system::Config for Test {
 }
 
 pub type Balance = u128;
-pub const EXISTENTIAL_DEPOSIT: u128 = 500;
+pub const EXISTENTIAL_DEPOSIT: u128 = 100;
 
 impl pallet_balances::Config for Test {
     type MaxLocks = ConstU32<50>;
@@ -63,12 +63,20 @@ impl pallet_move::Config for Test {
 }
 
 // Build genesis storage according to the mock runtime.
-#[allow(dead_code)]
 pub fn new_test_ext() -> sp_io::TestExternalities {
-    frame_system::GenesisConfig::<Test>::default()
+    let mut storage = frame_system::GenesisConfig::<Test>::default()
         .build_storage()
-        .unwrap()
-        .into()
+        .unwrap();
+
+    let pallet_move_config = pallet_move::GenesisConfig::<Test> {
+        _phantom: core::marker::PhantomData,
+        change_default_move_stdlib_bundle_to: None,
+        change_default_substrate_stdlib_bundle_to: None,
+    };
+
+    pallet_move_config.assimilate_storage(&mut storage).unwrap();
+
+    storage.into()
 }
 
 // Configure a mock runtime to test the pallet.
@@ -82,7 +90,6 @@ frame_support::construct_runtime!(
 );
 
 // Common constants accross the tests.
-#[allow(dead_code)]
 pub const CAFE_ADDR: &str = "0xCAFE";
 pub const BOB_ADDR: &str = "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty";
 lazy_static::lazy_static! {
