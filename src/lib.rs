@@ -3,12 +3,10 @@
 pub use pallet::*;
 pub use weights::*;
 
-pub mod address;
-
 #[cfg(feature = "runtime-benchmarks")]
 mod benchmarking;
 
-mod balance;
+pub mod balance;
 mod storage;
 
 pub mod transaction;
@@ -40,7 +38,12 @@ pub mod pallet {
     use transaction::Transaction;
 
     use super::*;
-    use crate::{balance::BalanceAdapter, storage::MoveVmStorage};
+    use crate::{
+        balance::BalanceAdapter,
+        storage::{MoveVmStorage, StorageAdapter},
+    };
+
+    type MvmResult<T> = Result<Mvm<StorageAdapter<VMStorage<T>>, BalanceAdapter<T>>, Vec<u8>>;
 
     #[pallet::pallet]
     #[pallet::without_storage_info] // Allows to define storage items without fixed size
@@ -134,7 +137,7 @@ pub mod pallet {
                 GasAmount::new(gas_limit).map_err(|_err| Error::<T>::GasLimitExceeded)?;
 
             let storage = Self::move_vm_storage();
-            let balance = BalanceAdapter::new();
+            let balance = BalanceAdapter::<T>::new();
 
             let vm =
                 Mvm::new(storage, balance.clone()).map_err(|_err| Error::<T>::ExecuteFailed)?;
@@ -210,6 +213,112 @@ pub mod pallet {
         }
     }
 
+    /// Prepare a storage adapter ready for the Virtual Machine.
+    /// This declares the storage for the Pallet with the configuration T.
+    impl<T: Config, K, V> MoveVmStorage<T, K, V> for Pallet<T>
+    where
+        K: FullEncode,
+        V: FullCodec,
+    {
+        type VmStorage = VMStorage<T>;
+    }
+
+    impl<T: Config> Pallet<T> {
+        // Internal helper for creating new MoveVM instance with StorageAdapter.
+        fn move_vm() -> MvmResult<T> {
+            // Balance won't actually be used here.
+            let balance = BalanceAdapter::new();
+            let storage = Self::move_vm_storage();
+
+            Mvm::new(storage, balance).map_err::<Vec<u8>, _>(|err| {
+                format!("error while creating the vm {:?}", err).into()
+            })
+        }
+
+        /// Convert Move address to Substrate native account.
+        pub fn to_native_account(address: &AccountAddress) -> Result<T::AccountId, Error<T>> {
+            T::AccountId::decode(&mut address.as_ref()).map_err(|_| Error::InvalidAccountSize)
+        }
+
+        /// Convert a native address to a Move address.
+        pub fn to_move_address(address: &T::AccountId) -> Result<AccountAddress, Error<T>> {
+            let address = AccountId32::decode(&mut address.encode().as_ref())
+                .map_err(|_| Error::InvalidAccountSize)?;
+
+            let account_bytes: [u8; 32] = address.into();
+            Ok(AccountAddress::new(account_bytes))
+        }
+
+        /// Publish the module using the appropriate gas strategy.
+        pub fn raw_publish_module(
+            address: &T::AccountId,
+            bytecode: Vec<u8>,
+            gas: GasStrategy,
+        ) -> Result<VmResult, Error<T>> {
+            let storage = Self::move_vm_storage();
+
+            let vm = Mvm::new(storage, BalanceAdapter::<T>::new())
+                .map_err(|_err| Error::<T>::PublishModuleFailed)?;
+            let address = Self::to_move_address(address)?;
+
+            let result = vm.publish_module(&bytecode, address, gas);
+
+            Ok(result)
+        }
+
+        /// Publish the bundle using the appropriate gas strategy.
+        pub fn raw_publish_bundle(
+            address: &T::AccountId,
+            bundle: Vec<u8>,
+            gas: GasStrategy,
+        ) -> Result<VmResult, Error<T>> {
+            let storage = Self::move_vm_storage();
+
+            let vm = Mvm::new(storage, BalanceAdapter::<T>::new())
+                .map_err(|_err| Error::<T>::PublishBundleFailed)?;
+            let address = Self::to_move_address(address)?;
+
+            let result = vm.publish_module_bundle(&bundle, address, gas);
+
+            Ok(result)
+        }
+
+        pub fn get_module_abi(
+            address: &T::AccountId,
+            name: &str,
+        ) -> Result<Option<ModuleAbi>, Vec<u8>> {
+            let vm = Self::move_vm()?;
+
+            // TODO: Return a normal message to the RPC caller
+            let address = Self::to_move_address(address).map_err(|_| vec![])?;
+
+            vm.get_module_abi(address, name)
+                .map_err(|e| format!("error in get_module_abi: {:?}", e).into())
+        }
+
+        pub fn get_module(address: &T::AccountId, name: &str) -> Result<Option<Vec<u8>>, Vec<u8>> {
+            let vm = Self::move_vm()?;
+
+            // TODO: Return a normal message to the RPC caller
+            let address = Self::to_move_address(address).map_err(|_| vec![])?;
+
+            vm.get_module(address, name)
+                .map_err(|e| format!("error in get_module: {:?}", e).into())
+        }
+
+        pub fn get_resource(
+            account: &T::AccountId,
+            tag: &[u8],
+        ) -> Result<Option<Vec<u8>>, Vec<u8>> {
+            let vm = Self::move_vm()?;
+            // TODO: Return a normal message to the RPC caller
+            let address = Self::to_move_address(account).map_err(|_| vec![])?;
+
+            vm.get_resource(&address, tag)
+                .map_err(|e| format!("error in get_resource: {:?}", e).into())
+        }
+    }
+
     #[pallet::error]
     pub enum Error<T> {
         // General errors
@@ -223,6 +332,8 @@ pub mod pallet {
         InvalidAccountSize,
         /// Gas limit too big (maximum gas limit is: 2^64 / 1000).
         GasLimitExceeded,
+        /// Invalid account size (expected 32 bytes).
+        InsufficientBalance,
 
         // Errors that can be received from MoveVM
         /// Unknown validation status
@@ -608,113 +719,5 @@ pub mod pallet {
         VecBorrowElementExistsMutableBorrowError,
         // Found duplicate of native function
         DuplicateNativeFunction,
-    }
-
-    /// Prepare a storage adapter ready for the Virtual Machine.
-    /// This declares the storage for the Pallet with the configuration T.
-    impl<T: Config, K, V> MoveVmStorage<T, K, V> for Pallet<T>
-    where
-        K: FullEncode,
-        V: FullCodec,
-    {
-        type VmStorage = VMStorage<T>;
-    }
-
-    impl<T: Config> Pallet<T> {
-        // Internal helper for creating new MoveVM instance with StorageAdapter.
-        fn move_vm(
-        ) -> Result<Mvm<crate::storage::StorageAdapter<VMStorage<T>>, BalanceAdapter>, Vec<u8>>
-        {
-            // Balance won't actually be used here.
-            let balance = BalanceAdapter::new();
-            let storage = Self::move_vm_storage();
-
-            Mvm::new(storage, balance).map_err::<Vec<u8>, _>(|err| {
-                format!("error while creating the vm {:?}", err).into()
-            })
-        }
-
-        /// Convert Move address to Substrate native account.
-        pub fn to_native_account(address: &AccountAddress) -> Result<T::AccountId, Error<T>> {
-            T::AccountId::decode(&mut address.as_ref()).map_err(|_| Error::InvalidAccountSize)
-        }
-
-        /// Convert a native address to a Move address.
-        pub fn to_move_address(address: &T::AccountId) -> Result<AccountAddress, Error<T>> {
-            let address = AccountId32::decode(&mut address.encode().as_ref())
-                .map_err(|_| Error::InvalidAccountSize)?;
-
-            let account_bytes: [u8; 32] = address.into();
-            Ok(AccountAddress::new(account_bytes))
-        }
-
-        /// Publish the module using the appropriate gas strategy.
-        pub fn raw_publish_module(
-            address: &T::AccountId,
-            bytecode: Vec<u8>,
-            gas: GasStrategy,
-        ) -> Result<VmResult, Error<T>> {
-            let storage = Self::move_vm_storage();
-
-            let vm = Mvm::new(storage, BalanceAdapter::new())
-                .map_err(|_err| Error::<T>::PublishModuleFailed)?;
-            let address = Self::to_move_address(address)?;
-
-            let result = vm.publish_module(&bytecode, address, gas);
-
-            Ok(result)
-        }
-
-        /// Publish the bundle using the appropriate gas strategy.
-        pub fn raw_publish_bundle(
-            address: &T::AccountId,
-            bundle: Vec<u8>,
-            gas: GasStrategy,
-        ) -> Result<VmResult, Error<T>> {
-            let storage = Self::move_vm_storage();
-
-            let vm = Mvm::new(storage, BalanceAdapter::new())
-                .map_err(|_err| Error::<T>::PublishBundleFailed)?;
-            let address = Self::to_move_address(address)?;
-
-            let result = vm.publish_module_bundle(&bundle, address, gas);
-
-            Ok(result)
-        }
-
-        pub fn get_module_abi(
-            address: &T::AccountId,
-            name: &str,
-        ) -> Result<Option<ModuleAbi>, Vec<u8>> {
-            let vm = Self::move_vm()?;
-
-            // TODO: Return a normal message to the RPC caller
-            let address = Self::to_move_address(address).map_err(|_| vec![])?;
-
-            vm.get_module_abi(address, name)
-                .map_err(|e| format!("error in get_module_abi: {:?}", e).into())
-        }
-
-        pub fn get_module(address: &T::AccountId, name: &str) -> Result<Option<Vec<u8>>, Vec<u8>> {
-            let vm = Self::move_vm()?;
-
-            // TODO: Return a normal message to the RPC caller
-            let address = Self::to_move_address(address).map_err(|_| vec![])?;
-
-            vm.get_module(address, name)
-                .map_err(|e| format!("error in get_module: {:?}", e).into())
-        }
-
-        pub fn get_resource(
-            account: &T::AccountId,
-            tag: &[u8],
-        ) -> Result<Option<Vec<u8>>, Vec<u8>> {
-            let vm = Self::move_vm()?;
-            // TODO: Return a normal message to the RPC caller
-            let address = Self::to_move_address(account).map_err(|_| vec![])?;
-
-            vm.get_resource(&address, tag)
-                .map_err(|e| format!("error in get_resource: {:?}", e).into())
-        }
     }
 }

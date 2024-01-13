@@ -262,6 +262,7 @@ impl<T: Config> From<StatusCode> for Error<T> {
                 Self::VecBorrowElementExistsMutableBorrowError
             }
             StatusCode::DUPLICATE_NATIVE_FUNCTION => Self::DuplicateNativeFunction,
+            StatusCode::INSUFFICIENT_BALANCE => Self::InsufficientBalance,
             StatusCode::EXECUTED => unreachable!(),
             _ => Self::UnknownKind,
         }

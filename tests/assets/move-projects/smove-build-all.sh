@@ -3,7 +3,10 @@
 # Position the cwd in the same folder with the script (where the below folders are located)
 cd $(dirname $0)
 
-build_dir=("move-basics")
+build_dir=(
+    "move-basics"
+    "balance"
+)
 bundle_dir=("using_stdlib_natives")
 
 # Build simple packages
