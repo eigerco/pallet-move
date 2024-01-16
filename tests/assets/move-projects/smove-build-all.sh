@@ -6,6 +6,7 @@ cd $(dirname $0)
 build_dir=(
     "move-basics"
     "balance"
+    "get-resource"
 )
 bundle_dir=("using_stdlib_natives")
 
