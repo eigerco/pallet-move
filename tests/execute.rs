@@ -19,7 +19,13 @@ fn addr32_from_ss58(ss58addr: &str) -> AccountId32 {
 }
 
 fn addr32_to_move(addr32: &AccountId32) -> Result<AccountAddress, pallet_move::Error<Test>> {
-    MoveModule::to_move_address(&addr32)
+    MoveModule::to_move_address(addr32)
+}
+
+fn addrs_from_ss58(ss58: &str) -> Result<(AccountId32, AccountAddress), pallet_move::Error<Test>> {
+    let addr_32 = addr32_from_ss58(ss58);
+    let addr_mv = addr32_to_move(&addr_32)?;
+    Ok((addr_32, addr_mv))
 }
 
 fn move_script_to_transaction(
@@ -40,24 +46,24 @@ fn move_script_to_transaction(
 }
 
 fn get_vm_resource(
-    module_owner: &AccountId32,
+    module_owner: &AccountAddress,
     module_id: &str,
     key_id: &str,
-    address: &AccountAddress,
+    address: &AccountId32,
 ) -> Result<Option<Vec<u8>>, Vec<u8>> {
     let tag = StructTag {
-        address: address.clone(),
+        address: module_owner.clone(),
         module: Identifier::new(module_id).unwrap(),
         name: Identifier::new(key_id).unwrap(),
         type_params: vec![],
     };
     let bytes = bcs::to_bytes(&tag).unwrap();
-    MoveModule::get_resource(module_owner, &bytes)
+    MoveModule::get_resource(address, &bytes)
 }
 
-fn script_transaction(script: &str, mv_addr: &AccountAddress) -> Vec<u8> {
+fn script_transaction(project: &str, script: &str, mv_addr: &AccountAddress) -> Vec<u8> {
     let param = bcs::to_bytes(mv_addr).unwrap();
-    move_script_to_transaction("get-resource", script, Vec::<TypeTag>::new(), param)
+    move_script_to_transaction(project, script, Vec::<TypeTag>::new(), param)
 }
 
 #[test]
@@ -175,11 +181,8 @@ fn execute_script_generic() {
 fn execute_script_storage_correct() {
     pub const ALICE_ADDR: &str = "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY";
 
-    let bob_addr_32 = addr32_from_ss58(BOB_ADDR);
-    let bob_addr_mv = addr32_to_move(&bob_addr_32).unwrap();
-    let alice_addr_32 = addr32_from_ss58(ALICE_ADDR);
-    let alice_addr_mv = addr32_to_move(&bob_addr_32).unwrap();
-
+    let (bob_addr_32, bob_addr_mv) = addrs_from_ss58(BOB_ADDR).unwrap();
+    let (alice_addr_32, alice_addr_mv) = addrs_from_ss58(ALICE_ADDR).unwrap();
 
     new_test_ext().execute_with(|| {
         // Bob publishes the move-module 'Counter', test preparation.
@@ -192,44 +195,42 @@ fn execute_script_storage_correct() {
 
         // Check, that there are no counters available.
         assert_eq!(
-            get_vm_resource(&bob_addr_32, "Counter", "Counter", &alice_addr_mv).unwrap(),
+            get_vm_resource(&bob_addr_mv, "Counter", "Counter", &alice_addr_32).unwrap(),
             None
         );
         assert_eq!(
-            get_vm_resource(&bob_addr_32, "Counter", "Counter", &bob_addr_mv).unwrap(),
+            get_vm_resource(&bob_addr_mv, "Counter", "Counter", &bob_addr_32).unwrap(),
             None
         );
 
         // Alice and Bob execute a script to create a counter by using move-module 'Counter'.
-        let transaction_bc = script_transaction("create_counter", &alice_addr_mv);
+        let transaction_bc = script_transaction("get-resource", "create_counter", &alice_addr_mv);
         assert_ok!(MoveModule::execute(
             RuntimeOrigin::signed(alice_addr_32.clone()),
             transaction_bc,
             MAX_GAS_AMOUNT,
         ));
 
-        // TODO: Should be possible to execute this also
-        // let transaction_bc = gen_script_trans("create_counter", &bob_addr_mv);
-        // assert_ok!(MoveModule::execute(
-        //     RuntimeOrigin::signed(bob_addr_32.clone()),
-        //     transaction_bc,
-        //     MAX_GAS_AMOUNT,
-        // ));
+        let transaction_bc = script_transaction("get-resource", "create_counter", &bob_addr_mv);
+        assert_ok!(MoveModule::execute(
+            RuntimeOrigin::signed(bob_addr_32.clone()),
+            transaction_bc,
+            MAX_GAS_AMOUNT,
+        ));
 
         // Verify counter has been created.
-        let counter = get_vm_resource(&bob_addr_32, "Counter", "Counter", &alice_addr_mv)
+        let counter = get_vm_resource(&bob_addr_mv, "Counter", "Counter", &alice_addr_32)
             .unwrap()
             .expect("Couldn't find Alice's counter");
         assert_eq!(counter, vec![0, 0, 0, 0, 0, 0, 0, 0]);
 
-        // TODO: Should be possible to execute this also
-        // let counter = get_vm_resource(&bob_addr_32, "Counter", "Counter", &bob_addr_mv)
-        //     .unwrap()
-        //     .expect("Couldn't find Bob's counter");
-        // assert_eq!(counter, vec![0, 0, 0, 0, 0, 0, 0, 0]);
+        let counter = get_vm_resource(&bob_addr_mv, "Counter", "Counter", &bob_addr_32)
+            .unwrap()
+            .expect("Couldn't find Bob's counter");
+        assert_eq!(counter, vec![0, 0, 0, 0, 0, 0, 0, 0]);
 
-        // Execute script that counts that created counter.
-        let transaction_bc = script_transaction("count", &alice_addr_mv);
+        // Execute script that counts that created counter, but only for Alice.
+        let transaction_bc = script_transaction("get-resource", "count", &alice_addr_mv);
         assert_ok!(MoveModule::execute(
             RuntimeOrigin::signed(alice_addr_32.clone()),
             transaction_bc,
@@ -237,43 +238,65 @@ fn execute_script_storage_correct() {
         ));
 
         // Verify counter has been increased by 1.
-        let counter = get_vm_resource(&bob_addr_32, "Counter", "Counter", &alice_addr_mv)
+        let counter = get_vm_resource(&bob_addr_mv, "Counter", "Counter", &alice_addr_32)
             .unwrap()
             .expect("Could not find Alice's counter");
         assert_eq!(counter, vec![1, 0, 0, 0, 0, 0, 0, 0]);
-
-        // TODO: Should be possible to execute this also
-        // let counter = get_vm_resource(&bob_addr_32, "Counter", "Counter", &bob_addr_mv)
-        //     .unwrap()
-        //     .expect("Couldn't find Bob's counter");
-        // assert_eq!(counter, vec![0, 0, 0, 0, 0, 0, 0, 0]);
+        // Verify counter has still the same value.
+        let counter = get_vm_resource(&bob_addr_mv, "Counter", "Counter", &bob_addr_32)
+            .unwrap()
+            .expect("Couldn't find Bob's counter");
+        assert_eq!(counter, vec![0, 0, 0, 0, 0, 0, 0, 0]);
     });
 }
 
 #[test]
-#[ignore = "to be implemented"]
-/// Test execution of a script with correct parameters but as a wrong user.
-/// Transaction does not require sudo but call was signed with sudo.
-fn execute_script_wrong_user() {
-    new_test_ext().execute_with(|| {
-        assert_eq!(1, 0);
-    });
-}
-
-#[test]
-#[ignore = "to be implemented"]
 /// Test execution of a script with correct parameters but with insufficient gas.
 fn execute_script_insufficient_gas() {
+    let (bob_addr_32, bob_addr_mv) = addrs_from_ss58(BOB_ADDR).unwrap();
+
     new_test_ext().execute_with(|| {
-        assert_eq!(1, 0);
+        // Bob publishes the move-module 'Counter', test preparation.
+        let module = assets::read_module_from_project("get-resource", "Counter");
+        assert_ok!(MoveModule::publish_module(
+            RuntimeOrigin::signed(bob_addr_32.clone()),
+            module,
+            MAX_GAS_AMOUNT,
+        ));
+
+        // Bob wants to execute a script, which shall trigger that module, but with too less gas.
+        let transaction_bc = script_transaction("get-resource", "create_counter", &bob_addr_mv);
+        assert!(MoveModule::execute(
+            RuntimeOrigin::signed(bob_addr_32.clone()),
+            transaction_bc,
+            10,
+        )
+        .is_err());
     });
 }
 
 #[test]
-#[ignore = "to be implemented"]
 /// Test execution of a script with corrupted bytecode.
 fn execute_script_corrupted_bytecode() {
+    let (bob_addr_32, bob_addr_mv) = addrs_from_ss58(BOB_ADDR).unwrap();
+
     new_test_ext().execute_with(|| {
-        assert_eq!(1, 0);
+        // Bob publishes the move-module 'Counter', test preparation.
+        let module = assets::read_module_from_project("get-resource", "Counter");
+        assert_ok!(MoveModule::publish_module(
+            RuntimeOrigin::signed(bob_addr_32.clone()),
+            module,
+            MAX_GAS_AMOUNT,
+        ));
+
+        // Bob executes a corrupted script.
+        let mut transaction_bc = script_transaction("get-resource", "create_counter", &bob_addr_mv);
+        transaction_bc[10] = transaction_bc[10] + 1;
+        assert!(MoveModule::execute(
+            RuntimeOrigin::signed(bob_addr_32.clone()),
+            transaction_bc,
+            MAX_GAS_AMOUNT,
+        )
+        .is_err());
     });
 }
