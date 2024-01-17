@@ -225,7 +225,7 @@ pub mod pallet {
 
     impl<T: Config> Pallet<T> {
         // Internal helper for creating new MoveVM instance with StorageAdapter.
-        pub fn move_vm() -> MvmResult<T> {
+        fn move_vm() -> MvmResult<T> {
             // Balance won't actually be used here.
             let balance = BalanceAdapter::new();
             let storage = Self::move_vm_storage();
