@@ -10,23 +10,7 @@ use move_core_types::{
 };
 use move_vm_backend::types::MAX_GAS_AMOUNT;
 use pallet_move::transaction::Transaction;
-use sp_core::{crypto::Ss58Codec, sr25519::Public};
 use sp_runtime::AccountId32;
-
-fn addr32_from_ss58(ss58addr: &str) -> AccountId32 {
-    let (pk, _) = Public::from_ss58check_with_version(ss58addr).unwrap();
-    pk.into()
-}
-
-fn addr32_to_move(addr32: &AccountId32) -> Result<AccountAddress, pallet_move::Error<Test>> {
-    MoveModule::to_move_address(addr32)
-}
-
-fn addrs_from_ss58(ss58: &str) -> Result<(AccountId32, AccountAddress), pallet_move::Error<Test>> {
-    let addr_32 = addr32_from_ss58(ss58);
-    let addr_mv = addr32_to_move(&addr_32)?;
-    Ok((addr_32, addr_mv))
-}
 
 fn get_vm_resource(
     module_owner: &AccountAddress,

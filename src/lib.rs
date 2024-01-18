@@ -39,7 +39,7 @@ pub mod pallet {
 
     use super::*;
     use crate::{
-        balance::BalanceAdapter,
+        balance::{AccountIdOf, BalanceAdapter, BalanceOf},
         storage::{MoveVmStorage, StorageAdapter},
     };
 
@@ -122,7 +122,11 @@ pub mod pallet {
     // These functions materialize as "extrinsics", which are often compared to transactions.
     // Dispatchable functions must be annotated with a weight and must return a DispatchResult.
     #[pallet::call]
-    impl<T: Config> Pallet<T> {
+    impl<T: Config> Pallet<T>
+    where
+        AccountIdOf<T>: core::cmp::Eq + core::hash::Hash,
+        BalanceOf<T>: From<u128> + Into<u128>,
+    {
         /// Execute Move script bytecode sent by the user.
         #[pallet::call_index(0)]
         #[pallet::weight(T::WeightInfo::execute())]
@@ -135,9 +139,12 @@ pub mod pallet {
             let who = ensure_signed(origin)?;
             let gas_amount =
                 GasAmount::new(gas_limit).map_err(|_err| Error::<T>::GasLimitExceeded)?;
+            // TODO: Add another function parameter to specifiy this!
+            let balance_limit = BalanceOf::<T>::from(10000);
 
             let storage = Self::move_vm_storage();
-            let balance = BalanceAdapter::<T>::new();
+            let mut balance = BalanceAdapter::<T>::new();
+            balance.write_cheque(&who, &balance_limit)?;
 
             let vm =
                 Mvm::new(storage, balance.clone()).map_err(|_err| Error::<T>::ExecuteFailed)?;
@@ -151,6 +158,9 @@ pub mod pallet {
                 transaction.args.iter().map(|x| x.as_slice()).collect(),
                 GasStrategy::Metered(gas_amount),
             );
+
+            // Apply true transactions on blockchain.
+            balance.apply_transactions()?;
 
             // Produce a result with gas spent.
             let result = result::from_vm_result::<T>(result)?;
@@ -223,7 +233,11 @@ pub mod pallet {
         type VmStorage = VMStorage<T>;
     }
 
-    impl<T: Config> Pallet<T> {
+    impl<T: Config> Pallet<T>
+    where
+        AccountIdOf<T>: core::cmp::Eq + core::hash::Hash,
+        BalanceOf<T>: From<u128> + Into<u128>,
+    {
         // Internal helper for creating new MoveVM instance with StorageAdapter.
         fn move_vm() -> MvmResult<T> {
             // Balance won't actually be used here.

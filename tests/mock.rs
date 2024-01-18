@@ -92,6 +92,8 @@ frame_support::construct_runtime!(
 // Common constants accross the tests.
 pub const CAFE_ADDR: &str = "0xCAFE";
 pub const BOB_ADDR: &str = "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty";
+pub const ALICE_ADDR: &str = "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY";
+pub const DAVE_ADDR: &str = "5DAAnrj7VHTznn2AWBemMuyBwZWs6FNFjdyVXUeYum3PTXFy";
 lazy_static::lazy_static! {
     pub static ref CAFE_ADDR_MOVE: AccountAddress = {
         AccountAddress::from_hex_literal(CAFE_ADDR).unwrap()
@@ -106,4 +108,38 @@ lazy_static::lazy_static! {
     pub static ref BOB_ADDR_MOVE: AccountAddress = {
         MoveModule::to_move_address(&BOB_ADDR_NATIVE).unwrap()
     };
+    pub static ref ALICE_ADDR_NATIVE: AccountId32 = {
+        let (pk, _) = Public::from_ss58check_with_version(ALICE_ADDR).unwrap();
+        pk.into()
+    };
+    pub static ref ALICE_ADDR_MOVE: AccountAddress = {
+        MoveModule::to_move_address(&ALICE_ADDR_NATIVE).unwrap()
+    };
+    pub static ref DAVE_ADDR_NATIVE: AccountId32 = {
+        let (pk, _) = Public::from_ss58check_with_version(DAVE_ADDR).unwrap();
+        pk.into()
+    };
+    pub static ref DAVE_ADDR_MOVE: AccountAddress = {
+        MoveModule::to_move_address(&DAVE_ADDR_NATIVE).unwrap()
+    };
+}
+
+#[allow(dead_code)]
+pub fn addr32_from_ss58(ss58addr: &str) -> AccountId32 {
+    let (pk, _) = Public::from_ss58check_with_version(ss58addr).unwrap();
+    pk.into()
+}
+
+#[allow(dead_code)]
+pub fn addr32_to_move(addr32: &AccountId32) -> Result<AccountAddress, pallet_move::Error<Test>> {
+    MoveModule::to_move_address(addr32)
+}
+
+#[allow(dead_code)]
+pub fn addrs_from_ss58(
+    ss58: &str,
+) -> Result<(AccountId32, AccountAddress), pallet_move::Error<Test>> {
+    let addr_32 = addr32_from_ss58(ss58);
+    let addr_mv = addr32_to_move(&addr_32)?;
+    Ok((addr_32, addr_mv))
 }
