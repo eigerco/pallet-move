@@ -7,3 +7,20 @@ script {
         assert!(total_amount == preconfigured_amount, 0);
     }
 }
+
+script {
+    use substrate::balance;
+
+    fun single_transfer(src: signer, dst: address, amount: u128) {
+        balance::transfer(&src, dst, amount);
+    }
+}
+
+script {
+    use substrate::balance;
+
+    fun double_transfer(src: signer, dst1: address, amnt1: u128, dst2: address, amnt2: u128) {
+        balance::transfer(&src, dst1, amnt1);
+        balance::transfer(&src, dst2, amnt2);
+    }
+}
