@@ -5,7 +5,10 @@ use frame_support::assert_ok;
 use mock::*;
 use move_core_types::language_storage::TypeTag;
 use move_vm_backend::{balance::BalanceHandler, types::MAX_GAS_AMOUNT};
-use pallet_move::{balance::BalanceAdapter, transaction::Transaction};
+use pallet_move::{
+    balance::{BalanceAdapter, BalanceOf},
+    transaction::Transaction,
+};
 
 #[test]
 fn verify_get_balance() {
@@ -44,6 +47,7 @@ fn verify_get_balance() {
             RuntimeOrigin::signed(addr_native.clone()),
             transaction_bc,
             MAX_GAS_AMOUNT,
+            0,
         );
 
         assert_ok!(res);
@@ -86,6 +90,7 @@ fn verify_simple_transfer() {
         assert_ok!(MoveModule::execute(
             RuntimeOrigin::signed(alice_addr_32.clone()),
             transaction_bc,
+            MAX_GAS_AMOUNT,
             1500,
         ));
 
@@ -135,6 +140,7 @@ fn verify_multiple_transfers_different() {
         assert_ok!(MoveModule::execute(
             RuntimeOrigin::signed(alice_addr_32.clone()),
             transaction_bc,
+            MAX_GAS_AMOUNT,
             1500,
         ));
 
@@ -183,6 +189,7 @@ fn verify_multiple_transfers_same() {
         assert_ok!(MoveModule::execute(
             RuntimeOrigin::signed(alice_addr_32.clone()),
             transaction_bc,
+            MAX_GAS_AMOUNT,
             1500,
         ));
 
@@ -194,9 +201,8 @@ fn verify_multiple_transfers_same() {
 }
 
 #[test]
-#[ignore = "to be updated"]
 fn verify_balance_limit_too_low() {
-    const AMOUNT: u128 = 100;
+    const AMOUNT: BalanceOf<Test> = 100;
 
     let (alice_addr_32, alice_addr_mv) = addrs_from_ss58(ALICE_ADDR).unwrap();
     let (_, bob_addr_mv) = addrs_from_ss58(BOB_ADDR).unwrap();
@@ -226,7 +232,8 @@ fn verify_balance_limit_too_low() {
         assert!(MoveModule::execute(
             RuntimeOrigin::signed(alice_addr_32.clone()),
             transaction_bc,
-            99,
+            MAX_GAS_AMOUNT,
+            AMOUNT - 1,
         )
         .is_err());
     })
@@ -234,20 +241,12 @@ fn verify_balance_limit_too_low() {
 
 #[test]
 fn verify_insufficient_balance() {
-    const AMOUNT: u128 = 100;
+    const AMOUNT: BalanceOf<Test> = 100;
 
     let (alice_addr_32, alice_addr_mv) = addrs_from_ss58(ALICE_ADDR).unwrap();
     let (_, bob_addr_mv) = addrs_from_ss58(BOB_ADDR).unwrap();
 
     new_test_ext().execute_with(|| {
-        // Set Alice's balance to a predefined value
-        assert_ok!(Balances::force_set_balance(
-            RuntimeOrigin::root(),
-            alice_addr_32.clone(),
-            10000,
-        ));
-
-        // Now check that it works from within the MoveVM.
         let script = assets::read_script_from_project("balance", "single_transfer");
 
         let src = bcs::to_bytes(&bob_addr_mv).unwrap();
@@ -264,16 +263,139 @@ fn verify_insufficient_balance() {
         assert!(MoveModule::execute(
             RuntimeOrigin::signed(alice_addr_32.clone()),
             transaction_bc,
-            AMOUNT as u64,
+            MAX_GAS_AMOUNT,
+            AMOUNT,
         )
         .is_err());
     })
 }
 
 #[test]
-#[ignore = "to be implemented"]
 fn verify_move_script_fails_after_successful_transfer() {
+    const BALANCE: BalanceOf<Test> = 1000;
+    const AMOUNT: BalanceOf<Test> = 100;
+
+    let (alice_addr_32, alice_addr_mv) = addrs_from_ss58(ALICE_ADDR).unwrap();
+    let (bob_addr_32, bob_addr_mv) = addrs_from_ss58(BOB_ADDR).unwrap();
+
     new_test_ext().execute_with(|| {
-        unimplemented!();
+        // Set Alice's and Bob's balances to a predefined value.
+        assert_ok!(Balances::force_set_balance(
+            RuntimeOrigin::root(),
+            alice_addr_32.clone(),
+            BALANCE,
+        ));
+        assert_ok!(Balances::force_set_balance(
+            RuntimeOrigin::root(),
+            bob_addr_32.clone(),
+            BALANCE,
+        ));
+
+        // Execute script with a successful transfer but which fails after transfer.
+        let script = assets::read_script_from_project("balance", "fail_at_the_end");
+
+        let src = bcs::to_bytes(&alice_addr_mv).unwrap();
+        let dst = bcs::to_bytes(&bob_addr_mv).unwrap();
+        let amount = bcs::to_bytes(&AMOUNT).unwrap();
+        let params: Vec<&[u8]> = vec![&src, &dst, &amount];
+        let transaction = Transaction {
+            script_bc: script,
+            type_args: Vec::<TypeTag>::new(),
+            args: params.iter().map(|x| x.to_vec()).collect(),
+        };
+        let transaction_bc = bcs::to_bytes(&transaction).unwrap();
+
+        // Expect error because script will fail at the end.
+        assert!(MoveModule::execute(
+            RuntimeOrigin::signed(alice_addr_32.clone()),
+            transaction_bc,
+            MAX_GAS_AMOUNT,
+            AMOUNT,
+        )
+        .is_err());
+
+        // Verify balances have not been modified and transfer was not applied.
+        let now_blnc_alice = Balances::free_balance(&alice_addr_32);
+        let now_blnc_bob = Balances::free_balance(&bob_addr_32);
+        assert_eq!(now_blnc_alice, BALANCE);
+        assert_eq!(now_blnc_bob, BALANCE);
+    })
+}
+
+#[test]
+fn verify_self_transfer() {
+    const AMOUNT: BalanceOf<Test> = 100;
+
+    let (alice_addr_32, alice_addr_mv) = addrs_from_ss58(ALICE_ADDR).unwrap();
+
+    new_test_ext().execute_with(|| {
+        assert_ok!(Balances::force_set_balance(
+            RuntimeOrigin::root(),
+            alice_addr_32.clone(),
+            AMOUNT * 2,
+        ));
+
+        let script = assets::read_script_from_project("balance", "single_transfer");
+
+        let src = bcs::to_bytes(&alice_addr_mv).unwrap();
+        let dst = bcs::to_bytes(&alice_addr_mv).unwrap();
+        let amount = bcs::to_bytes(&AMOUNT).unwrap();
+        let params: Vec<&[u8]> = vec![&src, &dst, &amount];
+        let transaction = Transaction {
+            script_bc: script,
+            type_args: Vec::<TypeTag>::new(),
+            args: params.iter().map(|x| x.to_vec()).collect(),
+        };
+        let transaction_bc = bcs::to_bytes(&transaction).unwrap();
+
+        assert_ok!(MoveModule::execute(
+            RuntimeOrigin::signed(alice_addr_32.clone()),
+            transaction_bc,
+            MAX_GAS_AMOUNT,
+            AMOUNT,
+        ));
+
+        let now_blnc_alice = Balances::free_balance(&alice_addr_32);
+        assert_eq!(now_blnc_alice, AMOUNT * 2);
+    })
+}
+
+#[test]
+fn verify_self_transfer_trying_to_cheat() {
+    const AMOUNT: BalanceOf<Test> = 1000;
+    const BALANCE: BalanceOf<Test> = 100;
+
+    let (alice_addr_32, alice_addr_mv) = addrs_from_ss58(ALICE_ADDR).unwrap();
+
+    new_test_ext().execute_with(|| {
+        assert_ok!(Balances::force_set_balance(
+            RuntimeOrigin::root(),
+            alice_addr_32.clone(),
+            BALANCE,
+        ));
+
+        let script = assets::read_script_from_project("balance", "single_transfer");
+
+        let src = bcs::to_bytes(&alice_addr_mv).unwrap();
+        let dst = bcs::to_bytes(&alice_addr_mv).unwrap();
+        let amount = bcs::to_bytes(&AMOUNT).unwrap();
+        let params: Vec<&[u8]> = vec![&src, &dst, &amount];
+        let transaction = Transaction {
+            script_bc: script,
+            type_args: Vec::<TypeTag>::new(),
+            args: params.iter().map(|x| x.to_vec()).collect(),
+        };
+        let transaction_bc = bcs::to_bytes(&transaction).unwrap();
+
+        assert!(MoveModule::execute(
+            RuntimeOrigin::signed(alice_addr_32.clone()),
+            transaction_bc,
+            MAX_GAS_AMOUNT,
+            AMOUNT,
+        )
+        .is_err());
+
+        let now_blnc_alice = Balances::free_balance(&alice_addr_32);
+        assert_eq!(now_blnc_alice, BALANCE);
     })
 }

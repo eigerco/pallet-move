@@ -69,6 +69,7 @@ fn execute_script_empty() {
             RuntimeOrigin::signed(addr_native.clone()),
             transaction_bc,
             MAX_GAS_AMOUNT,
+            0,
         );
 
         assert_ok!(res);
@@ -90,6 +91,7 @@ fn execute_script_empty() {
             RuntimeOrigin::signed(addr_native),
             transaction_bc,
             MAX_GAS_AMOUNT,
+            0,
         );
 
         assert_ok!(res);
@@ -120,6 +122,7 @@ fn execute_script_params() {
             RuntimeOrigin::signed(addr_native),
             transaction_bc,
             MAX_GAS_AMOUNT,
+            0,
         );
 
         assert_ok!(res);
@@ -150,6 +153,7 @@ fn execute_script_generic() {
             RuntimeOrigin::signed(addr_native),
             transaction_bc,
             MAX_GAS_AMOUNT,
+            0,
         );
 
         assert_ok!(res);
@@ -196,6 +200,7 @@ fn execute_script_storage_correct() {
             RuntimeOrigin::signed(alice_addr_32.clone()),
             transaction_bc,
             MAX_GAS_AMOUNT,
+            0,
         ));
 
         let transaction_bc = transaction_bc_for_create_counter_script(
@@ -208,6 +213,7 @@ fn execute_script_storage_correct() {
             RuntimeOrigin::signed(bob_addr_32.clone()),
             transaction_bc,
             MAX_GAS_AMOUNT,
+            0,
         ));
 
         // Verify counter has been created.
@@ -229,6 +235,7 @@ fn execute_script_storage_correct() {
             RuntimeOrigin::signed(alice_addr_32.clone()),
             transaction_bc,
             MAX_GAS_AMOUNT,
+            0,
         ));
 
         // Verify counter has been increased by 1.
@@ -269,6 +276,7 @@ fn execute_script_insufficient_gas() {
             RuntimeOrigin::signed(bob_addr_32.clone()),
             transaction_bc,
             10,
+            0,
         )
         .is_err());
     });
@@ -300,6 +308,7 @@ fn execute_script_corrupted_bytecode() {
             RuntimeOrigin::signed(bob_addr_32.clone()),
             transaction_bc,
             MAX_GAS_AMOUNT,
+            0,
         )
         .is_err());
     });
