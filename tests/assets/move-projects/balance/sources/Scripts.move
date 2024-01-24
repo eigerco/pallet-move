@@ -24,3 +24,12 @@ script {
         balance::transfer(&src, dst2, amnt2);
     }
 }
+
+script {
+    use substrate::balance;
+
+    fun fail_at_the_end(src: signer, dst: address, amount: u128) {
+        balance::transfer(&src, dst, amount);
+        assert!(false, 0);
+    }
+}

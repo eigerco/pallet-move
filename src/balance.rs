@@ -78,8 +78,7 @@ where
         account: &AccountIdOf<T>,
         balance: &BalanceOf<T>,
     ) -> DispatchResult {
-        // TODO (neutrinoks): Enable this feature to ensure, that balance is available!
-        // self.ensure_can_withdraw(account, balance)?;
+        self.ensure_can_withdraw(account, balance)?;
 
         let mut cheques = self.cheques.borrow_mut();
         if let Some(src_cheque) = cheques.get_mut(account) {
@@ -147,7 +146,7 @@ where
         account: &AccountIdOf<T>,
         amount: &BalanceOf<T>,
     ) -> DispatchResult {
-        if *amount < T::Currency::free_balance(account) {
+        if *amount <= T::Currency::free_balance(account) {
             Ok(())
         } else {
             Err(Error::<T>::InsufficientBalance.into())
