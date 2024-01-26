@@ -39,7 +39,7 @@ pub mod pallet {
 
     use super::*;
     use crate::{
-        balance::{AccountIdOf, BalanceAdapter, BalanceOf},
+        balance::{BalanceAdapter, BalanceOf},
         storage::{MoveVmStorage, StorageAdapter},
     };
 
@@ -124,7 +124,6 @@ pub mod pallet {
     #[pallet::call]
     impl<T: Config> Pallet<T>
     where
-        AccountIdOf<T>: core::cmp::Eq + core::hash::Hash,
         BalanceOf<T>: From<u128> + Into<u128>,
     {
         /// Execute Move script bytecode sent by the user.
@@ -134,17 +133,16 @@ pub mod pallet {
             origin: OriginFor<T>,
             transaction_bc: Vec<u8>,
             gas_limit: u64,
+            cheque_limit: BalanceOf<T>,
         ) -> DispatchResultWithPostInfo {
             // Allow only signed calls.
             let who = ensure_signed(origin)?;
             let gas_amount =
                 GasAmount::new(gas_limit).map_err(|_err| Error::<T>::GasLimitExceeded)?;
-            // TODO: Add another function parameter to specifiy this!
-            let balance_limit = BalanceOf::<T>::from(10000);
 
             let storage = Self::move_vm_storage();
             let mut balance = BalanceAdapter::<T>::new();
-            balance.write_cheque(&who, &balance_limit)?;
+            balance.write_cheque(&who, &cheque_limit)?;
 
             let vm =
                 Mvm::new(storage, balance.clone()).map_err(|_err| Error::<T>::ExecuteFailed)?;
@@ -235,7 +233,6 @@ pub mod pallet {
 
     impl<T: Config> Pallet<T>
     where
-        AccountIdOf<T>: core::cmp::Eq + core::hash::Hash,
         BalanceOf<T>: From<u128> + Into<u128>,
     {
         // Internal helper for creating new MoveVM instance with StorageAdapter.
