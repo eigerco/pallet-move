@@ -39,7 +39,7 @@ pub mod pallet {
 
     use super::*;
     use crate::{
-        balance::{AccountIdOf, BalanceAdapter, BalanceOf},
+        balance::{BalanceAdapter, BalanceOf},
         storage::{MoveVmStorage, StorageAdapter},
     };
 
@@ -124,7 +124,6 @@ pub mod pallet {
     #[pallet::call]
     impl<T: Config> Pallet<T>
     where
-        AccountIdOf<T>: core::cmp::Eq + core::hash::Hash,
         BalanceOf<T>: From<u128> + Into<u128>,
     {
         /// Execute Move script bytecode sent by the user.
@@ -234,7 +233,6 @@ pub mod pallet {
 
     impl<T: Config> Pallet<T>
     where
-        AccountIdOf<T>: core::cmp::Eq + core::hash::Hash,
         BalanceOf<T>: From<u128> + Into<u128>,
     {
         // Internal helper for creating new MoveVM instance with StorageAdapter.

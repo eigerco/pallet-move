@@ -1,6 +1,7 @@
 //! TODO Short introduction of this module
 use core::{cmp::Ordering, marker::PhantomData};
 
+use codec::{Decode, Encode};
 use frame_support::{
     pallet_prelude::{DispatchError, DispatchResult},
     sp_runtime::SaturatedConversion,
@@ -15,6 +16,7 @@ use sp_std::{
     cell::{Ref, RefCell},
     default::Default,
     rc::Rc,
+    vec::Vec,
 };
 
 use crate::{Config, Error, Pallet};
@@ -25,6 +27,9 @@ pub type BalanceOf<T> = <<T as Config>::Currency as Currency<AccountIdOf<T>>>::B
 pub type CurrencyOf<T> = <T as Config>::Currency;
 pub type NegativeImbalanceOf<T> =
     <<T as Config>::Currency as Currency<AccountIdOf<T>>>::NegativeImbalance;
+
+/// Meaningful alias for encoded AccountIds.
+pub type EncodedAccount = Vec<u8>;
 
 /// Converts Error to StatusCode.
 ///
@@ -48,19 +53,17 @@ impl<T: Config> From<Error<T>> for StatusCode {
 #[derive(Clone)]
 pub struct BalanceAdapter<T: Config + SysConfig>
 where
-    AccountIdOf<T>: core::cmp::Eq + core::hash::Hash,
     BalanceOf<T>: From<u128> + Into<u128>,
 {
     _pd_config: PhantomData<T>,
     /// Virtual cheques record of involved users.
-    cheques: Rc<RefCell<HashMap<AccountIdOf<T>, BalanceOf<T>>>>,
+    cheques: Rc<RefCell<HashMap<EncodedAccount, BalanceOf<T>>>>,
     /// Copy of initial state, without tracking it.
-    initial_state: HashMap<AccountIdOf<T>, BalanceOf<T>>,
+    initial_state: HashMap<EncodedAccount, BalanceOf<T>>,
 }
 
 impl<T: Config + SysConfig> BalanceAdapter<T>
 where
-    AccountIdOf<T>: core::cmp::Eq + core::hash::Hash,
     BalanceOf<T>: From<u128> + Into<u128>,
 {
     /// Create a new [`BalanceAdapter`].
@@ -80,14 +83,16 @@ where
     ) -> DispatchResult {
         self.ensure_can_withdraw(account, balance)?;
 
+        let account: EncodedAccount = account.encode();
+
         let mut cheques = self.cheques.borrow_mut();
-        if let Some(src_cheque) = cheques.get_mut(account) {
+        if let Some(src_cheque) = cheques.get_mut(&account) {
             *src_cheque += *balance;
         } else {
             cheques.insert(account.clone(), *balance);
         }
 
-        if let Some(src_cheque) = self.initial_state.get_mut(account) {
+        if let Some(src_cheque) = self.initial_state.get_mut(&account) {
             *src_cheque += *balance;
         } else {
             self.initial_state.insert(account.clone(), *balance);
@@ -105,16 +110,17 @@ where
 
         let cheques = self.cheques.borrow();
         let mut purse = NegativeImbalanceOf::<T>::zero();
-        let mut depts = Vec::<(&AccountIdOf<T>, BalanceOf<T>)>::new();
+        let mut depts = Vec::<(AccountIdOf<T>, BalanceOf<T>)>::new();
 
         // Calculate balance differences and withdraw negative ones from user's accounts.
         for (account, balance) in cheques.iter() {
             let true_balance = self.initial_state.get(account).unwrap_or(&zero);
+            let account_id = vec_to_account_id::<T>(account)?;
             match (*true_balance).cmp(balance) {
                 Ordering::Greater => {
                     let dept = *true_balance - *balance;
                     let imbalance = T::Currency::withdraw(
-                        account,
+                        &account_id,
                         dept,
                         WithdrawReasons::TRANSFER,
                         ExistenceRequirement::AllowDeath,
@@ -123,7 +129,7 @@ where
                 }
                 Ordering::Less => {
                     let dept = *balance - *true_balance;
-                    depts.push((account, dept));
+                    depts.push((account_id, dept));
                 }
                 Ordering::Equal => {}
             }
@@ -132,7 +138,7 @@ where
         // Now deposit depts from purse to new owners.
         for (account, balance) in depts.into_iter() {
             let imbalance = purse.extract(balance);
-            T::Currency::resolve_creating(account, imbalance);
+            T::Currency::resolve_creating(&account, imbalance);
         }
 
         Ok(())
@@ -155,7 +161,7 @@ where
 
     /// Does a state checking on initial state of cheques with current state.
     fn cmp_with_initial_state(&self) -> DispatchResult {
-        let cheques: Ref<HashMap<AccountIdOf<T>, BalanceOf<T>>> = self.cheques.borrow();
+        let cheques: Ref<HashMap<EncodedAccount, BalanceOf<T>>> = self.cheques.borrow();
 
         let sum_initial = self
             .initial_state
@@ -175,7 +181,6 @@ where
 
 impl<T: Config> Default for BalanceAdapter<T>
 where
-    AccountIdOf<T>: core::cmp::Eq + core::hash::Hash,
     BalanceOf<T>: From<u128> + Into<u128>,
 {
     fn default() -> Self {
@@ -185,7 +190,6 @@ where
 
 impl<T: Config> BalanceHandler for BalanceAdapter<T>
 where
-    AccountIdOf<T>: core::cmp::Eq + core::hash::Hash,
     BalanceOf<T>: From<u128> + Into<u128>,
 {
     type Error = StatusCode;
@@ -196,8 +200,8 @@ where
         dst: AccountAddress,
         cheque_amount: u128,
     ) -> Result<bool, Self::Error> {
-        let from = Pallet::<T>::to_native_account(&src)?;
-        let to = Pallet::<T>::to_native_account(&dst)?;
+        let from: EncodedAccount = Pallet::<T>::to_native_account(&src)?.encode();
+        let to: EncodedAccount = Pallet::<T>::to_native_account(&dst)?.encode();
         let amount = BalanceOf::<T>::from(cheque_amount);
 
         let mut cheques = self.cheques.borrow_mut();
@@ -219,7 +223,7 @@ where
 
     fn cheque_amount(&self, account: AccountAddress) -> Result<u128, Self::Error> {
         let zero = BalanceOf::<T>::zero();
-        let acc = Pallet::<T>::to_native_account(&account)?;
+        let acc: EncodedAccount = Pallet::<T>::to_native_account(&account)?.encode();
         let cheques = self.cheques.borrow();
         let balance = cheques.get(&acc).unwrap_or(&zero);
         Ok((*balance).into())
@@ -232,4 +236,10 @@ where
         let amount = T::Currency::free_balance(&native_account).saturated_into::<u128>();
         Ok(amount)
     }
+}
+
+fn vec_to_account_id<T: SysConfig>(vec: &EncodedAccount) -> Result<AccountIdOf<T>, DispatchError> {
+    let mut ref_acc: &[u8] = vec;
+    AccountIdOf::<T>::decode(&mut ref_acc)
+        .map_err(|_| DispatchError::Other("Decode::decode error for T::AccountId"))
 }
