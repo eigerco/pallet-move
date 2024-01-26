@@ -9,8 +9,6 @@ mod benchmarking;
 pub mod balance;
 mod storage;
 
-pub mod transaction;
-
 mod result;
 pub mod weights;
 
@@ -33,9 +31,9 @@ pub mod pallet {
     pub use move_vm_backend::types::{GasAmount, GasStrategy};
     use move_vm_backend::{genesis::VmGenesisConfig, types::VmResult, Mvm};
     pub use move_vm_backend_common::abi::ModuleAbi;
+    use move_vm_backend_common::types::ScriptTransaction;
     use sp_core::crypto::AccountId32;
     use sp_std::{vec, vec::Vec};
-    use transaction::Transaction;
 
     use super::*;
     use crate::{
@@ -147,11 +145,11 @@ pub mod pallet {
             let vm =
                 Mvm::new(storage, balance.clone()).map_err(|_err| Error::<T>::ExecuteFailed)?;
 
-            let transaction = Transaction::try_from(transaction_bc.as_slice())
+            let transaction = ScriptTransaction::try_from(transaction_bc.as_slice())
                 .map_err(|_| Error::<T>::ExecuteFailed)?;
 
             let result = vm.execute_script(
-                transaction.script_bc.as_slice(),
+                transaction.bytecode.as_slice(),
                 transaction.type_args,
                 transaction.args.iter().map(|x| x.as_slice()).collect(),
                 GasStrategy::Metered(gas_amount),
