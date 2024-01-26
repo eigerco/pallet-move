@@ -33,7 +33,7 @@ module DeveloperBob::CarPool {
 }
 ```
 
-This module will be explained in detail in [our tutorial](TODO), if you are interested in. Bob already published this module and stored it in his own memory space on blockchain. Now we can use this published module by executing the following Move script:
+More details about the module above in [our tutorial](TODO). For this example, the module got published and the following script only needs to be executed.
 
 ```move
 script {
