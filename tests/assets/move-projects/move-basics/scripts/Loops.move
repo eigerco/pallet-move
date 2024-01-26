@@ -15,3 +15,15 @@ script {
         }
     }
 }
+
+script {
+    use std::vector;
+    fun empty_loop_param_with_a_vector(a: vector<u64>) {
+        vector::pop_back(&mut a);
+        let s = vector::pop_back(&mut a);
+
+        while (s > 0) {
+            s = s - 1;
+        }
+    }
+}

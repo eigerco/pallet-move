@@ -9,7 +9,7 @@ use move_core_types::{
     language_storage::{StructTag, TypeTag},
 };
 use move_vm_backend::types::MAX_GAS_AMOUNT;
-use pallet_move::transaction::Transaction;
+use move_vm_backend_common::types::ScriptTransaction;
 use sp_runtime::AccountId32;
 
 fn get_vm_resource(
@@ -38,8 +38,8 @@ fn transaction_bc_for_create_counter_script(
     let param = bcs::to_bytes(mv_addr)?;
     let params: Vec<&[u8]> = vec![&param];
     let script = assets::read_script_from_project(project, script);
-    let transaction = Transaction {
-        script_bc: script,
+    let transaction = ScriptTransaction {
+        bytecode: script,
         type_args: Vec::<TypeTag>::new(),
         args: params.iter().map(|x| x.to_vec()).collect(),
     };
@@ -57,8 +57,8 @@ fn execute_script_empty() {
         let type_args: Vec<TypeTag> = vec![];
         let params: Vec<&[u8]> = vec![];
 
-        let transaction = Transaction {
-            script_bc: script,
+        let transaction = ScriptTransaction {
+            bytecode: script,
             type_args,
             args: params.iter().map(|x| x.to_vec()).collect(),
         };
@@ -79,8 +79,8 @@ fn execute_script_empty() {
         let type_args: Vec<TypeTag> = vec![];
         let params: Vec<&[u8]> = vec![];
 
-        let transaction = Transaction {
-            script_bc: script,
+        let transaction = ScriptTransaction {
+            bytecode: script,
             type_args,
             args: params.iter().map(|x| x.to_vec()).collect(),
         };
@@ -110,8 +110,8 @@ fn execute_script_params() {
         let type_args: Vec<TypeTag> = vec![];
         let params: Vec<&[u8]> = vec![&iter_count];
 
-        let transaction = Transaction {
-            script_bc: script,
+        let transaction = ScriptTransaction {
+            bytecode: script,
             type_args,
             args: params.iter().map(|x| x.to_vec()).collect(),
         };
@@ -141,8 +141,8 @@ fn execute_script_generic() {
         let type_args: Vec<TypeTag> = vec![TypeTag::U64];
         let params: Vec<&[u8]> = vec![&param];
 
-        let transaction = Transaction {
-            script_bc: script,
+        let transaction = ScriptTransaction {
+            bytecode: script,
             type_args,
             args: params.iter().map(|x| x.to_vec()).collect(),
         };

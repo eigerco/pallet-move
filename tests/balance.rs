@@ -5,10 +5,8 @@ use frame_support::assert_ok;
 use mock::*;
 use move_core_types::language_storage::TypeTag;
 use move_vm_backend::{balance::BalanceHandler, types::MAX_GAS_AMOUNT};
-use pallet_move::{
-    balance::{BalanceAdapter, BalanceOf},
-    transaction::Transaction,
-};
+use move_vm_backend_common::types::ScriptTransaction;
+use pallet_move::balance::{BalanceAdapter, BalanceOf};
 
 #[test]
 fn verify_get_balance() {
@@ -36,8 +34,8 @@ fn verify_get_balance() {
         let params: Vec<&[u8]> = vec![&account, &preconfigured_amount];
         let type_args: Vec<TypeTag> = vec![];
 
-        let transaction = Transaction {
-            script_bc: script,
+        let transaction = ScriptTransaction {
+            bytecode: script,
             type_args,
             args: params.iter().map(|x| x.to_vec()).collect(),
         };
@@ -80,8 +78,8 @@ fn verify_simple_transfer() {
         let dst = bcs::to_bytes(&bob_addr_mv).unwrap();
         let amount = bcs::to_bytes(&AMOUNT).unwrap();
         let params: Vec<&[u8]> = vec![&src, &dst, &amount];
-        let transaction = Transaction {
-            script_bc: script,
+        let transaction = ScriptTransaction {
+            bytecode: script,
             type_args: Vec::<TypeTag>::new(),
             args: params.iter().map(|x| x.to_vec()).collect(),
         };
@@ -130,8 +128,8 @@ fn verify_multiple_transfers_different() {
         let dst2 = bcs::to_bytes(&dave_addr_mv).unwrap();
         let amount = bcs::to_bytes(&AMOUNT).unwrap();
         let params: Vec<&[u8]> = vec![&src, &dst1, &amount, &dst2, &amount];
-        let transaction = Transaction {
-            script_bc: script,
+        let transaction = ScriptTransaction {
+            bytecode: script,
             type_args: Vec::<TypeTag>::new(),
             args: params.iter().map(|x| x.to_vec()).collect(),
         };
@@ -179,8 +177,8 @@ fn verify_multiple_transfers_same() {
         let dst = bcs::to_bytes(&bob_addr_mv).unwrap();
         let amount = bcs::to_bytes(&AMOUNT).unwrap();
         let params: Vec<&[u8]> = vec![&src, &dst, &amount, &dst, &amount];
-        let transaction = Transaction {
-            script_bc: script,
+        let transaction = ScriptTransaction {
+            bytecode: script,
             type_args: Vec::<TypeTag>::new(),
             args: params.iter().map(|x| x.to_vec()).collect(),
         };
@@ -222,8 +220,8 @@ fn verify_balance_limit_too_low() {
         let dst = bcs::to_bytes(&bob_addr_mv).unwrap();
         let amount = bcs::to_bytes(&AMOUNT).unwrap();
         let params: Vec<&[u8]> = vec![&src, &dst, &amount];
-        let transaction = Transaction {
-            script_bc: script,
+        let transaction = ScriptTransaction {
+            bytecode: script,
             type_args: Vec::<TypeTag>::new(),
             args: params.iter().map(|x| x.to_vec()).collect(),
         };
@@ -253,8 +251,8 @@ fn verify_insufficient_balance() {
         let dst = bcs::to_bytes(&alice_addr_mv).unwrap();
         let amount = bcs::to_bytes(&AMOUNT).unwrap();
         let params: Vec<&[u8]> = vec![&src, &dst, &amount];
-        let transaction = Transaction {
-            script_bc: script,
+        let transaction = ScriptTransaction {
+            bytecode: script,
             type_args: Vec::<TypeTag>::new(),
             args: params.iter().map(|x| x.to_vec()).collect(),
         };
@@ -298,8 +296,8 @@ fn verify_move_script_fails_after_successful_transfer() {
         let dst = bcs::to_bytes(&bob_addr_mv).unwrap();
         let amount = bcs::to_bytes(&AMOUNT).unwrap();
         let params: Vec<&[u8]> = vec![&src, &dst, &amount];
-        let transaction = Transaction {
-            script_bc: script,
+        let transaction = ScriptTransaction {
+            bytecode: script,
             type_args: Vec::<TypeTag>::new(),
             args: params.iter().map(|x| x.to_vec()).collect(),
         };
@@ -341,8 +339,8 @@ fn verify_self_transfer() {
         let dst = bcs::to_bytes(&alice_addr_mv).unwrap();
         let amount = bcs::to_bytes(&AMOUNT).unwrap();
         let params: Vec<&[u8]> = vec![&src, &dst, &amount];
-        let transaction = Transaction {
-            script_bc: script,
+        let transaction = ScriptTransaction {
+            bytecode: script,
             type_args: Vec::<TypeTag>::new(),
             args: params.iter().map(|x| x.to_vec()).collect(),
         };
@@ -380,8 +378,8 @@ fn verify_self_transfer_trying_to_cheat() {
         let dst = bcs::to_bytes(&alice_addr_mv).unwrap();
         let amount = bcs::to_bytes(&AMOUNT).unwrap();
         let params: Vec<&[u8]> = vec![&src, &dst, &amount];
-        let transaction = Transaction {
-            script_bc: script,
+        let transaction = ScriptTransaction {
+            bytecode: script,
             type_args: Vec::<TypeTag>::new(),
             args: params.iter().map(|x| x.to_vec()).collect(),
         };
