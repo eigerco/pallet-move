@@ -4,9 +4,10 @@
 cd $(dirname $0)
 
 build_dir=(
-    "move-basics"
     "balance"
+    "car-wash-example",
     "get-resource"
+    "move-basics"
 )
 bundle_dir=("using_stdlib_natives")
 
