@@ -1,7 +1,7 @@
 mod assets;
 mod mock;
 
-use frame_support::assert_ok;
+use frame_support::{assert_err, assert_ok};
 use mock::*;
 use move_core_types::{
     account_address::AccountAddress,
@@ -26,7 +26,7 @@ fn get_vm_resource(
     };
     let bytes = bcs::to_bytes(&tag)?;
     let o_vec = MoveModule::get_resource(address, &bytes)
-        .map_err(|e| anyhow::anyhow!("MoveModule::get_resource {:?}", e))?;
+        .map_err(|e| anyhow::anyhow!("MoveModule::get_resource {e:?}"))?;
     Ok(o_vec)
 }
 
@@ -130,8 +130,9 @@ fn execute_script_params() {
 }
 
 #[test]
-/// Test execution of a script with generic function.
-fn execute_script_generic() {
+/// Test execution of a script with generic function which should fail since generic parameters
+/// are not allowed.
+fn execute_script_generic_fails() {
     new_test_ext().execute_with(|| {
         let addr_native = CAFE_ADDR_NATIVE.clone();
 
@@ -156,7 +157,10 @@ fn execute_script_generic() {
             0,
         );
 
-        assert_ok!(res);
+        assert_err!(
+            res,
+            pallet_move::Error::<Test>::InvalidMainFunctionSignature
+        );
     });
 }
 
@@ -313,3 +317,5 @@ fn execute_script_corrupted_bytecode() {
         .is_err());
     });
 }
+
+// TODO(eiger): Test for a script that receives an invalid number of arguments and generates NumberOfArgumentsMismatch error.
