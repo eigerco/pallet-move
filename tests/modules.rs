@@ -39,7 +39,7 @@ fn get_module_nonexistent() {
 }
 
 #[test]
-#[ignore = "failing - to be investigated"]
+#[ignore = "failing - script to be added"]
 /// Test getting resource from the module.
 fn get_resource_correct() {
     new_test_ext().execute_with(|| {
@@ -52,8 +52,10 @@ fn get_resource_correct() {
         let res = MoveModule::publish_module(
             RuntimeOrigin::signed(addr_native.clone()),
             module.clone(),
-            0,
+            MAX_GAS_AMOUNT,
         );
+
+        // TODO(eiger): missing script execution
 
         assert_ok!(res);
 

@@ -90,6 +90,8 @@ frame_support::construct_runtime!(
 );
 
 // Common constants accross the tests.
+#[allow(dead_code)]
+pub const EMPTY_CHEQUE: u128 = 0; // Not all scripts need the `cheque_amount` parameter.
 pub const CAFE_ADDR: &str = "0xCAFE";
 pub const BOB_ADDR: &str = "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty";
 pub const ALICE_ADDR: &str = "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY";

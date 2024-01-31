@@ -7,6 +7,7 @@ pub use weights::*;
 mod benchmarking;
 
 pub mod balance;
+mod signer;
 mod storage;
 
 mod result;
@@ -31,13 +32,16 @@ pub mod pallet {
     pub use move_vm_backend::types::{GasAmount, GasStrategy};
     use move_vm_backend::{genesis::VmGenesisConfig, types::VmResult, Mvm};
     pub use move_vm_backend_common::abi::ModuleAbi;
-    use move_vm_backend_common::types::ScriptTransaction;
+    use move_vm_backend_common::{
+        bytecode::verify_script_integrity_and_check_signers, types::ScriptTransaction,
+    };
     use sp_core::crypto::AccountId32;
     use sp_std::{vec, vec::Vec};
 
     use super::*;
     use crate::{
         balance::{BalanceAdapter, BalanceOf},
+        signer::ScriptSignatureHandler,
         storage::{MoveVmStorage, StorageAdapter},
     };
 
@@ -145,13 +149,24 @@ pub mod pallet {
             let vm =
                 Mvm::new(storage, balance.clone()).map_err(|_err| Error::<T>::ExecuteFailed)?;
 
-            let transaction = ScriptTransaction::try_from(transaction_bc.as_slice())
+            let tx = ScriptTransaction::try_from(transaction_bc.as_slice())
                 .map_err(|_| Error::<T>::ExecuteFailed)?;
 
+            let signer_count = verify_script_integrity_and_check_signers(&tx.bytecode)
+                .map_err(Error::<T>::from)?;
+
+            let mut signature_handler = ScriptSignatureHandler::<T>::new(&tx.args, signer_count)?;
+            signature_handler.sign_script(&who)?;
+
+            if !signature_handler.all_signers_approved() {
+                // TODO(eiger): Use another approach for the multi-signature feature.
+                return Err(Error::<T>::ScriptSignatureFailure.into());
+            }
+
             let result = vm.execute_script(
-                transaction.bytecode.as_slice(),
-                transaction.type_args,
-                transaction.args.iter().map(|x| x.as_slice()).collect(),
+                tx.bytecode.as_slice(),
+                tx.type_args,
+                tx.args.iter().map(|x| x.as_slice()).collect(),
                 GasStrategy::Metered(gas_amount),
             );
 
@@ -343,6 +358,8 @@ pub mod pallet {
         GasLimitExceeded,
         /// Invalid account size (expected 32 bytes).
         InsufficientBalance,
+        /// Script signature failure.
+        ScriptSignatureFailure,
 
         // Errors that can be received from MoveVM
         /// Unknown validation status

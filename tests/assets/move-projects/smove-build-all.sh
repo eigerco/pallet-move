@@ -8,6 +8,7 @@ build_dir=(
     "car-wash-example",
     "get-resource"
     "move-basics"
+    "signer-scripts"
 )
 bundle_dir=("using_stdlib_natives")
 
