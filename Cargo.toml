@@ -34,6 +34,7 @@ move-vm-backend-common = { default-features = false, git = "https://github.com/e
 
 [dev-dependencies]
 hex = "0.4"
+rand = "0.8"
 lazy_static = "1.4"
 sp-core = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "release-polkadot-v1.4.0" }
 sp-io = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "release-polkadot-v1.4.0" }
