@@ -20,12 +20,11 @@ For more information and to learn more about how to work with this pallet, the f
 A basic sample of the Move module and the Move script is shown below.
 
 ```move
-module DeveloperBob::CarPool {
+module DeveloperBob::CarWash {
     // ...
 
-    /// Requests the rent of a car on the given day and between given daytime hours.
-    /// Returns `true` in case of success, otherwise `false`.
-    public fun rent_car(account: &signer, day: u16, lease_time: u16, token_limit: u128): bool {
+    /// Buys a washing coin for the car wash. Therfor, `COIN_PRICE` will be withdrawn from the user's account.
+    public fun buy_coin(user: &signer) acquires Balance {
         // ...
     }
 
@@ -33,14 +32,14 @@ module DeveloperBob::CarPool {
 }
 ```
 
-More details about the module above in [our tutorial](TODO). For this example, the module got published and the following script only needs to be executed.
+More details about the module above in [our tutorial](tutorial/Tutorial.md). For this example, the module got published and the following script only needs to be executed.
 
 ```move
 script {
-    use DeveloperBob::CarPool;
-
-    fun rent_car(who: signer, day: u16, lease_time: u16, token_limit: u128) {
-        CarPool::rent_car(&signer, day, lease_time, token_limit)
+    use DeveloperBob::CarWash;
+    
+    fun buy_coin(account: signer) {
+        CarWash::buy_coin(&account);
     }
 }
 ```

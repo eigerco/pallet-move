@@ -44,7 +44,7 @@ module DeveloperBob::CarWash {
         move_to(account, Balance { coins: 0 });
     }
 
-    /// Transfers `amount` of tokens from `from` to `to`.
+    /// Buys a washing coin for the car wash. Therfor, `COIN_PRICE` will be withdrawn from the user's account.
     // Note: It would be nice to have the ability to buy multiple coins at once, but it's not implemented for this example.
     public fun buy_coin(user: &signer) acquires Balance {
         // Verify, module has been initialized.
