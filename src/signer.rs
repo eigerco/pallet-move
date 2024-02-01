@@ -30,7 +30,7 @@ where
     BalanceOf<T>: From<u128> + Into<u128>,
 {
     /// Creates a new [`ScriptSignatureHandler`] with all blank signatures for the provided script.
-    pub(crate) fn new(script_args: &[Vec<u8>], signer_count: usize) -> Result<Self, Error<T>> {
+    pub(crate) fn new(script_args: &[&[u8]], signer_count: usize) -> Result<Self, Error<T>> {
         if signer_count > script_args.len() {
             return Err(Error::ScriptSignatureFailure);
         }
