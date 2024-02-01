@@ -7,7 +7,7 @@ module DeveloperBob::CarWash {
     const MODULE_OWNER: address = @DeveloperBob;
 
     /// Simple solution, fixed price for one washing coin.
-    const COIN_PRICE: u128 = 1000000000000000000; // equals 1 UNIT
+    const COIN_PRICE: u128 = 1000000000000; // equals 1 UNIT
 
     /// Error codes
     const NOT_MODULE_OWNER: u64 = 0;
@@ -35,7 +35,7 @@ module DeveloperBob::CarWash {
         move_to(module_owner, Balance { coins: 255 });
     }
 
-    /// Registers a new user. The account address will be added to storage Balance with zero initial washing coins.
+    /// Registers a new user. The account address will be added to the storage Balance with zero initial washing coins.
     public fun register_new_user(account: &signer) {
         // Verify user does not already exist.
         assert!(!exists<Balance>(signer::address_of(account)), USER_ALREADY_EXISTS);
@@ -44,7 +44,7 @@ module DeveloperBob::CarWash {
         move_to(account, Balance { coins: 0 });
     }
 
-    /// Transfers `amount` of tokens from `from` to `to`.
+    /// Buys a washing coin for the car wash. Therfore, `COIN_PRICE` will be withdrawn from the user's account.
     // Note: It would be nice to have the ability to buy multiple coins at once, but it's not implemented for this example.
     public fun buy_coin(user: &signer) acquires Balance {
         // Verify, module has been initialized.
@@ -88,6 +88,6 @@ module DeveloperBob::CarWash {
 
         // Deposit one washing coin.
         let coins_ref = &mut borrow_global_mut<Balance>(dst).coins;
-        *coins_ref = coins_src + 1;
+        *coins_ref = coins_dst + 1;
     }
 }

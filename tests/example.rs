@@ -8,7 +8,7 @@ use move_vm_backend::types::MAX_GAS_AMOUNT;
 use move_vm_backend_common::types::ScriptTransaction;
 
 const PROJECT: &str = "car-wash-example";
-const COIN_PRICE: u128 = 1_000_000_000_000_000_000;
+const COIN_PRICE: u128 = 1_000_000_000_000;
 
 fn script_bytecode(name: &str, acc: AccountAddress) -> Vec<u8> {
     let script = assets::read_script_from_project(PROJECT, name);
@@ -24,7 +24,6 @@ fn script_bytecode(name: &str, acc: AccountAddress) -> Vec<u8> {
 
 /// Test the regular, ideal flow of our example project.
 #[test]
-#[ignore = "to be fixed, unknown error"]
 fn verify_normal_use_case() {
     let (alice_addr_32, alice_addr_mv) = addrs_from_ss58(ALICE_ADDR).unwrap();
     let (bob_addr_32, bob_addr_mv) = addrs_from_ss58(BOB_ADDR).unwrap();
@@ -34,12 +33,12 @@ fn verify_normal_use_case() {
         assert_ok!(Balances::force_set_balance(
             RuntimeOrigin::root(),
             alice_addr_32.clone(),
-            5_000_000_000_000_000_000,
+            5_000_000_000_000,
         ));
         assert_ok!(Balances::force_set_balance(
             RuntimeOrigin::root(),
             alice_addr_32.clone(),
-            10_000_000_000_000_000_000,
+            10_000_000_000_000,
         ));
 
         // Check initial state of balances of involved users.
