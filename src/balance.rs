@@ -103,7 +103,9 @@ where
 
     /// Executes the true transactions on the blockchain/substrate side after execution of
     /// Move-script.
-    pub fn apply_transactions(&self) -> DispatchResult {
+    ///
+    /// Important note: This can only be called from within the pallet.
+    pub(super) fn apply_transactions(&self) -> DispatchResult {
         let zero = BalanceOf::<T>::zero();
 
         self.cmp_with_initial_state()?;
