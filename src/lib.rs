@@ -20,6 +20,7 @@ pub mod pallet {
     extern crate alloc;
     #[cfg(not(feature = "std"))]
     use alloc::format;
+    use core::convert::AsRef;
 
     use codec::{FullCodec, FullEncode};
     use frame_support::{
@@ -29,11 +30,14 @@ pub mod pallet {
     };
     use frame_system::pallet_prelude::*;
     use move_core_types::account_address::AccountAddress;
+    pub use move_core_types::language_storage::TypeTag;
     pub use move_vm_backend::types::{GasAmount, GasStrategy};
-    use move_vm_backend::{genesis::VmGenesisConfig, types::VmResult, Mvm};
-    pub use move_vm_backend_common::abi::ModuleAbi;
-    use move_vm_backend_common::{
-        bytecode::verify_script_integrity_and_check_signers, types::ScriptTransaction,
+    use move_vm_backend::{
+        balance::BalanceHandler, genesis::VmGenesisConfig, types::VmResult, Mvm,
+    };
+    pub use move_vm_backend_common::{
+        abi::ModuleAbi, bytecode::verify_script_integrity_and_check_signers,
+        types::ScriptTransaction,
     };
     use sp_core::crypto::AccountId32;
     use sp_std::{vec, vec::Vec};
@@ -128,7 +132,7 @@ pub mod pallet {
     where
         BalanceOf<T>: From<u128> + Into<u128>,
     {
-        /// Execute Move script bytecode sent by the user.
+        /// Execute Move script transaction sent by the user.
         #[pallet::call_index(0)]
         #[pallet::weight(T::WeightInfo::execute())]
         pub fn execute(
@@ -137,44 +141,50 @@ pub mod pallet {
             gas_limit: u64,
             cheque_limit: BalanceOf<T>,
         ) -> DispatchResultWithPostInfo {
-            // Allow only signed calls.
+            // A signer for the extrinsic and a signer for the Move script.
             let who = ensure_signed(origin)?;
-            let gas_amount =
-                GasAmount::new(gas_limit).map_err(|_err| Error::<T>::GasLimitExceeded)?;
 
-            let storage = Self::move_vm_storage();
-            let mut balance = BalanceAdapter::<T>::new();
-            balance.write_cheque(&who, &cheque_limit)?;
+            // We use gas in order to prevent infinite scripts from breaking the MoveVM.
+            let gas_amount = GasAmount::new(gas_limit).map_err(|_| Error::<T>::GasLimitExceeded)?;
+            let gas = GasStrategy::Metered(gas_amount);
 
-            let vm =
-                Mvm::new(storage, balance.clone()).map_err(|_err| Error::<T>::ExecuteFailed)?;
+            // Main input for the VM are these script parameters.
+            let ScriptTransaction {
+                bytecode,
+                args,
+                type_args,
+            } = ScriptTransaction::try_from(transaction_bc.as_ref())
+                .map_err(|_| Error::<T>::InvalidScriptTransaction)?;
+            let args: Vec<&[u8]> = args.iter().map(AsRef::as_ref).collect();
 
-            let tx = ScriptTransaction::try_from(transaction_bc.as_slice())
-                .map_err(|_| Error::<T>::ExecuteFailed)?;
-
-            let signer_count = verify_script_integrity_and_check_signers(&tx.bytecode)
-                .map_err(Error::<T>::from)?;
-
-            let mut signature_handler = ScriptSignatureHandler::<T>::new(&tx.args, signer_count)?;
+            // Make sure the scripts are not maliciously trying to use forged signatures.
+            let signer_count =
+                verify_script_integrity_and_check_signers(&bytecode).map_err(Error::<T>::from)?;
+            let mut signature_handler = ScriptSignatureHandler::<T>::new(&args, signer_count)?;
             signature_handler.sign_script(&who)?;
 
+            // If the script is signed correctly, we can execute it in MoveVM and update the
+            // blockchain storage or the balance sheet.
             if !signature_handler.all_signers_approved() {
                 // TODO(eiger): Use another approach for the multi-signature feature.
                 return Err(Error::<T>::ScriptSignatureFailure.into());
             }
 
-            let result = vm.execute_script(
-                tx.bytecode.as_slice(),
-                tx.type_args,
-                tx.args.iter().map(|x| x.as_slice()).collect(),
-                GasStrategy::Metered(gas_amount),
-            );
+            // We need to provide MoveVM read only access to balance sheet - MoveVM is allowed to
+            // update the cheques that are used afterwards to update the balances afterwards.
+            let mut balance = BalanceAdapter::<T>::new();
+            balance.write_cheque(&who, &cheque_limit)?;
 
-            // Apply true transactions on blockchain.
+            // Let's try execute the script.
+            let cheques = balance.clone(); // VM can only touch the cheque list, it cannot update balances directly.
+            let vm_result = Self::raw_execute_script(&bytecode, type_args, args, gas, cheques)?;
+
+            // Apply true transactions to blockchain - this can be done only from the pallet layer
+            // after the script executed correctly without any issues.
             balance.apply_transactions()?;
 
             // Produce a result with gas spent.
-            let result = result::from_vm_result::<T>(result)?;
+            let result = result::from_vm_result::<T>(vm_result)?;
 
             // Emit an event.
             Self::deposit_event(Event::ExecuteCalled { who });
@@ -194,8 +204,7 @@ pub mod pallet {
             // Allow only signed calls.
             let who = ensure_signed(origin)?;
 
-            let gas_amount =
-                GasAmount::new(gas_limit).map_err(|_err| Error::<T>::GasLimitExceeded)?;
+            let gas_amount = GasAmount::new(gas_limit).map_err(|_| Error::<T>::GasLimitExceeded)?;
             let gas = GasStrategy::Metered(gas_amount);
 
             let vm_result = Self::raw_publish_module(&who, bytecode, gas)?;
@@ -218,8 +227,7 @@ pub mod pallet {
             gas_limit: u64,
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
-            let gas_amount =
-                GasAmount::new(gas_limit).map_err(|_err| Error::<T>::GasLimitExceeded)?;
+            let gas_amount = GasAmount::new(gas_limit).map_err(|_| Error::<T>::GasLimitExceeded)?;
             let gas = GasStrategy::Metered(gas_amount);
 
             let vm_result = Self::raw_publish_bundle(&who, bundle, gas)?;
@@ -254,9 +262,8 @@ pub mod pallet {
             let balance = BalanceAdapter::new();
             let storage = Self::move_vm_storage();
 
-            Mvm::new(storage, balance).map_err::<Vec<u8>, _>(|err| {
-                format!("error while creating the vm {:?}", err).into()
-            })
+            Mvm::new(storage, balance)
+                .map_err::<Vec<u8>, _>(|e| format!("error while creating the vm {e:?}").into())
         }
 
         /// Convert Move address to Substrate native account.
@@ -273,6 +280,23 @@ pub mod pallet {
             Ok(AccountAddress::new(account_bytes))
         }
 
+        /// Execute the script using the appropriate gas strategy.
+        pub fn raw_execute_script(
+            script: &[u8],
+            type_args: Vec<TypeTag>,
+            args: Vec<&[u8]>,
+            gas: GasStrategy,
+            cheques: impl BalanceHandler,
+        ) -> Result<VmResult, Error<T>> {
+            let storage = Self::move_vm_storage();
+
+            let vm = Mvm::new(storage, cheques).map_err(|_| Error::<T>::ExecuteFailed)?;
+
+            let result = vm.execute_script(script, type_args, args, gas);
+
+            Ok(result)
+        }
+
         /// Publish the module using the appropriate gas strategy.
         pub fn raw_publish_module(
             address: &T::AccountId,
@@ -282,7 +306,7 @@ pub mod pallet {
             let storage = Self::move_vm_storage();
 
             let vm = Mvm::new(storage, BalanceAdapter::<T>::new())
-                .map_err(|_err| Error::<T>::PublishModuleFailed)?;
+                .map_err(|_| Error::<T>::PublishModuleFailed)?;
             let address = Self::to_move_address(address)?;
 
             let result = vm.publish_module(&bytecode, address, gas);
@@ -299,7 +323,7 @@ pub mod pallet {
             let storage = Self::move_vm_storage();
 
             let vm = Mvm::new(storage, BalanceAdapter::<T>::new())
-                .map_err(|_err| Error::<T>::PublishBundleFailed)?;
+                .map_err(|_| Error::<T>::PublishBundleFailed)?;
             let address = Self::to_move_address(address)?;
 
             let result = vm.publish_module_bundle(&bundle, address, gas);
@@ -317,7 +341,7 @@ pub mod pallet {
             let address = Self::to_move_address(address).map_err(|_| vec![])?;
 
             vm.get_module_abi(address, name)
-                .map_err(|e| format!("error in get_module_abi: {:?}", e).into())
+                .map_err(|e| format!("error in get_module_abi: {e:?}").into())
         }
 
         pub fn get_module(address: &T::AccountId, name: &str) -> Result<Option<Vec<u8>>, Vec<u8>> {
@@ -327,7 +351,7 @@ pub mod pallet {
             let address = Self::to_move_address(address).map_err(|_| vec![])?;
 
             vm.get_module(address, name)
-                .map_err(|e| format!("error in get_module: {:?}", e).into())
+                .map_err(|e| format!("error in get_module: {e:?}").into())
         }
 
         pub fn get_resource(
@@ -339,7 +363,7 @@ pub mod pallet {
             let address = Self::to_move_address(account).map_err(|_| vec![])?;
 
             vm.get_resource(&address, tag)
-                .map_err(|e| format!("error in get_resource: {:?}", e).into())
+                .map_err(|e| format!("error in get_resource: {e:?}").into())
         }
     }
 
@@ -360,6 +384,8 @@ pub mod pallet {
         InsufficientBalance,
         /// Script signature failure.
         ScriptSignatureFailure,
+        /// Script transaction cannot be deserialized.
+        InvalidScriptTransaction,
 
         // Errors that can be received from MoveVM
         /// Unknown validation status
