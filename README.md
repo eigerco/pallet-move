@@ -2,6 +2,8 @@
 
 A pallet for substrate based blockchains to enable the usage of smart contracts written in the Move-language.
 
+![Pallet Move connects the Move language with Substrate](doc/assets/pallet-move_substrate_move.png)
+
 ## Overview
 
 Smart contracts can directly be implemented and executed as Move scripts or modularized in Move modules. Therefor, the pallet supports publishing of Move modules and the execution of Move scripts to achieve this functionality. In the case of larger projects, the pallet provides the publishing of a bundle (multiple Move modules).
@@ -14,6 +16,17 @@ For more information and to learn more about how to work with this pallet, the f
 - [Quickstart Guide with a Template-Node](#substrate-node-with-move-pallet)
 - [Testing](#testing)
 - [Benchmarking](#benchmarking)
+
+### Open / Planned Points
+
+- Refine gas tuning and gas-weight logic
+- Update to the latest Polkadot-SDK version in template node / pallet-move
+- Add more pallet tests
+- Develop full benchmarks
+- Multi-signature support
+- Protection mechanism for Move address 0x1
+- Add documentation about Substrate-stdlib
+- Restructure GitHub repositories of Substrate-stdlib and Move-stdlib
 
 
 ## Move Script Example
