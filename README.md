@@ -12,6 +12,7 @@ For more information and to learn more about how to work with this pallet, the f
 - [Move Script Example](#move-script-example)
 - [Pallet Configuration in a Substrate-Node](#pallet-configuration-in-a-substrate-node)
 - [Quickstart Guide with a Template-Node](#substrate-node-with-move-pallet)
+- [Testing](#testing)
 - [Benchmarking](#benchmarking)
 
 
@@ -144,6 +145,7 @@ You should see the correct response with some value like:
 ```
 
 ### Docker
+
 There is a possibility to generate the docker image containing a working `node-template` with `move-pallet` built-in. To generate an image, run:
 ```bash
 sudo docker build -t "nodemove:Dockerfile" .
@@ -161,7 +163,19 @@ sudo docker run nodemove:Dockerfile
 
 It will start the `node-template` on the local interface. You can change the default behavior by passing your own command when running the docker image. All available options are in the [node template](https://docs.substrate.io/reference/command-line-tools/node-template/) documentation.
 
+
+## Testing
+
+Verify that everything works fine by running the pallet's unit tests with all features enabled:
+```sh
+cargo test --verbose --features build-move-projects-for-test
+```
+
+You can find further details about testing possibilities in our [testing guide](doc/testing_guide.md).
+
+
 ## Benchmarking
+
 Benchmarking and updating weights should be done each time a new extrinsic is added to the pallet (weights are used to estimate transaction fees). Weights are obligatory for extrinsics that are available for users.
 
 To update weights, simply run:
