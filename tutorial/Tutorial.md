@@ -121,6 +121,12 @@ Script transaction is created at:
 ```
 It means the script and provided parameters have been serialized into the specified output file (serialized transaction), which can now be used in polkadot.js:
 
+Now - like when publishing a module - the optimal amount of needed gas for the script execution can also be estimated by using `smove`:
+```sh
+smove node rpc estimate-gas-execute-script -a 5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty -s build/car-wash-example/script_transactions/initial_coin_minting.mvt --cheque-limit 0
+# Estimated gas: Estimate (gas_used: 21, vm_status_code: EXECUTED)
+```
+
 ![Execute a script with parameters in polkadot.js](polkadot.js_execute_script_init.png)
 
 The additional parameters are:
