@@ -2,7 +2,10 @@ use std::{error::Error, process::Command};
 
 fn main() -> Result<(), Box<dyn Error>> {
     // Build move projects for the test purposes.
-    #[cfg(feature = "build-move-projects-for-test")]
+    #[cfg(any(
+        feature = "build-move-projects-for-test",
+        feature = "runtime-benchmarks"
+    ))]
     build_move_projects()?;
 
     Ok(())
