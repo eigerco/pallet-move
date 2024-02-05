@@ -1,3 +1,5 @@
+**Important: Check the `final-design.md` document instead, which contains the latest info**
+
 - [Introduction](#introduction)
   - [Move language](#move-language)
   - [Substrate framework](#substrate-framework)
