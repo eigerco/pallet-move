@@ -4,9 +4,14 @@
 
 - [Overview](#overview)
 - [Setup and Code Example](#setup-and-code-example)
-- [Gas Estimation for Publishing a Module](#gas-estimation-for-publishing-a-module)
 - [Publishing Modules](#publishing-modules)
+  - [Estimating Gas for Module Publication](#estimating-gas-for-module-publication)
+  - [Publication](#publication)
 - [Executing Scripts](#executing-scripts)
+  - [Creating Script Transactions](#creating-script-transactions)
+  - [Estimating Gas for Script Execution](#estimating-gas-for-script-execution)
+  - [Execution](#execution)
+- [Finishing the Tutorial](#finishing-the-tutorial)
 
 
 ## Overview
@@ -63,7 +68,9 @@ Now, let's compile this project to be ready for the estimation of needed gas and
 smove build
 ```
 
-## Gas Estimation for Publishing a Module
+## Publishing Modules
+
+### Estimating Gas for Module Publication
 
 Gas can be seen as weights in the Substrate. It will adjust the fees for the execution or publication of Move resources. Hereby, we prevent malicious scripts from running forever.
 
@@ -77,7 +84,7 @@ The successful result will look like:
 Estimated gas: Estimate (gas_used: 69, vm_status_code: EXECUTED)
 ```
 
-## Publishing Modules
+### Publication 
 
 The compiled bytecode file can be found in the subfolder
 ```sh
@@ -108,6 +115,8 @@ That is the proof that the module has been published on the chain successfully.
 
 ## Executing Scripts
 
+### Creating Script Transactions
+
 Compiled move scripts must be passed to pallet-move's extrinsic calls in serialized transactions, which are created with the `create-transaction` command. If scripts require additional function parameters, those input parameters also have to be provided to our command:
 ```sh
 smove create-transaction --compiled-script-path build/car-wash-example/bytecode_scripts/initial_coin_minting.mv --args signer:5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty
@@ -121,11 +130,15 @@ Script transaction is created at:
 ```
 It means the script and provided parameters have been serialized into the specified output file (serialized transaction), which can now be used in polkadot.js:
 
+### Estimating Gas for Script Execution
+
 Now - like when publishing a module - the optimal amount of needed gas for the script execution can also be estimated by using `smove`:
 ```sh
 smove node rpc estimate-gas-execute-script -a 5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty -s build/car-wash-example/script_transactions/initial_coin_minting.mvt --cheque-limit 0
 # Estimated gas: Estimate (gas_used: 21, vm_status_code: EXECUTED)
 ```
+
+### Execution
 
 ![Execute a script with parameters in polkadot.js](assets/polkadot.js_execute_script_init.png)
 
@@ -135,13 +148,29 @@ The additional parameters are:
 
 ![Script execution with adjusted __chequeLimit__](assets/polkadot.js_execute_script_buy.png)
 
-The flow of this code example is:
-* Bob: `initial_coin_minting`, but only once after publication.
-* Alice: `register_new_user`, but only once after publication.
-* Alice: `buy_coin`.
-* Alice: `wash_car` for each time you bought a washing coin.
 
-You have now successfully published a Move module on your Polkadot blockchain and executed successfully Move scripts.
+## Finishing the Tutorial
 
-We hope you managed to finish our tutorial without any issues! And we hope you liked it. If you want to report feedback, please feel free to do so.
-We are always available at: [hello@eiger.co](mailto:hello@eiger.co).
+You have successfully published a Move module on your Polkadot blockchain and executed a Move script successfully.
+
+So now we are ready to buy some coins for washing our car using our Substrate balance. First, let's check the balance before we execute some new scripts! Open the menu __
+![Compare balances after Alice bought a coin from Bob](assets/polkadot.js_buy_coin_balances_before.png)
+
+Now, let's execute the following actions:
+1. Using Alice's account, let's register her as a customer by executing the `register_new_user.mv` script
+  - Hint 1: this script requires one signer which has to be Alice's account ID.
+  - Hint 2: use the estimation RPC method to calculate gas.
+  - Hint 3: `cheque_amount` is unused in this script, so set it to zero.
+ 
+2. Now, again using Alice's account, buy a coin with a `buy_coin.mv` script:
+  - Hint 1: this script requires one signer which has to be Alice's account ID.
+  - Hint 2: use the estimation RPC method to calculate gas.
+  - Hint 1: because the price of a washing coin is 1 UNIT), we need to write a cheque of around xxxx
+ 
+3. Wash the car with Alice's account 
+  - Hint 1: ...
+
+After the car is washed, now check Alice's balance again and see how the above operations changed her balance status:
+![Compare balances after Alice bought a coin from Bob](assets/polkadot.js_buy_coin_balances_after.png)
+
+We hope you finished our tutorial without any issues! And we hope you liked it. If you want to report feedback, please feel free to do so. We are always available at [hello@eiger.co](mailto:hello@eiger.co).
