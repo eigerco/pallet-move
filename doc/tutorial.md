@@ -32,6 +32,9 @@ In our example, a simple car wash is modelized, where washing coins are used to 
 
 ```move
 module DeveloperBob::CarWash {
+    /// Simple solution, fixed price for one washing coin.
+    const COIN_PRICE: u128 = 1000000000000; // equals 1 UNIT
+
     /// Struct stores number of coins for each user.
     struct Balance has key, store {
         coins: u8
@@ -43,9 +46,8 @@ module DeveloperBob::CarWash {
     /// Registers a new user. The account address will be added to the storage Balance with zero initial washing coins.
     public fun register_new_user(account: &signer) {}
 
-    /// Buys a washing coin for the car wash. Therfore, `COIN_PRICE` will be withdrawn from the user's account.
-    // Note: It would be nice to have the ability to buy multiple coins at once, but it's not implemented for this example.
-    public fun buy_coin(user: &signer) acquires Balance {}
+    /// Buys `count` washing coin(s) for the car wash. Therfore, `COIN_PRICE` * `count` will be withdrawn from the user's account.
+    public fun buy_coin(user: &signer, count: u8) acquires Balance {}
 
     /// Initiates the washing process by paying one washing coin.
     public fun wash_car(user: &signer) acquires Balance {}
@@ -81,7 +83,7 @@ smove node rpc estimate-gas-publish-module --account-id 5FHneW46xGXgs5mUiveU4sbT
 
 The successful result will look like:
 ```sh
-Estimated gas: Estimate (gas_used: 69, vm_status_code: EXECUTED)
+Estimated gas: Estimate (gas_used: 74, vm_status_code: EXECUTED)
 ```
 
 ### Publication 
@@ -125,8 +127,7 @@ _An important note here - if the script function requires a signer, that signer'
 
 If you see the following message: 
 ```sh
-Script transaction is created at:
-# ... 
+Script transaction is created at: # ... 
 ```
 It means the script and provided parameters have been serialized into the specified output file (serialized transaction), which can now be used in polkadot.js:
 
@@ -135,7 +136,10 @@ It means the script and provided parameters have been serialized into the specif
 Now - like when publishing a module - the optimal amount of needed gas for the script execution can also be estimated by using `smove`:
 ```sh
 smove node rpc estimate-gas-execute-script -a 5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty -s build/car-wash-example/script_transactions/initial_coin_minting.mvt --cheque-limit 0
-# Estimated gas: Estimate (gas_used: 21, vm_status_code: EXECUTED)
+```
+with response:
+```sh
+Estimated gas: Estimate (gas_used: 21, vm_status_code: EXECUTED)
 ```
 
 ### Execution

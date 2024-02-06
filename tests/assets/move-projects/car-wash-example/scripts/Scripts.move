@@ -17,8 +17,8 @@ script {
 script {
     use DeveloperBob::CarWash;
     
-    fun buy_coin(account: signer) {
-        CarWash::buy_coin(&account);
+    fun buy_coin(account: signer, count: u8) {
+        CarWash::buy_coin(&account, count);
     }
 }
 

@@ -17,6 +17,7 @@ module DeveloperBob::CarWash {
     const USER_DOES_NOT_EXIST: u64 = 4;
     const NO_COINS_AVAILABLE: u64 = 5;
     const COIN_LIMIT_REACHED: u64 = 6;
+    const NOT_ENOUGH_COINS_AVAILABLE: u64 = 7;
 
     /// Struct stores number of coins for each user.
     struct Balance has key, store {
@@ -44,20 +45,23 @@ module DeveloperBob::CarWash {
         move_to(account, Balance { coins: 0 });
     }
 
-    /// Buys a washing coin for the car wash. Therfore, `COIN_PRICE` will be withdrawn from the user's account.
-    // Note: It would be nice to have the ability to buy multiple coins at once, but it's not implemented for this example.
-    public fun buy_coin(user: &signer) acquires Balance {
+    /// Buys `count` washing coin(s) for the car wash. Therfore, `COIN_PRICE` * `count` will be withdrawn from the user's account.
+    public fun buy_coin(user: &signer, count: u8) acquires Balance {
         // Verify, module has been initialized.
         assert!(exists<Balance>(MODULE_OWNER), MODULE_NOT_INITIALIZED);
 
         // Verify, that this user does exist / is registered.
         assert!(exists<Balance>(signer::address_of(user)), USER_DOES_NOT_EXIST);
 
-        // Transfer coin price from user to car-wash-and-module-owner
-        balance::transfer(user, MODULE_OWNER, COIN_PRICE);
+        // Verify, that enough coins are available.
+        let coins = borrow_global<Balance>(MODULE_OWNER).coins;
+        assert!(coins >= count, NOT_ENOUGH_COINS_AVAILABLE);
 
-        // After success, we deposit one more washing coin at the user's account.
-        transfer_coin(MODULE_OWNER, signer::address_of(user));
+        // Transfer coin price * count from user to car-wash-and-module-owner
+        balance::transfer(user, MODULE_OWNER, (count as u128)*COIN_PRICE);
+
+        // After success, we deposit `count` more washing coin(s) at the user's account.
+        transfer_coin(MODULE_OWNER, signer::address_of(user), count);
     }
 
     /// Initiates the washing process by paying one washing coin.
@@ -68,26 +72,26 @@ module DeveloperBob::CarWash {
         assert!(exists<Balance>(user_addr), USER_DOES_NOT_EXIST);
 
         // Successful transfer of one coin will automatically start the washing process.
-        transfer_coin(user_addr, MODULE_OWNER);
+        transfer_coin(user_addr, MODULE_OWNER, 1);
     }
 
-    /// Generic coin transfer function. Transfers always exactly one washing coin.
+    /// Generic coin transfer function. Transfers `count` washing coin(s).
     /// Requires both accounts to exist! For module internal usage only!
-    fun transfer_coin(src: address, dst: address) acquires Balance {
-        // Check that source account has at least one washing coin.
+    fun transfer_coin(src: address, dst: address, count: u8) acquires Balance {
+        // Check that source account has at least `count` washing coin.
         let coins_src = borrow_global<Balance>(src).coins;
-        assert!(coins_src > 0, NO_COINS_AVAILABLE);
+        assert!(coins_src >= count, NO_COINS_AVAILABLE);
 
-        // Check that destination has less than maximum number of coins.
+        // Check that the destination will have less than the maximum number of coins.
         let coins_dst = borrow_global<Balance>(dst).coins;
-        assert!(coins_dst < 255, COIN_LIMIT_REACHED);
+        assert!(coins_dst + count <= 255, COIN_LIMIT_REACHED);
 
-        // Withdraw one washing coin.
+        // Withdraw `count` washing coin(s).
         let coins_ref = &mut borrow_global_mut<Balance>(src).coins;
-        *coins_ref = coins_src - 1;
+        *coins_ref = coins_src - count;
 
-        // Deposit one washing coin.
+        // Deposit `count` washing coin(s).
         let coins_ref = &mut borrow_global_mut<Balance>(dst).coins;
-        *coins_ref = coins_dst + 1;
+        *coins_ref = coins_dst + count;
     }
 }
