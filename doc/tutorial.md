@@ -21,7 +21,7 @@ In this tutorial, we are going to show you how to access the MoveVM hosted insid
 To make Move interoperable with Substrate, we provide the package manager [smove](https://github.com/eigerco/smove), which can compile your Move projects, create bundles, access and act with the network node and more.
 
 This tutorial shows a summary of a workflow with Move on a Substrate template node. We will publish a module and execute a script which uses that module's functionality.
-Therefore, the package manager `smove` will be used to compile those resources, estimate the required amount of gas, and to create the `script-transaction`.
+Therefore, the package manager `smove` will be used to compile those resources, estimate the required amount of gas, and create the `script-transaction`.
 Finally, we publish the module and execute a script via using [polkadot.js][polkadotjs]).
 
 
@@ -29,7 +29,7 @@ Finally, we publish the module and execute a script via using [polkadot.js][polk
 
 Prerequisites:
 - [Install smove](https://github.com/eigerco/smove).
-- Setup the our template node with pallet-move integrated and run it in the background - the instructions can be found in our [readme](../README.md).
+- Setup our template node with pallet-move integrated and run it in the background - the instructions can be found in our [readme](../README.md).
   - Either use [polkadot.js][polkadotjs] or run a local frontend for the node running in the background.
 - Switch the current working directory to the code example directory in `pallet-move/tests/assets/move-projects/car-wash-example`.
 
