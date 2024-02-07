@@ -16,19 +16,26 @@
 
 ## Overview
 
+In this tutorial, we are going to show you how to access the MoveVM hosted inside the `pallet-move`, integrated inside the [template node][template-node-repo].
+
 To make Move interoperable with Substrate, we provide the package manager [smove](https://github.com/eigerco/smove), which can compile your Move projects, create bundles, access and act with the network node and more.
 
-This tutorial shows a summary of a workflow with Move on a Substrate template node. We will publish a module and execute a script which uses that module's functionality. Therefore, the package manager `smove` will be used to compile those resources, estimate the required amount of gas, and to create the `script-transaction`. Finally, we publish the module and execute a script via using [polkadot.js](https://polkadot.js.org/apps/).
+This tutorial shows a summary of a workflow with Move on a Substrate template node. We will publish a module and execute a script which uses that module's functionality.
+Therefore, the package manager `smove` will be used to compile those resources, estimate the required amount of gas, and to create the `script-transaction`.
+Finally, we publish the module and execute a script via using [polkadot.js][polkadotjs]).
 
 
 ## Setup and Code Example 
 
-Initial requirements:
+Prerequisites:
 - [Install smove](https://github.com/eigerco/smove).
-- Setup our [our template node](https://github.com/eigerco/substrate-node-template-move-vm-test) with pallet-move integrated and run it in the background.
+- Setup the our template node with pallet-move integrated and run it in the background - the instructions can be found in our [readme](../README.md).
+  - Either use [polkadot.js][polkadotjs] or run a local frontend for the node running in the background.
 - Switch the current working directory to the code example directory in `pallet-move/tests/assets/move-projects/car-wash-example`.
 
-In our example, a simple car wash is modelized, where washing coins are used to control the usage of the car wash. Users can register, buy washing coins and use them to start the car wash. For the sake of simplicity, we show here only the function headers of the Move module, the full module can be seen [here](https://github.com/eigerco/pallet-move/blob/main/tests/assets/move-projects/car-wash-example/sources/CarWash.move).
+In our example, a simple car wash is modelized, where washing coins are used to control the usage of the car wash.
+Users can register, buy washing coins and use them to start the car wash.
+For the sake of simplicity, we show here only the function headers of the Move module, the full module can be seen [here](https://github.com/eigerco/pallet-move/blob/main/tests/assets/move-projects/car-wash-example/sources/CarWash.move).
 
 ```move
 module DeveloperBob::CarWash {
@@ -93,14 +100,16 @@ The compiled bytecode file can be found in the subfolder
 build/car-wash-example/bytecode_modules
 ```
 
-Do the following steps in polkadot.js GUI:
+Do the following steps in [polkadot.js][polkadotjs] GUI:
 * Switch to menu _Developer_->_Extrinsics_.
-* Select the Move pallet. In our template node it is called `moveModule`.
+* Select the Move pallet. Our template node is called `moveModule`.
 * For this pallet, choose extrinsic `publishModule(bytecode, gasLimit)`. Parameter explanation:
 * - __bytecode__ represents the compiled module bytecode. Fill it up by uploading the compiled file `CarWash.mv` (from the previous compilation).
 * - __gasLimit__ - use the estimated optimal amount of gas for publishing this module from the previous subsection. Using less than that will make the extrinsic fail, while using more is unnecessary (and more costly).
 
-![Publish a module using polkadot.js](assets/polkadot.js_publish_module.png)
+| ![polkadot.js_publish_module.png](assets/polkadot.js_publish_module.png) |
+|:--:|
+| _Publish a module using [polkadot.js][polkadotjs]_ |
 
 Note that the module can only be published if the specified module address `DeveloperBob` in the `Move.toml` file of the Move project matches the user's address (in this case, Bob's wallet address).
 
@@ -129,7 +138,7 @@ If you see the following message:
 ```sh
 Script transaction is created at: # ... 
 ```
-It means the script and provided parameters have been serialized into the specified output file (serialized transaction), which can now be used in polkadot.js:
+It means the script and provided parameters have been serialized into the specified output file (serialized transaction), which can now be used in [polkadot.js][polkadotjs]:
 
 ### Estimating Gas for Script Execution
 
@@ -144,37 +153,74 @@ Estimated gas: Estimate (gas_used: 21, vm_status_code: EXECUTED)
 
 ### Execution
 
-![Execute a script with parameters in polkadot.js](assets/polkadot.js_execute_script_init.png)
+To execute a Move script in pallet's MoveVM, use the `execute(transactionBc, gasLimit, chequeLimit)` extrinsic with the following parameters:
 
-The additional parameters are:
+| ![polkadot.js_execute_script_init.png](assets/polkadot.js_execute_script_init.png) |
+|:--:|
+| _Execute a script with parameters in polkadot.js_ |
+
+Parameters are:
+* __transactionBc__ represents the serialized script transaction generated by the `smove create-transaction` command. Fill it up by uploading the generated file `initial_coin_minting.mvt`. This encoded file contains the actual Move script bytecode and the script parameter list (since the same Move script can use different input parameters).
 * __gasLimit__ is a limitation for the maximum gas the script is allowed to use in the MoveVM. If the script requires more gas than provided, MoveVM will fail to execute the script, and the user will need to retry again with more gas provided.
-* __chequeLimit__ is your token limit for optional transfer of tokens between accounts. If the parameter is set to zero, no tokens can be withdrawn during the script execution. In this example the script `initial_coin_minting` will not withdraw any tokens, but `buy_coin` will need to.
-
-![Script execution with adjusted __chequeLimit__](assets/polkadot.js_execute_script_buy.png)
-
+* __chequeLimit__ is your balance limit for the optional funds transfer between accounts. If set to zero, no funds can be withdrawn during the script execution. In this example, the script `initial_coin_minting` will not try to charge any funds, but `buy_coin` from the next chapter will (and it shall fail if the user hasn't written the cheque when signing the extrinsic).
 
 ## Finishing the Tutorial
 
 You have successfully published a Move module on your Polkadot blockchain and executed a Move script successfully.
 
-So now we are ready to buy some coins for washing our car using our Substrate balance. First, let's check the balance before we execute some new scripts! Open the menu __
-![Compare balances after Alice bought a coin from Bob](assets/polkadot.js_buy_coin_balances_before.png)
+| ![js_buy_coin_balances_after.png](assets/polkadot.js_buy_coin_balances_before.png) |
+|:--:|
+| _Observe the balance before we execute some new scripts which will charge the user_ |
 
 Now, let's execute the following actions:
 1. Using Alice's account, let's register her as a customer by executing the `register_new_user.mv` script
-  - Hint 1: this script requires one signer which has to be Alice's account ID.
-  - Hint 2: use the estimation RPC method to calculate gas.
-  - Hint 3: `cheque_amount` is unused in this script, so set it to zero.
- 
+  - _Hint 1: This script requires one signer, who has to be Alice's account ID._
+  - _Hint 2: Use the estimation RPC method to calculate gas._
+  - _Hint 3: `cheque_amount` is unused in this script, so set it to zero (it's always safer not to allow scripts to charge you anything if not necessary)._
+    <details>
+    <summary>Click here to unlock the hidden command for the above action.</summary>
+  
+    ```
+    smove node rpc estimate-gas-execute-script -a 5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY -s build/car-wash-example/script_transactions/register_new_user.mvt --cheque-limit 0
+    ```
+    </details>
+    
+    ------------------------------------------------------------------------------------------------------------------------------------------------------------
 2. Now, again using Alice's account, buy a coin with a `buy_coin.mv` script:
-  - Hint 1: this script requires one signer which has to be Alice's account ID.
-  - Hint 2: use the estimation RPC method to calculate gas.
-  - Hint 1: because the price of a washing coin is 1 UNIT), we need to write a cheque of around xxxx
- 
-3. Wash the car with Alice's account 
-  - Hint 1: ...
+  - _Hint: Because the price of a washing coin is `1 UNIT`, we need to write a cheque with a value of at least `1000000000000` balances._
+    <details>
+    <summary>Click here to unlock the hidden command for the above action.</summary>
+  
+    ```
+    # The script will try to transfer the amount of funds required to buy a specified (via the script arguments in the create-transaction command) number
+    # of wash coins - so the `cheque_limit` needs to have an appropriate value so that the script won't fail while trying to charge the user.
+    smove node rpc estimate-gas-execute-script -a 5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY -s build/car-wash-example/script_transactions/buy_coin.mvt --cheque-limit 1000000000000
+    ```
+    
+    | ![polkadot.js_execute_script_buy.png](assets/polkadot.js_execute_script_buy.png) |
+    |:--:|
+    | _Script execution with the adjusted __chequeLimit___ |
+    </details>
 
-After the car is washed, now check Alice's balance again and see how the above operations changed her balance status:
-![Compare balances after Alice bought a coin from Bob](assets/polkadot.js_buy_coin_balances_after.png)
+    ------------------------------------------------------------------------------------------------------------------------------------------------------------
+3. _(Optional)_ Wash the car with Alice's account.
+    <details>
+    <summary>Click here to unlock the hidden command for the above action.</summary>
+  
+    ```
+    # The check_limit isn't required here (so it should be set to zero for safety reasons) since Alice will burn the MoveVM spend token in order to wash her car.
+    smove node rpc estimate-gas-execute-script -a 5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY -s build/car-wash-example/script_transactions/wash_car.mvt --cheque-limit 0
+    ```
+    </details>
 
-We hope you finished our tutorial without any issues! And we hope you liked it. If you want to report feedback, please feel free to do so. We are always available at [hello@eiger.co](mailto:hello@eiger.co).
+| ![js_buy_coin_balances_after.png](assets/polkadot.js_buy_coin_balances_after.png) |
+|:--:|
+| _After the car is washed, check how the above operations affected **Alice's balance**_ |
+
+------------------------------------------------------------------------------------------------------------------------------------------------------------
+We hope you finished our tutorial without any issues! And we hope you liked it. To see the full API for this pallet, check our design [document](final-design.md) here.
+
+If you want to report feedback, please feel free to do so. We are always available at [hello@eiger.co](mailto:hello@eiger.co).
+
+[polkadotjs]: https://polkadot.js.org/apps/
+[template-node-repo]: https://github.com/eigerco/substrate-node-template-move-vm-test
