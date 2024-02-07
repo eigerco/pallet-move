@@ -4,20 +4,77 @@ A pallet for substrate based blockchains to enable the usage of smart contracts 
 
 ![Pallet Move connects the Move language with Substrate](doc/assets/pallet-move_substrate_move.png)
 
+
 ## Overview
 
 Smart contracts can directly be implemented and executed as Move scripts or modularized in Move modules. Therefor, the pallet supports publishing of Move modules and the execution of Move scripts to achieve this functionality. In the case of larger projects, the pallet provides the publishing of a bundle (multiple Move modules).
 
 For the execution of Move scripts and the publication of Move modules, the Move source code has to be compiled and serialized into bytecode. For this purpose, the tool [`smove`](https://github.com/eigerco/smove) is provided. The tool also provides further helpful features for developing and working with the Move language and this pallet.
 
-For more information and to learn more about how to work with this pallet, the following entry points are provided:
-- [Move Script Example](#move-script-example)
-- [Pallet Configuration in a Substrate-Node](#pallet-configuration-in-a-substrate-node)
-- [Quickstart Guide with a Template-Node](#substrate-node-with-move-pallet)
-- [Testing](#testing)
-- [Benchmarking](#benchmarking)
 
-### Open / Planned Points
+## Move Example
+
+A basic sample of the Move module and the Move script is shown below.
+
+```move
+module DeveloperBob::CarWash {
+    /// Buys `count` washing coin(s) for the car wash. Therfor, `COIN_PRICE`*`count` will be withdrawn from the user's account.
+    public fun buy_coin(user: &signer, count: u8) acquires Balance {
+        // ...
+    }
+}
+```
+
+More details about the module above in [our tutorial](tutorial/Tutorial.md). For this example, the module got published and the following script only needs to be executed.
+
+```move
+script {
+    use DeveloperBob::CarWash;
+    
+    fun buy_coin(account: signer, count: u8) {
+        CarWash::buy_coin(&account, count);
+    }
+}
+```
+
+For a general overview and further details of the Move language, have a look at the [Move-Book](move-book).
+
+
+## Tutorial
+
+To dive quickly into the topic, explore our [simple tutorial](doc/tutorial.md).
+
+
+## Tech Guide
+
+There is a [tech-guide](doc/tech_guide.md) available, where you can find advanced topics like pallet configuration, Docker, and benchmarking.
+
+### Template Node
+
+Use [these instructions](doc/tech_guide.md#quickstart-guide-for-the-template-node) to setup the template-node with Move pallet integrated.
+
+### Testing
+
+Verify that everything works fine by running the pallet's unit tests with all features enabled:
+```sh
+cargo test --verbose --features build-move-projects-for-test
+```
+
+You can find further details about testing possibilities [in the tech-guide](doc/tech_guide.md#testing) and more background information in our [testing guide](doc/testing_guide.md).
+
+
+## Important Note
+
+_The MoveVM pallet is a good starting point for potential parachains that want to support Move._
+_There are more potential improvements to be made._
+_Still, those are yet to be defined and properly implemented within a future parachain project - since it's hard to predict what exactly the parachain might need or not need._
+_The current solution is general and parachain-agnostic._
+_The MoveVM is taken from the Move language repository - any possible safety issues are inherited from that repo._
+_Therefore, the substrate-move fork should get all upstream changes from that repository._
+_The first parachain adapters should do additional testing to ensure the solution is robust enough._
+
+
+## Open / Planned Points
 
 - Refine gas tuning and gas-weight logic
 - Update to the latest Polkadot-SDK version in template node / pallet-move
@@ -29,170 +86,9 @@ For more information and to learn more about how to work with this pallet, the f
 - Restructure GitHub repositories of Substrate-stdlib and Move-stdlib
 
 
-## Move Script Example
+## License
 
-A basic sample of the Move module and the Move script is shown below.
-
-```move
-module DeveloperBob::CarWash {
-    // ...
-
-    /// Buys a washing coin for the car wash. Therfor, `COIN_PRICE` will be withdrawn from the user's account.
-    public fun buy_coin(user: &signer) acquires Balance {
-        // ...
-    }
-
-    // ...
-}
-```
-
-More details about the module above in [our tutorial](tutorial/Tutorial.md). For this example, the module got published and the following script only needs to be executed.
-
-```move
-script {
-    use DeveloperBob::CarWash;
-    
-    fun buy_coin(account: signer) {
-        CarWash::buy_coin(&account);
-    }
-}
-```
-
-For a general overview and further details of the Move language, have a look at the [Move-Book](https://move-language.github.io/move/introduction.html).
+[MIT](LICENSE) License.
 
 
-## Pallet Configuration in a Substrate-Node
-
-The pallet's configuration is very short. Besides the regular `RuntimeEvent` and a predefined `WeightInfo`, you only have to tell the pallet about your `Currency` handler:
-```rust
-impl pallet_move::Config for Test {
-    type Currency = Balances; // here pallet-balances is used
-    type RuntimeEvent = RuntimeEvent;
-    type WeightInfo = ();
-}
-```
-
-As mentioned before, the pallet provides three extrinsic calls for publishing modules and bundles and for the execution of scripts:
-```rust
-pub fn execute(origin: OriginFor<T>, transaction_bc: Vec<u8>, gas_limit: u64) -> DispatchResultWithPostInfo;
-pub fn publish_module(origin: OriginFor<T>, bytecode: Vec<u8>, gas_limit: u64) -> DispatchResultWithPostInfo;
-pub fn publish_module_bundle(origin: OriginFor<T>, bundle: Vec<u8>, gas_limit: u64) -> DispatchResultWithPostInfo;
-```
-
-Have a look at the [mockup implementation](https://github.com/eigerco/pallet-move/blob/main/tests/mock.rs) for further coding details.
-
-
-## Quickstart Guide with a Template-Node
-
-### Substrate-node with Move pallet
-
-To spin up the local development node follow instructions from the [official guide](https://docs.substrate.io/tutorials/build-a-blockchain/build-local-blockchain/).
-
-The most important steps are described below.
-
-1. Clone Move pallet and node-template (make sure they are in the same repository) and switch to the newest branch which already include Move pallet building:
-```bash
-git clone https://github.com/eigerco/pallet-move.git
-git clone https://github.com/eigerco/substrate-node-template-move-vm-test
-cd substrate-node-template-move-vm-test
-git checkout pallet-move
-```
-
-2. Create a new branch (if you are going to make new changes) and build the node:
-```bash
-git checkout -b move-vm-pallet
-cargo build --release
-```
-
-If you wish to collect runtime benchmarks, you will need to build Move assets first and then add `--features runtime-benchmarks` to the build command. 
-
-Make sure you've Move language installed and accessible from the command line (`move` command). If not, please follow the official [Move tutorial](https://github.com/move-language/move/blob/main/language/documentation/tutorial/README.md) to install it. Then, from the root of the repository, run:
-
-```bash
-cd tests/assets/move
-move build
-cargo build --release --features runtime-benchmarks
-```
-
-3. Run the node:
-```bash
-./target/release/node-template --dev
-```
-
-4. Install and run the frontend (demands `node` and `yarn` to be installed):
-```bash
-git clone https://github.com/substrate-developer-hub/substrate-front-end-template
-cd substrate-front-end-template
-yarn install
-yarn start
-```
-
-5. Your browser should be opened automatically at `http://localhost:8000/` and you should see the information about the node.
-
-Alternatively, there is a possibility to use the Polkadot frontend:
-```bash
-git clone https://github.com/polkadot-js/apps
-cd apps
-yarn install
-yarn start
-```
-and open `http://localhost:3000/` in your browser. Then switch on the left-side to the local development chain. Now you can do the same things as with the substrate frontend.
-
-Congratulations! You've spun up your first Substrate node. You are able now to perform your first transaction. To do this, log into the frontend (the node must be up, assuming that you are using the substrate frontend) and: 
-1. choose one of the accounts on the right top (eg. Alice account); 
-2. look at the `Transfer` section where you can choose the destination account for your transfer. Choose one eg. `charlie`; 
-3. enter the amount to be sent; 
-4. press `Submit` button to begin the transaction; 
-5. when everything is completed you will see information that the transaction has been successful along with `tx hash` value;
-6. `Balances` section should now display new balances for the affected accounts.
-
-Check if the Move pallet is available in the frontend. If yes, there is possibility to call `execute` extrinsic and observe emitted events. 
-
-To check if there are RPC calls available run:
-```bash
-curl -H "Content-Type: application/json" -d '{"id":1, "jsonrpc":"2.0", "method": "mvm_gasToWeight", "params": [123]}' http://localhost:9944/
-```
-You should see the correct response with some value like:
-```bash
-{"jsonrpc":"2.0","result":{"ref_time":2123123,"proof_size":0},"id":1}
-```
-
-### Docker
-
-There is a possibility to generate the docker image containing a working `node-template` with `move-pallet` built-in. To generate an image, run:
-```bash
-sudo docker build -t "nodemove:Dockerfile" .
-```
-
-When the build is ready, you can check if you can see the image in the docker repository by running:
-```bash
-sudo docker images
-```
-
-To run the image, enter:
-```bash
-sudo docker run nodemove:Dockerfile
-```
-
-It will start the `node-template` on the local interface. You can change the default behavior by passing your own command when running the docker image. All available options are in the [node template](https://docs.substrate.io/reference/command-line-tools/node-template/) documentation.
-
-
-## Testing
-
-Verify that everything works fine by running the pallet's unit tests with all features enabled:
-```sh
-cargo test --verbose --features build-move-projects-for-test
-```
-
-You can find further details about testing possibilities in our [testing guide](doc/testing_guide.md).
-
-
-## Benchmarking
-
-Benchmarking and updating weights should be done each time a new extrinsic is added to the pallet (weights are used to estimate transaction fees). Weights are obligatory for extrinsics that are available for users.
-
-To update weights, simply run:
-```bash
-./target/release/node-template benchmark pallet --chain dev --pallet pallet-move --steps=50 --repeat=20 --wasm-execution=compiled --output ../pallet-move/src/weights.rs --template ./.maintain/frame-weight-template.hbs --extrinsic '*'
-```
-when being in the substrate-based node directory root. The assumption is made that the pallet is located under the `../pallet-move` directory. The template for the weights is located under the `./.maintain/frame-weight-template.hbs` directory and can be obtained from the Substrate repository.
+[move-book]: https://move-language.github.io/move/introduction.html
