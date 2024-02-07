@@ -187,7 +187,7 @@ Now, let's execute the following actions:
     
     ------------------------------------------------------------------------------------------------------------------------------------------------------------
 2. Now, again using Alice's account, buy a coin with a `buy_coin.mv` script:
-  - _Hint: Because the price of a washing coin is `1 UNIT`, we need to write a cheque with a value of at least `1000000000000` balances._
+  - _Hint: Because the price of a washing coin is `1 UNIT`, we need to write a cheque with a value of at least `1000000000000`._
     <details>
     <summary>Click here to unlock the hidden command for the above action.</summary>
   
@@ -215,7 +215,7 @@ Now, let's execute the following actions:
 
 | ![js_buy_coin_balances_after.png](assets/polkadot.js_buy_coin_balances_after.png) |
 |:--:|
-| _After the car is washed, check how the above operations affected **Alice's balance**_ |
+| _After buying a washing coin, check how the above operations have affected **Alice's balance**_ |
 
 ------------------------------------------------------------------------------------------------------------------------------------------------------------
 We hope you finished our tutorial without any issues! And we hope you liked it. To see the full API for this pallet, check our design [document](final-design.md) here.
