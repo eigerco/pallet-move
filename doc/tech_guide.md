@@ -103,9 +103,16 @@ Weights are obligatory for extrinsics that are available for users.
 
 To update weights, run:
 ```bash
-./target/release/node-template benchmark pallet --chain dev --pallet pallet-move --steps=50 --repeat=20 --wasm-execution=compiled --output ../pallet-move/src/weights.rs --template ./.maintain/frame-weight-template.hbs --extrinsic '*'
+./target/release/node-template benchmark pallet \
+    --chain dev \
+    --wasm-execution=compiled \
+    --pallet "pallet-move" \
+    --extrinsic "*" \
+    --steps 50 \
+    --repeat 20 \
+    --output weights.rs
 ```
-when being in the substrate-based node directory root. 
+when being in the substrate-based node directory root (template-node). 
 The assumption is made that the pallet is located under the `../pallet-move` directory. 
 The template for the weights is located under the `./.maintain/frame-weight-template.hbs` directory and can be obtained from the Substrate repository.
 
