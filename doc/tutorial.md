@@ -24,12 +24,20 @@ This tutorial shows a summary of a workflow with Move on a Substrate template no
 Therefore, the package manager `smove` will be used to compile those resources, estimate the required amount of gas, and create the `script-transaction`.
 Finally, we publish the module and execute a script via using [polkadot.js][polkadotjs]).
 
+### Actors in this tutorial
 
-## Setup and Code Example 
+- Bob (with address: `5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty`)
+  - who will publish the module and enable the module so other users can use it.
+
+- Alice (with address `5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY`)
+  - who will use Bob's module to register her account in his smart contract and then use the module's functionality (buying and spending a token).
+
+
+## Setup and Code Example
 
 Prerequisites:
 - [Install smove](https://github.com/eigerco/smove).
-- Setup our template node with pallet-move integrated and run it in the background - the instructions can be found in our [readme](../README.md).
+- Setup our template node with pallet-move integrated and run it in the background - the instructions can be found in our [tech guide](./tech_guide.md).
   - Either use [polkadot.js][polkadotjs] or run a local frontend for the node running in the background.
 - Switch the current working directory to the code example directory in `pallet-move/tests/assets/move-projects/car-wash-example`.
 
@@ -93,7 +101,7 @@ The successful result will look like:
 Estimated gas: Estimate (gas_used: 74, vm_status_code: EXECUTED)
 ```
 
-### Publication 
+### Publication
 
 The compiled bytecode file can be found in the subfolder
 ```sh
@@ -103,9 +111,11 @@ build/car-wash-example/bytecode_modules
 Do the following steps in [polkadot.js][polkadotjs] GUI:
 * Switch to menu _Developer_->_Extrinsics_.
 * Select the Move pallet. Our template node is called `moveModule`.
-* For this pallet, choose extrinsic `publishModule(bytecode, gasLimit)`. Parameter explanation:
-* - __bytecode__ represents the compiled module bytecode. Fill it up by uploading the compiled file `CarWash.mv` (from the previous compilation).
-* - __gasLimit__ - use the estimated optimal amount of gas for publishing this module from the previous subsection. Using less than that will make the extrinsic fail, while using more is unnecessary (and more costly).
+* For this pallet, choose extrinsic `publishModule(bytecode, gasLimit)` and select `Bob` as the user who shall submit the transaction.
+
+Parameter explanation:
+  - __bytecode__ represents the compiled module bytecode. Fill it up by uploading the compiled file `CarWash.mv` (from the previous compilation).
+  - __gasLimit__ - use the estimated optimal amount of gas for publishing this module from the previous subsection. Using less than that will make the extrinsic fail, while using more is unnecessary (and more costly).
 
 | ![polkadot.js_publish_module.png](assets/polkadot.js_publish_module.png) |
 |:--:|
@@ -133,10 +143,11 @@ Compiled move scripts must be passed to pallet-move's extrinsic calls in seriali
 smove create-transaction --compiled-script-path build/car-wash-example/bytecode_scripts/initial_coin_minting.mv --args signer:5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty
 ```
 _An important note here - if the script function requires a signer, that signer's address needs to be the same as the Substrate account which will use this serialized transaction to execute this script._
+_In the above case, we used Bob's address since he owns the module and wants to enable the module by executing the `initial_coin_minting` script._
 
-If you see the following message: 
+If you see the following message:
 ```sh
-Script transaction is created at: # ... 
+Script transaction is created at: # ...
 ```
 It means the script and provided parameters have been serialized into the specified output file (serialized transaction), which can now be used in [polkadot.js][polkadotjs]:
 
@@ -181,12 +192,16 @@ Now, let's execute the following actions:
     <summary>Click here to unlock the hidden command for the above action.</summary>
   
     ```
+    # First, let's create a transcation script:
+    smove create-transaction --compiled-script-path build/car-wash-example/bytecode_scripts/register_new_user.mv --args signer:5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY
+
+    # Now let's estimate gas for this transaction-script:
     smove node rpc estimate-gas-execute-script -a 5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY -s build/car-wash-example/script_transactions/register_new_user.mvt --cheque-limit 0
     ```
     </details>
     
     ------------------------------------------------------------------------------------------------------------------------------------------------------------
-2. Now, again using Alice's account, buy a coin with a `buy_coin.mv` script:
+2. Now, again using Alice's account, buy a single coin with a `buy_coin.mv` script:
   - _Hint: Because the price of a washing coin is `1 UNIT`, we need to write a cheque with a value of at least `1000000000000`._
     <details>
     <summary>Click here to unlock the hidden command for the above action.</summary>
@@ -194,6 +209,12 @@ Now, let's execute the following actions:
     ```
     # The script will try to transfer the amount of funds required to buy a specified (via the script arguments in the create-transaction command) number
     # of wash coins - so the `cheque_limit` needs to have an appropriate value so that the script won't fail while trying to charge the user.
+    #
+    # Notice the `u8:1` script argument - it indicates the number of wash coins, and we are buying here just one.
+    smove create-transaction --compiled-script-path build/car-wash-example/bytecode_scripts/buy_coin.mv --args signer:5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY u8:1
+
+    # Now let's estimate gas for this transaction-script.
+    # `cheque_limit` also needs to be specified here, the RPC command will just if the use has enough funds, if not, it will report an error:
     smove node rpc estimate-gas-execute-script -a 5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY -s build/car-wash-example/script_transactions/buy_coin.mvt --cheque-limit 1000000000000
     ```
     
@@ -209,6 +230,9 @@ Now, let's execute the following actions:
   
     ```
     # The check_limit isn't required here (so it should be set to zero for safety reasons) since Alice will burn the MoveVM spend token in order to wash her car.
+    smove create-transaction --compiled-script-path build/car-wash-example/bytecode_scripts/wash_car.mv --args signer:5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY
+
+    # Now let's estimate gas for this transaction-script:
     smove node rpc estimate-gas-execute-script -a 5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY -s build/car-wash-example/script_transactions/wash_car.mvt --cheque-limit 0
     ```
     </details>

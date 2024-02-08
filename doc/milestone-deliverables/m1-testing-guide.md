@@ -1,4 +1,7 @@
-# Testing guide
+_INFO - This document is deprecated and no longer maintained - use it for informational purposes only.
+The actual testing guide can be found in [tech-guide document](../tech_guide.md)._
+
+# Testing guide (deprecated)
 Welcome to the Testing Guide! This comprehensive guide is designed to equip you with the knowledge and tools necessary to understand and execute all prepared tests.
 
 ## Testing approach

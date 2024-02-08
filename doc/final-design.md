@@ -1,5 +1,11 @@
 # Introduction
-This article discusses the pallet-move functionality. 
+This article discusses the pallet-move functionality.
+
+- [Pallet API](#pallet-api)
+  - [Extrinsics](#extrinsics)
+  - [RPC](#rpc)
+- [Design architecture](#design-architecture)
+
 
 # Pallet API
 [smove] tool is used to build modules and bundles and to create script transactions (with given script arguments). The output from the `smove` tool in the Move projects is the main input for the below extrinsics.
@@ -151,6 +157,14 @@ Get module binary using account address.
 
 # Design architecture
 
+The main parts are:
+- A pallet hosting the MoveVM _(this repo)_.
+- The `no-std` MoveVM fork adapted for the Substrate framework.
+  - It can be found inside the _[substrate-move][substrate-move]/language/_ directory.
+- The backend layer which is an interface between the MoveVM and the pallet.
+  - It is located inside the _[substrate-move][substrate-move]/_ directory.
+- [smove][smove] tool, which is necessary for the compilation of Move source code.
+
 How it works under the hood is shown in a simple UML diagram below:
 
 | ![uml-pallet-move-full-architecture-m2.png](./assets/uml-pallet-move-full-architecture-m2.png) |
@@ -158,3 +172,4 @@ How it works under the hood is shown in a simple UML diagram below:
 | *Move pallet architecture* |
 
 [smove]: https://github.com/eigerco/smove
+[substrate-move]: https://github.com/eigerco/substrate-move
