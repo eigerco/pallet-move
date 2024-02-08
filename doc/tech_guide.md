@@ -65,7 +65,11 @@ Verification for Rust's linter `clippy` by executing:
 cargo clippy --all-targets -- -D warnings
 ```
 
-Read about internal test concepts (what tests cover and how) in the [testing guide](testing_guide.md).
+_Info: All the above commands are executed in the CI workflow._
+
+If you want to run more MoveVM specific tests, check out [testing strategy in substrate-move](https://github.com/eigerco/substrate-move?tab=readme-ov-file#testing).
+
+Read detailed info about test concepts (what tests cover and how) in the [old testing guide](./milestone-deliverables/m1-testing-guide.md).
 
 
 ## Pallet Configuration in a Substrate-Node
