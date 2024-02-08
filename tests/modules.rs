@@ -39,40 +39,6 @@ fn get_module_nonexistent() {
 }
 
 #[test]
-#[ignore = "failing - script to be added"]
-/// Test getting resource from the module.
-fn get_resource_correct() {
-    new_test_ext().execute_with(|| {
-        let addr = *CAFE_ADDR_MOVE;
-        let addr_native = MoveModule::to_native_account(&addr).unwrap();
-
-        let module = assets::read_module_from_project("move-basics", "Empty");
-        let resource_bytes = [0u8; 32]; // For now as we need to investigate what the resource looks like
-
-        let res = MoveModule::publish_module(
-            RuntimeOrigin::signed(addr_native.clone()),
-            module.clone(),
-            MAX_GAS_AMOUNT,
-        );
-
-        // TODO(eiger): missing script execution
-
-        assert_ok!(res);
-
-        let tag = StructTag {
-            address: addr,
-            module: Identifier::new("Empty").unwrap(),
-            name: Identifier::new("EmptyStruct").unwrap(),
-            type_params: vec![],
-        };
-
-        let res = MoveModule::get_resource(&addr_native, &bcs::to_bytes(&tag).unwrap());
-
-        assert_eq!(res, Ok(Some(resource_bytes.to_vec())));
-    });
-}
-
-#[test]
 /// Test getting resource from the module.
 fn get_resource_non_existent() {
     new_test_ext().execute_with(|| {

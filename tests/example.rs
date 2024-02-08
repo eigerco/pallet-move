@@ -70,13 +70,24 @@ fn verify_normal_use_case() {
             MAX_GAS_AMOUNT,
             0,
         ));
-        let script_bc = script_bytecode("buy_coin", alice_addr_mv);
+
+        let script = assets::read_script_from_project(PROJECT, "buy_coin");
+        let account = bcs::to_bytes(&alice_addr_mv).unwrap();
+        let coin_count = bcs::to_bytes(&1u8).unwrap();
+        let params: Vec<&[u8]> = vec![&account, &coin_count];
+        let transaction = ScriptTransaction {
+            bytecode: script,
+            type_args: Vec::<TypeTag>::new(),
+            args: params.iter().map(|x| x.to_vec()).collect(),
+        };
+        let script_bc = bcs::to_bytes(&transaction).unwrap();
         assert_ok!(MoveModule::execute(
             RuntimeOrigin::signed(alice_addr_32.clone()),
             script_bc,
             MAX_GAS_AMOUNT,
             COIN_PRICE,
         ));
+
         let script_bc = script_bytecode("wash_car", alice_addr_mv);
         assert_ok!(MoveModule::execute(
             RuntimeOrigin::signed(alice_addr_32.clone()),

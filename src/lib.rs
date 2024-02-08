@@ -133,6 +133,8 @@ pub mod pallet {
         BalanceOf<T>: From<u128> + Into<u128>,
     {
         /// Execute Move script transaction sent by the user.
+        // TODO(eiger) in M3: ensure the weight depends on basic extrinsic cost + gas_limit + size of the
+        // transaction_bc
         #[pallet::call_index(0)]
         #[pallet::weight(T::WeightInfo::execute())]
         pub fn execute(
@@ -194,6 +196,7 @@ pub mod pallet {
 
         /// Publish a Move module sent by the user.
         /// Module is published under its sender's address.
+        // TODO(eiger) in M3: ensure the weight depends on basic extrinsic cost + gas_limit
         #[pallet::call_index(1)]
         #[pallet::weight(T::WeightInfo::publish_module())]
         pub fn publish_module(
@@ -219,6 +222,9 @@ pub mod pallet {
         }
 
         /// Publish a Move bundle sent by the user.
+        ///
+        /// Bundle is just a set of multiple modules.
+        // TODO(eiger) in M3: ensure the weight depends on basic extrinsic cost + gas_limit
         #[pallet::call_index(2)]
         #[pallet::weight(T::WeightInfo::publish_module_bundle())]
         pub fn publish_module_bundle(
