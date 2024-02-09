@@ -120,7 +120,7 @@ The template for the weights is located under the `./.maintain/frame-weight-temp
 ## Docker
 
 There is a possibility of generating the docker image containing a working node-template with move-pallet built-in.
-To generate an image, run in the directory of the template-node:
+To generate an image, run in the __directory of pallet-move__:
 ```bash
 sudo docker build -t "nodemove:Dockerfile" .
 ```
