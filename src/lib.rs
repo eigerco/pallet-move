@@ -29,8 +29,8 @@ pub mod pallet {
         traits::{Currency, ReservableCurrency},
     };
     use frame_system::pallet_prelude::*;
-    use move_core_types::account_address::AccountAddress;
     pub use move_core_types::language_storage::TypeTag;
+    use move_core_types::{account_address::AccountAddress, language_storage::CORE_CODE_ADDRESS};
     pub use move_vm_backend::types::{GasAmount, GasStrategy};
     use move_vm_backend::{
         balance::BalanceHandler, genesis::VmGenesisConfig, types::VmResult, Mvm,
@@ -89,6 +89,10 @@ pub mod pallet {
         /// Event about successful move-bundle published
         /// [account]
         BundlePublished { who: T::AccountId },
+
+        /// Event about successful stdlib update executed
+        /// -
+        StdlibUpdated,
     }
 
     #[pallet::genesis_config]
@@ -245,6 +249,28 @@ pub mod pallet {
             Self::deposit_event(Event::BundlePublished { who });
 
             Ok(result)
+        }
+
+        /// Publish a standard library, e.g. Move-Stdlib or Substrate-Stdlib. Sudo user only.
+        ///
+        /// All standard libraries are published at their default address 0x1.
+        #[pallet::call_index(3)]
+        #[pallet::weight(T::WeightInfo::update_stdlib())]
+        pub fn update_stdlib(origin: OriginFor<T>, stdlib: Vec<u8>) -> DispatchResultWithPostInfo {
+            ensure_root(origin)?;
+
+            let storage = Self::move_vm_storage();
+
+            let vm = Mvm::new(storage, BalanceAdapter::<T>::new())
+                .map_err(|_| Error::<T>::VmStartupFailure)?;
+
+            let vm_result =
+                vm.publish_module_bundle(&stdlib, CORE_CODE_ADDRESS, GasStrategy::Unmetered);
+            let pd_info = result::from_vm_result::<T>(vm_result)?;
+
+            Self::deposit_event(Event::<T>::StdlibUpdated);
+
+            Ok(pd_info)
         }
     }
 
