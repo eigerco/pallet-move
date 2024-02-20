@@ -62,7 +62,63 @@ impl pallet_move::Config for Test {
     type Currency = Balances;
 }
 
+/// Test Externalities Builder for an easier test setup.
+#[allow(dead_code)]
+#[derive(Default)]
+pub(crate) struct ExtBuilder {
+    /// Overwrite default accounts with balances.
+    balances: Vec<(AccountId32, Balance)>,
+    /// Overwrite default Move-stdlib setup.
+    move_stdlib: Option<Vec<u8>>,
+    /// Overwrite default Substrate-stdlib.
+    substrate_stdlib: Option<Vec<u8>>,
+}
+
+#[allow(dead_code)]
+impl ExtBuilder {
+    /// Overwrites default balances on dev-test setup.
+    pub(crate) fn with_balances(mut self, balances: Vec<(AccountId32, Balance)>) -> Self {
+        self.balances = balances;
+        self
+    }
+
+    /// Overwrites default Move-stdlib dev-test setup.
+    pub(crate) fn with_move_stdlib(mut self, move_stdlib: Option<Vec<u8>>) -> Self {
+        self.move_stdlib = move_stdlib;
+        self
+    }
+
+    /// Overwrites default Substrate-stdlib on dev-test setup.
+    pub(crate) fn with_substrate_stdlib(mut self, sub_stdlib: Option<Vec<u8>>) -> Self {
+        self.substrate_stdlib = sub_stdlib;
+        self
+    }
+
+    pub(crate) fn build(self) -> sp_io::TestExternalities {
+        let mut ext = frame_system::GenesisConfig::<Test>::default()
+            .build_storage()
+            .expect("Frame system builds valid default genesis config");
+
+        pallet_balances::GenesisConfig::<Test> {
+            balances: self.balances.clone(),
+        }
+        .assimilate_storage(&mut ext)
+        .expect("Pallet balances storage cannot be assimilated");
+
+        pallet_move::GenesisConfig::<Test> {
+            _phantom: core::marker::PhantomData,
+            change_default_move_stdlib_bundle_to: self.move_stdlib.clone(),
+            change_default_substrate_stdlib_bundle_to: self.substrate_stdlib.clone(),
+        }
+        .assimilate_storage(&mut ext)
+        .expect("Pallet Move storage cannot be assimilated");
+
+        ext.into()
+    }
+}
+
 // Build genesis storage according to the mock runtime.
+#[allow(dead_code)]
 pub fn new_test_ext() -> sp_io::TestExternalities {
     let mut storage = frame_system::GenesisConfig::<Test>::default()
         .build_storage()
