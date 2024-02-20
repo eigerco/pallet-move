@@ -4,22 +4,20 @@
 cd $(dirname $0)
 
 build_dir=(
+    # Modules
     "balance"
     "car-wash-example"
     "get-resource"
     "move-basics"
     "signer-scripts"
+    # Bundles
+    "testing-move-stdlib"
+    "testing-substrate-stdlib"
+    "using_stdlib_natives"
 )
-bundle_dir=("using_stdlib_natives")
 
-# Build simple packages
+# Clean build directories.
 for i in "${build_dir[@]}"; do
-    echo $i
-    rm -rf "$i/build"
-done
-
-# Build bundles
-for i in "${bundle_dir[@]}"; do
     echo $i
     rm -rf "$i/build"
 done

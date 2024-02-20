@@ -10,7 +10,11 @@ build_dir=(
     "move-basics"
     "signer-scripts"
 )
-bundle_dir=("using_stdlib_natives")
+bundle_dir=(
+    "testing-move-stdlib"
+    "testing-substrate-stdlib"
+    "using_stdlib_natives"
+)
 
 # Build simple packages
 for i in "${build_dir[@]}"; do
