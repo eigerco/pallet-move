@@ -164,7 +164,7 @@ The two generated bundles will be located in the subfolders:
 - `build/move-stdlib/bundles/move-stdlib.mvb`
 - `build/substrate-stdlib/bundles/substrate-stdlib.mvb`
 
-Use the extrinsic call `update_stdlib` as the sudo user to update both of them.
+Use the extrinsic call `update_stdlib_bundle` as the sudo user to update both of them.
 ![Update Stdlib](assets/polkadot.js_update_stdlib.png)
 
 
