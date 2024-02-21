@@ -53,10 +53,12 @@ Scripts and modules have limited access to the balance transfer functionality vi
 ```
 
 ```rust
-    /// Publish a standard library, e.g. Move-Stdlib or Substrate-Stdlib. Sudo user only.
+    /// Publish a standard library bundle, e.g. Move-Stdlib or Substrate-Stdlib. Sudo user only.
+    ///
+    /// It should be used carefully - and should not introduce backward, incompatible changes.
     #[pallet::call_index(3)]
     #[pallet::weight(T::WeightInfo::update_stdlib())]
-    pub fn update_stdlib(
+    pub fn update_stdlib_bundle(
         origin: OriginFor<T>,
         stdlib: Vec<u8>,
     ) -> DispatchResultWithPostInfo;

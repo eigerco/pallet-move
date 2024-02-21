@@ -19,4 +19,7 @@ module substrate::balance {
 
     /// Get the total balance for the address.
     public fun total_amount(_account: address): u128 { 0 }
+
+    /// Foo bar!
+    public fun foobar(_account: address): bool { false }
 }
