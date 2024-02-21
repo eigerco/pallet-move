@@ -26,7 +26,7 @@ Scripts and modules have limited access to the balance transfer functionality vi
         transaction_bc: Vec<u8>,
         gas_limit: u64,
         cheque_limit: BalanceOf<T>,
-    ) -> DispatchResultWithPostInfo {
+    ) -> DispatchResultWithPostInfo;
 ```
 
 ```rust
@@ -38,7 +38,7 @@ Scripts and modules have limited access to the balance transfer functionality vi
         origin: OriginFor<T>,
         bytecode: Vec<u8>,
         gas_limit: u64,
-    ) -> DispatchResultWithPostInfo {
+    ) -> DispatchResultWithPostInfo;
 ```
 
 ```rust
@@ -49,8 +49,19 @@ Scripts and modules have limited access to the balance transfer functionality vi
         origin: OriginFor<T>,
         bundle: Vec<u8>,
         gas_limit: u64,
-    ) -> DispatchResultWithPostInfo {
+    ) -> DispatchResultWithPostInfo;
 ```
+
+```rust
+    /// Publish a standard library, e.g. Move-Stdlib or Substrate-Stdlib. Sudo user only.
+    #[pallet::call_index(3)]
+    #[pallet::weight(T::WeightInfo::update_stdlib())]
+    pub fn update_stdlib(
+        origin: OriginFor<T>,
+        stdlib: Vec<u8>,
+    ) -> DispatchResultWithPostInfo;
+```
+
 ## RPC
 
 ### Method `mvm_gasToWeight`
