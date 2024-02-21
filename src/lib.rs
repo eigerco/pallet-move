@@ -251,12 +251,15 @@ pub mod pallet {
             Ok(result)
         }
 
-        /// Publish a standard library, e.g. Move-Stdlib or Substrate-Stdlib. Sudo user only.
+        /// Publish a standard library bundle, e.g. Move-Stdlib or Substrate-Stdlib. Sudo user only.
         ///
         /// All standard libraries are published at their default address 0x1.
         #[pallet::call_index(3)]
         #[pallet::weight(T::WeightInfo::update_stdlib())]
-        pub fn update_stdlib(origin: OriginFor<T>, stdlib: Vec<u8>) -> DispatchResultWithPostInfo {
+        pub fn update_stdlib_bundle(
+            origin: OriginFor<T>,
+            stdlib: Vec<u8>,
+        ) -> DispatchResultWithPostInfo {
             ensure_root(origin)?;
 
             let storage = Self::move_vm_storage();
