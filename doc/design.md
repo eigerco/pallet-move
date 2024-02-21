@@ -159,20 +159,21 @@ Let's dive into the crucial aspects of pallet architecture:
 2) State: The MoveVM will define its state, which is the data they need to keep track of. That state consists of various variables containing information relevant to the pallet's functionalities. It is stored on the blockchain and updated through transactions and blocks.
 3) Storage: It defines the data structures and how they are accessed and modified. The MoveVM pallet would use it to store data in the map of key-value pairs and provide a storage adapter for the Move Virtual Machine storage.
 4) Dispatchable Functions - extrinsics: The MoveVM pallet will expose dispatchable functions, which users can call via transactions. Currently, there are three extrinsics defined:
-- 'execute' - executes a Move script;
-- 'publish_module' - publishes a Move module;
-- 'publish_module_bundle' - publishes a bundle of Move modules.
+   - `execute` - executes a Move script;
+   - `publish_module` - publishes a Move module;
+   - `publish_module_bundle` - publishes a bundle of Move modules.
+   - `update_stdlib` - updates standard libraries (move-stdlib or substrate-stdlib)
 5) Events: Events inform about changes within the pallet. The MoveVM pallet defines separate events for completing each extrinsic call. Somebody can subscribe to them, allowing external applications to react to specific changes or triggers within the blockchain.
 6) Configuration: The MoveVM pallet is configured during the runtime's setup to customize its behaviour. Configuration is done in a standard way, like it's done for other pallets.
 7) Traits: The MoveVM pallet defines a set of traits which can be used further in the runtime or RPC node.
 8) RPC: The MoveVM pallet incorporates a sub-crate with RPC calls (`pallet-move-rpc` using `jsonrpsee`) that can be used to interact with the pallet from external applications:
-- `mvm_estimateGasExecute`,
-- `mvm_estimateGasPublish`,
-- `mvm_gasToWeight`,
-- `mvm_getModule`,
-- `mvm_getModuleABI`,
-- `mvm_getResource`,
-- `mvm_weightToGas`.
+   - `mvm_estimateGasExecute`,
+   - `mvm_estimateGasPublish`,
+   - `mvm_gasToWeight`,
+   - `mvm_getModule`,
+   - `mvm_getModuleABI`,
+   - `mvm_getResource`,
+   - `mvm_weightToGas`.
 
 The MoveVM pallet divides into three main components - the MoveVM pallet itself, runtime API (fulfilling the pallet's traits), and RPC. The MoveVM pallet is the core, containing all the logic needed to interact with the virtual machine. The runtime API is a separate crate that implements the pallet's traits and exposes them to the runtime. The RPC is a separate crate that implements the pallet's RPC calls and exposes them to the RPC node.
 
