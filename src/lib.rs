@@ -134,7 +134,7 @@ pub mod pallet {
     {
         /// Execute Move script transaction sent by the user.
         // TODO(eiger) in M3: ensure the weight depends on basic extrinsic cost + gas_limit + size of the
-        // transaction_bc
+        // transaction_bc.
         #[pallet::call_index(0)]
         #[pallet::weight(T::WeightInfo::execute())]
         pub fn execute(
