@@ -32,7 +32,7 @@ module DeveloperBob::CarWash {
 }
 ```
 
-More details about the module above in [our tutorial](tutorial/Tutorial.md). For this example, the module got published and the following script only needs to be executed.
+More details about the module above in [our tutorial][tutorial]. For this example, the module got published and the following script only needs to be executed.
 
 ```move
 script {
@@ -44,12 +44,12 @@ script {
 }
 ```
 
-For a general overview and further details of the Move language, have a look at the [Move-Book](move-book).
+For a general overview and further details of the Move language, have a look at the [Move Book][move-book].
 
 
 ## Tutorial
 
-To dive quickly into the topic, explore our [simple tutorial](doc/tutorial.md).
+To dive quickly into the topic, explore our [simple tutorial][tutorial].
 
 
 ## Tech Guide
@@ -103,3 +103,4 @@ _The first parachain adapters should do additional testing to ensure the robustn
 [move-book]: https://move-language.github.io/move/introduction.html
 [substrate-move]: https://github.com/eigerco/substrate-move
 [smove]: https://github.com/eigerco/smove
+[tutorial]: doc/tutorial.md
