@@ -39,6 +39,7 @@ pub trait WeightInfo {
 	fn publish_module() -> Weight;
 	fn publish_module_bundle() -> Weight;
     fn update_stdlib() -> Weight;
+    fn execute_as_multi() -> Weight;
 }
 
 /// Weights for pallet_move using the Substrate node and recommended hardware.
@@ -68,6 +69,9 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
     fn update_stdlib() -> Weight {
         Weight::from_parts(1_000_000, 0)
     }
+    fn execute_as_multi() -> Weight {
+        Weight::from_parts(1_000_000, 0)
+    }
 }
 
 // For backwards compatibility and tests.
@@ -94,6 +98,9 @@ impl WeightInfo for () {
 		Weight::from_parts(5_700_000, 0)
 	}
     fn update_stdlib() -> Weight {
+        Weight::from_parts(1_000_000, 0)
+    }
+    fn execute_as_multi() -> Weight {
         Weight::from_parts(1_000_000, 0)
     }
 }
