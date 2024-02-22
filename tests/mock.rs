@@ -79,16 +79,6 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
     storage.into()
 }
 
-// Configure a mock runtime to test the pallet.
-frame_support::construct_runtime!(
-    pub enum Test
-    {
-        System: frame_system,
-        Balances: pallet_balances,
-        MoveModule: pallet_move,
-    }
-);
-
 // Common constants accross the tests.
 #[allow(dead_code)]
 pub const EMPTY_CHEQUE: u128 = 0; // Not all scripts need the `cheque_amount` parameter.
@@ -145,3 +135,13 @@ pub fn addrs_from_ss58(
     let addr_mv = addr32_to_move(&addr_32)?;
     Ok((addr_32, addr_mv))
 }
+
+// Configure a mock runtime to test the pallet.
+frame_support::construct_runtime!(
+    pub enum Test
+    {
+        System: frame_system,
+        Balances: pallet_balances,
+        MoveModule: pallet_move,
+    }
+);
