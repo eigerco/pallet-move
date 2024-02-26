@@ -134,7 +134,10 @@ To run the image, enter:
 ```bash
 sudo docker run nodemove:Dockerfile
 ```
+It will start the `node-template` within a local Docker container. In dependency how you want to use that container, it needs to get adjusted.
 
-It will start the `node-template` on the local interface. 
-You can change the default behavior by passing your command when running the docker image. 
-All available options are in the [node template](https://docs.substrate.io/reference/command-line-tools/node-template/) documentation.
+> [!TIP]
+> To be able to connect via an external polkadot.js instance to the Docker container, the simplest way is to connect the container to your host's network by running:
+> ```bash
+> docker run --net host nodemove:Dockerfile
+> ```
