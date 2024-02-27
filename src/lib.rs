@@ -210,11 +210,12 @@ pub mod pallet {
         ) -> DispatchResultWithPostInfo {
             // Allow only signed calls.
             let who = ensure_signed(origin)?;
+            let address = Self::to_move_address(&who)?;
 
             let gas_amount = GasAmount::new(gas_limit).map_err(|_| Error::<T>::GasLimitExceeded)?;
             let gas = GasStrategy::Metered(gas_amount);
 
-            let vm_result = Self::raw_publish_module(&who, bytecode, gas)?;
+            let vm_result = Self::raw_publish_module(&address, bytecode, gas)?;
 
             // Produce a result with gas spent.
             let result = result::from_vm_result::<T>(vm_result)?;
@@ -237,10 +238,12 @@ pub mod pallet {
             gas_limit: u64,
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
+            let address = Self::to_move_address(&who)?;
+
             let gas_amount = GasAmount::new(gas_limit).map_err(|_| Error::<T>::GasLimitExceeded)?;
             let gas = GasStrategy::Metered(gas_amount);
 
-            let vm_result = Self::raw_publish_bundle(&who, bundle, gas)?;
+            let vm_result = Self::raw_publish_bundle(&address, bundle, gas)?;
 
             // Produce a result with gas spent.
             let result = result::from_vm_result::<T>(vm_result)?;
@@ -262,13 +265,8 @@ pub mod pallet {
         ) -> DispatchResultWithPostInfo {
             ensure_root(origin)?;
 
-            let storage = Self::move_vm_storage();
-
-            let vm = Mvm::new(storage, BalanceAdapter::<T>::new())
-                .map_err(|_| Error::<T>::VmStartupFailure)?;
-
             let vm_result =
-                vm.publish_module_bundle(&stdlib, CORE_CODE_ADDRESS, GasStrategy::Unmetered);
+                Self::raw_publish_bundle(&CORE_CODE_ADDRESS, stdlib, GasStrategy::Unmetered)?;
             let pd_info = result::from_vm_result::<T>(vm_result)?;
 
             Self::deposit_event(Event::<T>::StdlibUpdated);
@@ -312,7 +310,12 @@ pub mod pallet {
                 .map_err(|_| Error::InvalidAccountSize)?;
 
             let account_bytes: [u8; 32] = address.into();
-            Ok(AccountAddress::new(account_bytes))
+            let address = AccountAddress::new(account_bytes);
+            if address == CORE_CODE_ADDRESS {
+                Err(Error::<T>::StdlibAddressNotAllowed)
+            } else {
+                Ok(address)
+            }
         }
 
         /// Execute the script using the appropriate gas strategy.
@@ -334,7 +337,7 @@ pub mod pallet {
 
         /// Publish the module using the appropriate gas strategy.
         pub fn raw_publish_module(
-            address: &T::AccountId,
+            address: &AccountAddress,
             bytecode: Vec<u8>,
             gas: GasStrategy,
         ) -> Result<VmResult, Error<T>> {
@@ -342,16 +345,15 @@ pub mod pallet {
 
             let vm = Mvm::new(storage, BalanceAdapter::<T>::new())
                 .map_err(|_| Error::<T>::PublishModuleFailed)?;
-            let address = Self::to_move_address(address)?;
 
-            let result = vm.publish_module(&bytecode, address, gas);
+            let result = vm.publish_module(&bytecode, *address, gas);
 
             Ok(result)
         }
 
         /// Publish the bundle using the appropriate gas strategy.
         pub fn raw_publish_bundle(
-            address: &T::AccountId,
+            address: &AccountAddress,
             bundle: Vec<u8>,
             gas: GasStrategy,
         ) -> Result<VmResult, Error<T>> {
@@ -359,9 +361,8 @@ pub mod pallet {
 
             let vm = Mvm::new(storage, BalanceAdapter::<T>::new())
                 .map_err(|_| Error::<T>::PublishBundleFailed)?;
-            let address = Self::to_move_address(address)?;
 
-            let result = vm.publish_module_bundle(&bundle, address, gas);
+            let result = vm.publish_module_bundle(&bundle, *address, gas);
 
             Ok(result)
         }
@@ -421,6 +422,8 @@ pub mod pallet {
         ScriptSignatureFailure,
         /// Script transaction cannot be deserialized.
         InvalidScriptTransaction,
+        /// User tried to publish module in a protected memory area.
+        StdlibAddressNotAllowed,
 
         // Errors that can be received from MoveVM
         /// Unknown validation status

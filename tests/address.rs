@@ -9,7 +9,8 @@ mod account_convert_tests {
 
     use super::mock::*;
 
-    const DATASET: &[(&str, &str); 6] = &[
+    // This dataset contains only allowed and unprotected memory addressses.
+    const DATASET: &[(&str, &str); 5] = &[
         (
             "gkQ5K6EnLRgZkwozG8GiBAEnJyM6FxzbSaSmVhKJ2w8FcK7ih",
             "d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d",
@@ -17,10 +18,6 @@ mod account_convert_tests {
         (
             "gkNW9pAcCHxZrnoVkhLkEQtsLsW5NWTC75cdAdxAMs9LNYCYg",
             "8eaf04151687736326c9fea17e25fc5287613693c912909cb226aa4794f26a48",
-        ),
-        (
-            "gkKH52LJ2UumhVBim1n3mCsSj3ctj3GkV8JLVLdhJakxmEDcq",
-            "0000000000000000000000000000000000000000000000000000000000000001",
         ),
         (
             "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
@@ -77,5 +74,19 @@ mod account_convert_tests {
                 .to_vec();
             assert_eq!(bytes_expected, bytes);
         }
+    }
+
+    #[test]
+    fn check_protected_address_errors() {
+        new_test_ext().execute_with(|| {
+            // Check the one protected and prohibited memory address for an error.
+            // The ss58-address is equivalent to Move-address "0x1".
+            let prohibited = "gkKH52LJ2UumhVBim1n3mCsSj3ctj3GkV8JLVLdhJakxmEDcq";
+            let pk_expected = Public::from_ss58check_with_version(prohibited)
+                .unwrap()
+                .0
+                .into();
+            assert!(MoveModule::to_move_address(&pk_expected).is_err());
+        });
     }
 }
