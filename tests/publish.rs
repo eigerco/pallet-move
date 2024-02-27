@@ -161,7 +161,7 @@ fn raw_publish_module_dry_run() {
         let module = assets::read_module_from_project("using_stdlib_natives", "Vector");
 
         let estimation =
-            MoveModule::raw_publish_module(&BOB_ADDR_NATIVE, module.clone(), GasStrategy::DryRun)
+            MoveModule::raw_publish_module(&BOB_ADDR_MOVE, module.clone(), GasStrategy::DryRun)
                 .expect("failed to publish a module")
                 .gas_used;
 
@@ -194,7 +194,7 @@ fn raw_publish_bundle_dry_run() {
             assets::read_bundle_from_project("using_stdlib_natives", "using_stdlib_natives");
 
         let estimation =
-            MoveModule::raw_publish_bundle(&BOB_ADDR_NATIVE, bundle.clone(), GasStrategy::DryRun)
+            MoveModule::raw_publish_bundle(&BOB_ADDR_MOVE, bundle.clone(), GasStrategy::DryRun)
                 .expect("failed to publish a bundle")
                 .gas_used;
 
