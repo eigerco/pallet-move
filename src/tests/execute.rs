@@ -1,8 +1,7 @@
-mod assets;
-mod mock;
+use crate::mock::*;
+use crate::Error;
 
 use frame_support::{assert_err, assert_ok};
-use mock::*;
 use move_core_types::{
     account_address::AccountAddress,
     identifier::Identifier,
@@ -157,10 +156,7 @@ fn execute_script_generic_fails() {
             0,
         );
 
-        assert_err!(
-            res,
-            pallet_move::Error::<Test>::InvalidMainFunctionSignature
-        );
+        assert_err!(res, Error::<Test>::InvalidMainFunctionSignature);
     });
 }
 

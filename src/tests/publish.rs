@@ -1,10 +1,8 @@
-mod assets;
-mod mock;
+use crate::mock::*;
+use crate::GasStrategy;
 
 use frame_support::assert_ok;
-use mock::*;
 use move_vm_backend::types::MAX_GAS_AMOUNT;
-use pallet_move::GasStrategy;
 
 #[test]
 /// Test that the module is published correctly.

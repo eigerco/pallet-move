@@ -1,8 +1,7 @@
-mod assets;
-mod mock;
+use crate::mock::*;
+use crate::Error;
 
 use frame_support::{assert_err, assert_ok, pallet_prelude::DispatchResultWithPostInfo};
-use mock::*;
 use move_core_types::{account_address::AccountAddress, language_storage::TypeTag, u256::U256};
 use move_vm_backend::types::MAX_GAS_AMOUNT;
 use move_vm_backend_common::types::ScriptTransaction;
@@ -174,7 +173,7 @@ fn general_script_eight_normal_signers_where_eve_tries_to_forge_signers_fails() 
         let params: Vec<&[u8]> = vec![&eve, &eve, &alice, &eve, &eve, &eve, &eve, &eve, &extra];
 
         let result = execute_script(eve_addr_32, script, params, type_args);
-        assert_err!(result, pallet_move::Error::<Test>::ScriptSignatureFailure);
+        assert_err!(result, Error::<Test>::ScriptSignatureFailure);
     })
 }
 
@@ -239,10 +238,7 @@ fn signer_after_all_possible_vectors_fails() {
         ];
 
         let result = execute_script(bob_addr_32, script, params, type_args);
-        assert_err!(
-            result,
-            pallet_move::Error::<Test>::InvalidMainFunctionSignature
-        );
+        assert_err!(result, Error::<Test>::InvalidMainFunctionSignature);
     })
 }
 
@@ -262,9 +258,6 @@ fn script_with_vector_containing_signer_fails() {
         let params: Vec<&[u8]> = vec![&v_addr];
 
         let result = execute_script(bob_addr_32, script, params, type_args);
-        assert_err!(
-            result,
-            pallet_move::Error::<Test>::InvalidMainFunctionSignature
-        );
+        assert_err!(result, Error::<Test>::InvalidMainFunctionSignature);
     })
 }

@@ -1,8 +1,6 @@
-mod assets;
-mod mock;
+use crate::mock::*;
 
 use frame_support::assert_ok;
-use mock::*;
 use move_core_types::{account_address::AccountAddress, language_storage::TypeTag};
 use move_vm_backend::types::MAX_GAS_AMOUNT;
 use move_vm_backend_common::types::ScriptTransaction;

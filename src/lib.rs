@@ -3,14 +3,16 @@
 pub use pallet::*;
 pub use weights::*;
 
+pub mod balance;
 #[cfg(feature = "runtime-benchmarks")]
 mod benchmarking;
-
-pub mod balance;
+#[cfg(any(test, feature = "runtime-benchmarks"))]
+mod mock;
+mod result;
 mod signer;
 mod storage;
-
-mod result;
+#[cfg(test)]
+mod tests;
 pub mod weights;
 
 // The pallet is defined below.

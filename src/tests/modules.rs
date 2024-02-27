@@ -1,8 +1,6 @@
-mod assets;
-mod mock;
+use crate::mock::*;
 
 use frame_support::assert_ok;
-use mock::*;
 use move_core_types::{identifier::Identifier, language_storage::StructTag};
 use move_vm_backend::types::MAX_GAS_AMOUNT;
 

@@ -1,3 +1,7 @@
+//! Crate internal mockup for unit tests.
+
+use crate as pallet_move;
+
 use frame_support::traits::{ConstU128, ConstU16, ConstU32, ConstU64};
 use move_core_types::account_address::AccountAddress;
 use sp_core::{crypto::Ss58Codec, sr25519::Public, H256};
@@ -62,8 +66,17 @@ impl pallet_move::Config for Test {
     type Currency = Balances;
 }
 
+// Configure a mock runtime to test the pallet.
+frame_support::construct_runtime!(
+    pub enum Test
+    {
+        System: frame_system,
+        Balances: pallet_balances,
+        MoveModule: pallet_move,
+    }
+);
+
 /// Test Externalities Builder for an easier test setup.
-#[allow(dead_code)]
 #[derive(Default)]
 pub(crate) struct ExtBuilder {
     /// Overwrite default accounts with balances.
@@ -74,7 +87,6 @@ pub(crate) struct ExtBuilder {
     substrate_stdlib: Option<Vec<u8>>,
 }
 
-#[allow(dead_code)]
 impl ExtBuilder {
     /// Overwrites default balances on dev-test setup.
     pub(crate) fn with_balances(mut self, balances: Vec<(AccountId32, Balance)>) -> Self {
@@ -118,7 +130,6 @@ impl ExtBuilder {
 }
 
 // Build genesis storage according to the mock runtime.
-#[allow(dead_code)]
 pub fn new_test_ext() -> sp_io::TestExternalities {
     let mut storage = frame_system::GenesisConfig::<Test>::default()
         .build_storage()
@@ -136,7 +147,6 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
 }
 
 // Common constants accross the tests.
-#[allow(dead_code)]
 pub const EMPTY_CHEQUE: u128 = 0; // Not all scripts need the `cheque_amount` parameter.
 pub const CAFE_ADDR: &str = "0xCAFE";
 pub const BOB_ADDR: &str = "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty";
@@ -172,18 +182,15 @@ lazy_static::lazy_static! {
     };
 }
 
-#[allow(dead_code)]
 pub fn addr32_from_ss58(ss58addr: &str) -> AccountId32 {
     let (pk, _) = Public::from_ss58check_with_version(ss58addr).unwrap();
     pk.into()
 }
 
-#[allow(dead_code)]
 pub fn addr32_to_move(addr32: &AccountId32) -> Result<AccountAddress, pallet_move::Error<Test>> {
     MoveModule::to_move_address(addr32)
 }
 
-#[allow(dead_code)]
 pub fn addrs_from_ss58(
     ss58: &str,
 ) -> Result<(AccountId32, AccountAddress), pallet_move::Error<Test>> {
@@ -192,12 +199,54 @@ pub fn addrs_from_ss58(
     Ok((addr_32, addr_mv))
 }
 
-// Configure a mock runtime to test the pallet.
-frame_support::construct_runtime!(
-    pub enum Test
-    {
-        System: frame_system,
-        Balances: pallet_balances,
-        MoveModule: pallet_move,
+pub mod assets {
+    const MOVE_PROJECTS: &str = "src/tests/assets/move-projects";
+
+    /// Reads bytes from a file for the given path.
+    /// Can panic if the file doesn't exist.
+    fn read_bytes(file_path: &str) -> Vec<u8> {
+        std::fs::read(file_path)
+            .unwrap_or_else(|e| panic!("Can't read {file_path}: {e} - make sure you run pallet-move/tests/assets/move-projects/smove-build-all.sh"))
     }
-);
+
+    /// Reads a precompiled Move module from our assets directory.
+    pub fn read_module_from_project(project: &str, module_name: &str) -> Vec<u8> {
+        let path =
+            format!("{MOVE_PROJECTS}/{project}/build/{project}/bytecode_modules/{module_name}.mv");
+        read_bytes(&path)
+    }
+
+    /// Reads a precompiled Move bundle from our assets directory.
+    pub fn read_bundle_from_project(project: &str, bundle_name: &str) -> Vec<u8> {
+        let path = format!("{MOVE_PROJECTS}/{project}/build/{project}/bundles/{bundle_name}.mvb");
+        read_bytes(&path)
+    }
+
+    /// Reads a precompiled Move scripts from our assets directory.
+    pub fn read_script_from_project(project: &str, script_name: &str) -> Vec<u8> {
+        let path =
+            format!("{MOVE_PROJECTS}/{project}/build/{project}/bytecode_scripts/{script_name}.mv");
+        read_bytes(&path)
+    }
+}
+
+#[macro_export]
+macro_rules! script_transaction {
+    ($bytecode:expr, $type_args:expr, $($args:expr),*) => {
+        {
+            let transaction = ScriptTransaction {
+                bytecode: $bytecode,
+                type_args: $type_args,
+                args: vec![$(bcs::to_bytes($args).unwrap()),*],
+            };
+            bcs::to_bytes(&transaction).unwrap()
+        }
+    }
+}
+
+#[macro_export]
+macro_rules! no_type_args {
+    () => {
+        vec![]
+    };
+}

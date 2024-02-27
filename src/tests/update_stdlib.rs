@@ -1,12 +1,11 @@
 //! Integration tests related to extrinsic call `update_stdlib`.
 
-mod assets;
-mod mock;
+use crate::mock::*;
+use crate::{no_type_args, script_transaction};
 
 use frame_support::{
     assert_err, assert_ok, dispatch::DispatchErrorWithPostInfo, pallet_prelude::*,
 };
-use mock::*;
 use move_stdlib::move_stdlib_bundle;
 use move_vm_backend::types::MAX_GAS_AMOUNT;
 use move_vm_backend_common::types::ScriptTransaction;
@@ -33,25 +32,6 @@ fn verify_module_error_with_msg(
         }
     }
     Err(format!("{res:?} does not match '{e_msg}'"))
-}
-
-macro_rules! script_transaction {
-    ($bytecode:expr, $type_args:expr, $($args:expr),*) => {
-        {
-            let transaction = ScriptTransaction {
-                bytecode: $bytecode,
-                type_args: $type_args,
-                args: vec![$(bcs::to_bytes($args).unwrap()),*],
-            };
-            bcs::to_bytes(&transaction).unwrap()
-        }
-    }
-}
-
-macro_rules! no_type_args {
-    () => {
-        vec![]
-    };
 }
 
 #[test]
