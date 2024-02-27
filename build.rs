@@ -16,7 +16,7 @@ fn build_move_projects() -> Result<(), Box<dyn Error>> {
     println!("cargo:warning=Building move projects in tests/assets folder");
 
     let smove_run = Command::new("bash")
-        .args(["tests/assets/move-projects/smove-build-all.sh"])
+        .args(["src/tests/assets/move-projects/smove-build-all.sh"])
         .output()
         .expect("failed to execute script which builds necessary move modules");
 
