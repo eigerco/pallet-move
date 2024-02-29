@@ -51,21 +51,21 @@ pub struct SignerData {
 
 #[derive(Clone, Eq, PartialEq, Encode, Decode, RuntimeDebug, TypeInfo, MaxEncodedLen)]
 #[scale_info(skip_type_params(S))]
-pub struct Multisig<S>(BoundedBTreeMap<AccountAddress, SignerData, S>)
+pub struct Multisig<Account, Size>(BoundedBTreeMap<AccountAddress, SignerData, Size>)
 where
-    S: Get<u32>;
+    Size: Get<u32>;
 
-impl<S> Multisig<S>
+impl<Account, Size> Multisig<Account, Size>
 where
-    S: Get<u32>,
+    Size: Get<u32>,
 {
     /// Creates a new [`Multisig`] with all blank signatures for the provided script.
     pub fn new(script_args: &[&[u8]], signer_count: usize) -> Result<Self, MultisigError> {
-        if signer_count > script_args.len() || signer_count > (S::get() as usize) {
+        if signer_count > script_args.len() || signer_count > (Size::get() as usize) {
             return Err(MultisigError::ScriptSignatureFailure);
         }
 
-        let mut multisig_info = Multisig::<S>::default();
+        let mut multisig_info = Multisig::<Account, Size>::default();
         for signer in &script_args[..signer_count] {
             let account_address =
                 bcs::from_bytes(signer).map_err(|_| MultisigError::UnableToDeserializeAccount)?;

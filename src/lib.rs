@@ -87,12 +87,6 @@ pub mod pallet {
         #[pallet::constant]
         type MaxScriptSigners: Get<u32>;
 
-        /// The overarching call type.
-        type RuntimeCall: Parameter
-            + Dispatchable<RuntimeOrigin = Self::RuntimeOrigin, PostInfo = PostDispatchInfo>
-            + GetDispatchInfo
-            + From<frame_system::Call<Self>>;
-
         /// Because this pallet emits events, it depends on the runtime's definition of an event.
         type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 
