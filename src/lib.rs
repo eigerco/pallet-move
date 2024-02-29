@@ -28,7 +28,7 @@ pub mod pallet {
 
     use codec::{FullCodec, FullEncode};
     use frame_support::{
-        dispatch::{DispatchResultWithPostInfo, GetDispatchInfo, PostDispatchInfo},
+        dispatch::DispatchResultWithPostInfo,
         pallet_prelude::*,
         traits::{Currency, Get, LockableCurrency, ReservableCurrency},
     };
@@ -44,7 +44,6 @@ pub mod pallet {
         types::ScriptTransaction,
     };
     use sp_core::crypto::AccountId32;
-    use sp_runtime::traits::Dispatchable;
     use sp_std::{vec, vec::Vec};
 
     use super::*;
@@ -69,7 +68,7 @@ pub mod pallet {
     /// Storage for multi-signature/signer requests.
     #[pallet::storage]
     pub type MultisigStorage<T: Config> =
-        StorageMap<_, Blake2_128Concat, CallHash, Multisig<T::MaxScriptSigners>>;
+        StorageMap<_, Blake2_128Concat, CallHash, Multisig<T::AccountId, T::MaxScriptSigners>>;
 
     /// MoveVM pallet configuration trait
     #[pallet::config]
@@ -197,6 +196,7 @@ pub mod pallet {
             // Make sure the scripts are not maliciously trying to use forged signatures.
             let signer_count =
                 verify_script_integrity_and_check_signers(&bytecode).map_err(Error::<T>::from)?;
+            let accounts = Self::extract_account_ids_from_args(&args, signer_count)?;
 
             let (mut signature_handler, call_hash) = if signer_count > 1 {
                 // Generate the call hash to identify this multi-sign call request.
@@ -205,16 +205,13 @@ pub mod pallet {
                 let call_hash: CallHash = hasher.finalize().into();
 
                 let multisig = MultisigStorage::<T>::get(call_hash).unwrap_or(
-                    Multisig::<T::MaxScriptSigners>::new(&args, signer_count)
+                    Multisig::<T::AccountId, T::MaxScriptSigners>::new(accounts)
                         .map_err(Into::<Error<T>>::into)?,
                 );
 
                 (ScriptSignatureHandler::<T>::from(multisig), call_hash)
             } else {
-                (
-                    ScriptSignatureHandler::<T>::new(&args, signer_count)?,
-                    [0u8; 32],
-                )
+                (ScriptSignatureHandler::<T>::new(accounts)?, [0u8; 32])
             };
             if signer_count > 0 {
                 signature_handler.sign_script(&who, cheque_limit.into())?;
@@ -452,6 +449,25 @@ pub mod pallet {
             vm.get_resource(&address, tag)
                 .map_err(|e| format!("error in get_resource: {e:?}").into())
         }
+
+        fn extract_account_ids_from_args(
+            script_args: &[&[u8]],
+            signer_count: usize,
+        ) -> Result<Vec<T::AccountId>, Error<T>> {
+            if signer_count > script_args.len() {
+                return Err(Error::<T>::ScriptSignatureFailure);
+            }
+
+            let mut accounts = Vec::<T::AccountId>::new();
+            for signer in &script_args[..signer_count] {
+                let account_address =
+                    bcs::from_bytes(signer).map_err(|_| Error::<T>::UnableToDeserializeAccount)?;
+                let account = Self::to_native_account(&account_address)?;
+                accounts.push(account);
+            }
+
+            Ok(accounts)
+        }
     }
 
     #[pallet::error]
@@ -477,6 +493,8 @@ pub mod pallet {
         StdlibAddressNotAllowed,
         /// Error about signing multi-signature execution request twice.
         UserHasAlreadySigned,
+        /// Script contains more signers than allowed maximum number of signers.
+        MaxSignersExceeded,
 
         // Errors that can be received from MoveVM
         /// Unknown validation status
