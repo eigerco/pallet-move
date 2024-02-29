@@ -148,7 +148,6 @@ where
 
     /// Ensures that user can withdraw that given amount of money, which eventually will be used
     /// within the Move-script execution.
-    #[allow(dead_code)]
     fn ensure_can_withdraw(
         &self,
         account: &AccountIdOf<T>,
