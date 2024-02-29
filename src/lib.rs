@@ -1,7 +1,7 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
-pub use pallet::*;
-pub use weights::*;
+pub use crate::pallet::*;
+pub use crate::weights::*;
 
 #[cfg(feature = "runtime-benchmarks")]
 mod benchmarking;
@@ -16,17 +16,19 @@ pub mod weights;
 // The pallet is defined below.
 #[frame_support::pallet]
 pub mod pallet {
+
     #[cfg(not(feature = "std"))]
     extern crate alloc;
     #[cfg(not(feature = "std"))]
     use alloc::format;
+    use blake2::{Blake2s256, Digest};
     use core::convert::AsRef;
 
     use codec::{FullCodec, FullEncode};
     use frame_support::{
-        dispatch::DispatchResultWithPostInfo,
+        dispatch::{DispatchResultWithPostInfo, GetDispatchInfo, PostDispatchInfo},
         pallet_prelude::*,
-        traits::{Currency, ReservableCurrency},
+        traits::{Currency, Get, LockableCurrency, ReservableCurrency},
     };
     use frame_system::pallet_prelude::*;
     pub use move_core_types::language_storage::TypeTag;
@@ -40,12 +42,13 @@ pub mod pallet {
         types::ScriptTransaction,
     };
     use sp_core::crypto::AccountId32;
+    use sp_runtime::traits::Dispatchable;
     use sp_std::{vec, vec::Vec};
 
     use super::*;
     use crate::{
         balance::{BalanceAdapter, BalanceOf},
-        signer::ScriptSignatureHandler,
+        signer::*,
         storage::{MoveVmStorage, StorageAdapter},
     };
 
@@ -61,37 +64,61 @@ pub mod pallet {
     #[pallet::storage]
     pub type VMStorage<T> = StorageMap<_, Blake2_128Concat, Vec<u8>, Vec<u8>>;
 
+    /// Storage for multi-signature/signer requests.
+    #[pallet::storage]
+    pub type MultisigStorage<T: Config> =
+        StorageMap<_, Blake2_128Concat, CallHash, Multisig<T::MaxScriptSigners>>;
+
     /// MoveVM pallet configuration trait
     #[pallet::config]
     pub trait Config: frame_system::Config {
+        /// The currency mechanism.
+        type Currency: Currency<Self::AccountId>
+            + ReservableCurrency<Self::AccountId>
+            + LockableCurrency<Self::AccountId>;
+
+        /// Maximum life time for requests.
+        #[pallet::constant]
+        type MaxRequestLifetime: Get<u32>;
+
+        /// Maximum number of signatories in multi-signer requests.
+        #[pallet::constant]
+        type MaxScriptSigners: Get<u32>;
+
+        /// The overarching call type.
+        type RuntimeCall: Parameter
+            + Dispatchable<RuntimeOrigin = Self::RuntimeOrigin, PostInfo = PostDispatchInfo>
+            + GetDispatchInfo
+            + From<frame_system::Call<Self>>;
+
         /// Because this pallet emits events, it depends on the runtime's definition of an event.
         type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
 
         /// Type representing the weight of this pallet
         type WeightInfo: WeightInfo;
-
-        /// The currency mechanism.
-        type Currency: Currency<Self::AccountId> + ReservableCurrency<Self::AccountId>;
     }
 
     // Pallets use events to inform users when important changes are made.
     #[pallet::event]
     #[pallet::generate_deposit(pub(super) fn deposit_event)]
     pub enum Event<T: Config> {
-        /// Event about calling execute function.
-        /// [account]
-        ExecuteCalled { who: T::AccountId },
-
-        /// Event about successful move-module publishing
-        /// [account]
-        ModulePublished { who: T::AccountId },
-
-        /// Event about successful move-bundle published
+        /// Event about successful move-bundle published.
         /// [account]
         BundlePublished { who: T::AccountId },
-
+        /// Event about calling execute function.
+        /// [account]
+        ExecuteCalled { who: Vec<T::AccountId> },
+        /// Event about successful move-module publishing.
+        /// [account]
+        ModulePublished { who: T::AccountId },
+        /// Event about removed multi-signing request.
+        /// [vec<account>]
+        MultiSignRequestRemoved { who: Vec<T::AccountId> },
+        /// Event about another signature for a multi-signer execution request.
+        /// [account, multisignstate]
+        SignedMultisigScript { who: T::AccountId },
         /// Event about successful stdlib update executed
-        /// -
+        /// No parameters.
         StdlibUpdated,
     }
 
@@ -125,6 +152,14 @@ pub mod pallet {
                 genesis_cfg.apply(storage).is_ok(),
                 "failed to apply the move-vm genesis config"
             );
+        }
+    }
+
+    #[pallet::hooks]
+    impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
+        fn on_idle(_n: BlockNumberFor<T>, remaining_weight: Weight) -> Weight {
+            // TODO: Add maintainance for storage MultisigStorage (remove old requests).
+            remaining_weight
         }
     }
 
@@ -166,20 +201,40 @@ pub mod pallet {
             // Make sure the scripts are not maliciously trying to use forged signatures.
             let signer_count =
                 verify_script_integrity_and_check_signers(&bytecode).map_err(Error::<T>::from)?;
-            let mut signature_handler = ScriptSignatureHandler::<T>::new(&args, signer_count)?;
-            signature_handler.sign_script(&who)?;
+
+            let (mut signature_handler, call_hash) = if signer_count > 1 {
+                // Generate the call hash to identify this multi-sign call request.
+                let mut hasher = Blake2s256::new();
+                hasher.update(&transaction_bc[..]);
+                let call_hash: CallHash = hasher.finalize().into();
+
+                let multisig = MultisigStorage::<T>::get(call_hash).unwrap_or(
+                    Multisig::<T::MaxScriptSigners>::new(&args, signer_count)
+                        .map_err(Into::<Error<T>>::into)?,
+                );
+
+                (ScriptSignatureHandler::<T>::from(multisig), call_hash)
+            } else {
+                (
+                    ScriptSignatureHandler::<T>::new(&args, signer_count)?,
+                    [0u8; 32],
+                )
+            };
+            if signer_count > 0 {
+                signature_handler.sign_script(&who, cheque_limit.into())?;
+            }
 
             // If the script is signed correctly, we can execute it in MoveVM and update the
             // blockchain storage or the balance sheet.
             if !signature_handler.all_signers_approved() {
-                // TODO(eiger): Use another approach for the multi-signature feature.
-                return Err(Error::<T>::ScriptSignatureFailure.into());
+                MultisigStorage::<T>::insert(call_hash, signature_handler.into_inner());
+                Self::deposit_event(Event::SignedMultisigScript { who });
+                return result::execute_only_signing();
             }
 
             // We need to provide MoveVM read only access to balance sheet - MoveVM is allowed to
             // update the cheques that are used afterwards to update the balances afterwards.
-            let mut balance = BalanceAdapter::<T>::new();
-            balance.write_cheque(&who, &cheque_limit)?;
+            let balance = signature_handler.write_cheques()?;
 
             // Let's try execute the script.
             let cheques = balance.clone(); // VM can only touch the cheque list, it cannot update balances directly.
@@ -189,11 +244,11 @@ pub mod pallet {
             // after the script executed correctly without any issues.
             balance.apply_transactions()?;
 
-            // Produce a result with gas spent.
             let result = result::from_vm_result::<T>(vm_result)?;
 
             // Emit an event.
-            Self::deposit_event(Event::ExecuteCalled { who });
+            let signers = signature_handler.into_signer_accounts()?;
+            Self::deposit_event(Event::ExecuteCalled { who: signers });
 
             Ok(result)
         }
@@ -424,6 +479,8 @@ pub mod pallet {
         InvalidScriptTransaction,
         /// User tried to publish module in a protected memory area.
         StdlibAddressNotAllowed,
+        /// Error about signing multi-signature execution request twice.
+        UserHasAlreadySigned,
 
         // Errors that can be received from MoveVM
         /// Unknown validation status

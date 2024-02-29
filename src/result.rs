@@ -30,6 +30,14 @@ pub fn from_vm_result<T: Config>(vm_result: VmResult) -> DispatchResultWithPostI
     }
 }
 
+/// Generates a simple PostDispatchInfo for only signing in extrinsic `execute`.
+pub fn execute_only_signing() -> DispatchResultWithPostInfo {
+    Ok(PostDispatchInfo {
+        actual_weight: None,
+        pays_fee: Pays::Yes,
+    })
+}
+
 /// Implement From trait for Status Code.
 ///
 /// Converts StatusCode to Error.

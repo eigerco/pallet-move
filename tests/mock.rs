@@ -1,4 +1,7 @@
-use frame_support::traits::{ConstU128, ConstU16, ConstU32, ConstU64};
+use frame_support::{
+    parameter_types,
+    traits::{ConstU128, ConstU16, ConstU32, ConstU64},
+};
 use move_core_types::account_address::AccountAddress;
 use sp_core::{crypto::Ss58Codec, sr25519::Public, H256};
 use sp_runtime::{
@@ -56,10 +59,18 @@ impl pallet_balances::Config for Test {
     type RuntimeFreezeReason = ();
 }
 
+parameter_types! {
+    pub const MaxRequestLifetime: u32 = 5;
+    pub const MaxScriptSigners: u32 = 3;
+}
+
 impl pallet_move::Config for Test {
+    type Currency = Balances;
+    type MaxRequestLifetime = MaxRequestLifetime;
+    type MaxScriptSigners = MaxScriptSigners;
+    type RuntimeCall = RuntimeCall;
     type RuntimeEvent = RuntimeEvent;
     type WeightInfo = ();
-    type Currency = Balances;
 }
 
 /// Test Externalities Builder for an easier test setup.
