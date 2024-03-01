@@ -1,18 +1,17 @@
-mod assets;
-mod mock;
+use crate::mock::*;
 
 use frame_support::assert_ok;
-use mock::*;
 use move_core_types::{identifier::Identifier, language_storage::StructTag};
 use move_vm_backend::types::MAX_GAS_AMOUNT;
 
-#[test]
 /// Test getting a module.
+#[test]
 fn get_module_correct() {
-    new_test_ext().execute_with(|| {
+    let addr_native = addr32_from_ss58(CAFE_ADDR).unwrap();
+
+    ExtBuilder::default().build().execute_with(|| {
         let module_name = "Empty";
         let module = assets::read_module_from_project("move-basics", module_name);
-        let addr_native = CAFE_ADDR_NATIVE.clone();
 
         let res = MoveModule::publish_module(
             RuntimeOrigin::signed(addr_native.clone()),
@@ -28,21 +27,24 @@ fn get_module_correct() {
     });
 }
 
-#[test]
 /// Test getting a module that does not exist.
+#[test]
 fn get_module_nonexistent() {
-    new_test_ext().execute_with(|| {
-        let res = MoveModule::get_module(&CAFE_ADDR_NATIVE, "Empty");
+    let addr_native = addr32_from_ss58(CAFE_ADDR).unwrap();
+
+    ExtBuilder::default().build().execute_with(|| {
+        let res = MoveModule::get_module(&addr_native, "Empty");
 
         assert_eq!(res, Ok(None));
     });
 }
 
-#[test]
 /// Test getting resource from the module.
+#[test]
 fn get_resource_non_existent() {
-    new_test_ext().execute_with(|| {
-        let addr = *CAFE_ADDR_MOVE;
+    let (_, addr) = addrs_from_ss58(CAFE_ADDR).unwrap();
+
+    ExtBuilder::default().build().execute_with(|| {
         let addr_native = MoveModule::to_native_account(&addr).unwrap();
 
         let module = assets::read_module_from_project("move-basics", "Empty");
