@@ -77,14 +77,13 @@ impl pallet_balances::Config for Test {
 
 parameter_types! {
     pub const MaxRequestLifetime: u32 = 5;
-    pub const MaxScriptSigners: u32 = 3;
+    pub const MaxScriptSigners: u32 = 8;
 }
 
 impl pallet_move::Config for Test {
     type Currency = Balances;
     type MaxRequestLifetime = MaxRequestLifetime;
     type MaxScriptSigners = MaxScriptSigners;
-    type RuntimeCall = RuntimeCall;
     type RuntimeEvent = RuntimeEvent;
     type WeightInfo = ();
 }
@@ -149,21 +148,28 @@ pub const BOB_ADDR: &str = "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty";
 pub const ALICE_ADDR: &str = "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY";
 pub const DAVE_ADDR: &str = "5DAAnrj7VHTznn2AWBemMuyBwZWs6FNFjdyVXUeYum3PTXFy";
 
-pub fn addr32_from_ss58(ss58addr: &str) -> Result<AccountId32, Error<Test>> {
+pub(crate) fn addr32_from_ss58(ss58addr: &str) -> Result<AccountId32, Error<Test>> {
     let (pk, _) = Public::from_ss58check_with_version(ss58addr)
         .map_err(|_| Error::<Test>::InvalidAccountSize)?;
     let account: AccountId32 = pk.into();
     Ok(account)
 }
 
-pub fn addr32_to_move(addr32: &AccountId32) -> Result<AccountAddress, Error<Test>> {
+pub(crate) fn addr32_to_move(addr32: &AccountId32) -> Result<AccountAddress, Error<Test>> {
     MoveModule::to_move_address(addr32)
 }
 
-pub fn addrs_from_ss58(ss58: &str) -> Result<(AccountId32, AccountAddress), Error<Test>> {
+pub(crate) fn addrs_from_ss58(ss58: &str) -> Result<(AccountId32, AccountAddress), Error<Test>> {
     let addr_32 = addr32_from_ss58(ss58)?;
     let addr_mv = addr32_to_move(&addr_32)?;
     Ok((addr_32, addr_mv))
+}
+
+pub(crate) fn int_to_addr32(n: u128) -> AccountId32 {
+    let mut addr = [0u8; 32];
+    let bytes: [u8; 16] = n.to_be_bytes();
+    bytes.iter().enumerate().for_each(|(i, b)| addr[i] = *b);
+    AccountId32::from(addr)
 }
 
 pub mod assets {

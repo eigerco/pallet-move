@@ -133,28 +133,107 @@ fn general_script_no_signers_param_at_all_works() {
 
 /// Script with many signers parameters executes correctly when all signers are signed by one account.
 #[test]
-#[ignore = "to be updated"]
 fn general_script_eight_normal_signers_works() {
-    ExtBuilder::default().build().execute_with(|| {
-        let mut pg = ParamGenerator::new();
-        let (bob_addr_32, bob_addr_mv) = addrs_from_ss58(BOB_ADDR).unwrap();
+    let user1_native = int_to_addr32(1);
+    let user1_move = addr32_to_move(&user1_native).unwrap();
+    let user2_native = int_to_addr32(2);
+    let user2_move = addr32_to_move(&user2_native).unwrap();
+    let user3_native = int_to_addr32(3);
+    let user3_move = addr32_to_move(&user3_native).unwrap();
+    let user4_native = int_to_addr32(4);
+    let user4_move = addr32_to_move(&user4_native).unwrap();
+    let user5_native = int_to_addr32(5);
+    let user5_move = addr32_to_move(&user5_native).unwrap();
+    let user6_native = int_to_addr32(6);
+    let user6_move = addr32_to_move(&user6_native).unwrap();
+    let user7_native = int_to_addr32(7);
+    let user7_move = addr32_to_move(&user7_native).unwrap();
+    let user8_native = int_to_addr32(8);
+    let user8_move = addr32_to_move(&user8_native).unwrap();
 
-        // eight_normal_signers(_s1: signer, _s2: signer, _s3: &signer, _s4: signer, _s5: &signer,
-        // _s6: signer, _s7: &signer, _s8: &signer, _extra: u32)
-        let script = assets::read_script_from_project("signer-scripts", "eight_normal_signers");
-        let type_args: Vec<TypeTag> = vec![];
+    ExtBuilder::default()
+        .with_balances(vec![
+            (user1_native.clone(), EXISTENTIAL_DEPOSIT),
+            (user2_native.clone(), EXISTENTIAL_DEPOSIT),
+            (user3_native.clone(), EXISTENTIAL_DEPOSIT),
+            (user4_native.clone(), EXISTENTIAL_DEPOSIT),
+            (user5_native.clone(), EXISTENTIAL_DEPOSIT),
+            (user6_native.clone(), EXISTENTIAL_DEPOSIT),
+            (user7_native.clone(), EXISTENTIAL_DEPOSIT),
+            (user8_native.clone(), EXISTENTIAL_DEPOSIT),
+        ])
+        .build()
+        .execute_with(|| {
+            // eight_normal_signers(_s1: signer, _s2: signer, _s3: &signer, _s4: signer, _s5: &signer,
+            // _s6: signer, _s7: &signer, _s8: &signer, _extra: u32)
+            let script = assets::read_script_from_project("signer-scripts", "eight_normal_signers");
+            let type_args: Vec<TypeTag> = vec![];
 
-        let s1 = pg.address(&bob_addr_mv);
-        let extra = pg.rand::<u32>();
-        let params: Vec<&[u8]> = vec![&s1, &s1, &s1, &s1, &s1, &s1, &s1, &s1, &extra];
+            let mut pg = ParamGenerator::new();
+            let s1 = pg.address(&user1_move);
+            let s2 = pg.address(&user2_move);
+            let s3 = pg.address(&user3_move);
+            let s4 = pg.address(&user4_move);
+            let s5 = pg.address(&user5_move);
+            let s6 = pg.address(&user6_move);
+            let s7 = pg.address(&user7_move);
+            let s8 = pg.address(&user8_move);
+            let extra = pg.rand::<u32>();
+            let params: Vec<&[u8]> = vec![&s1, &s2, &s3, &s4, &s5, &s6, &s7, &s8, &extra];
 
-        assert_ok!(execute_script(bob_addr_32, script, params, type_args));
-    })
+            assert_ok!(execute_script(
+                user1_native,
+                script.clone(),
+                params.clone(),
+                type_args.clone()
+            ));
+            assert_ok!(execute_script(
+                user2_native,
+                script.clone(),
+                params.clone(),
+                type_args.clone()
+            ));
+            assert_ok!(execute_script(
+                user3_native,
+                script.clone(),
+                params.clone(),
+                type_args.clone()
+            ));
+            assert_ok!(execute_script(
+                user4_native,
+                script.clone(),
+                params.clone(),
+                type_args.clone()
+            ));
+            assert_ok!(execute_script(
+                user5_native,
+                script.clone(),
+                params.clone(),
+                type_args.clone()
+            ));
+            assert_ok!(execute_script(
+                user6_native,
+                script.clone(),
+                params.clone(),
+                type_args.clone()
+            ));
+            assert_ok!(execute_script(
+                user7_native,
+                script.clone(),
+                params.clone(),
+                type_args.clone()
+            ));
+            assert_ok!(execute_script(
+                user8_native,
+                script.clone(),
+                params.clone(),
+                type_args.clone()
+            ));
+        })
 }
 
 /// Script with many signers parameters fails if all signers don't provide an actual signature.
 #[test]
-#[ignore = "to be updated"]
 fn general_script_eight_normal_signers_where_eve_tries_to_forge_signers_fails() {
     ExtBuilder::default().build().execute_with(|| {
         let mut pg = ParamGenerator::new();
@@ -172,8 +251,14 @@ fn general_script_eight_normal_signers_where_eve_tries_to_forge_signers_fails() 
         let extra = pg.rand::<u32>();
         let params: Vec<&[u8]> = vec![&eve, &eve, &alice, &eve, &eve, &eve, &eve, &eve, &extra];
 
+        assert_ok!(execute_script(
+            eve_addr_32.clone(),
+            script.clone(),
+            params.clone(),
+            type_args.clone()
+        ));
         let result = execute_script(eve_addr_32, script, params, type_args);
-        assert_err!(result, Error::<Test>::ScriptSignatureFailure);
+        assert_err!(result, Error::<Test>::UserHasAlreadySigned);
     })
 }
 
