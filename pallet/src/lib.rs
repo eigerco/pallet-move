@@ -1,5 +1,6 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
+pub mod api;
 pub mod balance;
 #[cfg(all(test, feature = "runtime-benchmarks"))]
 mod benchmarking;
@@ -39,9 +40,9 @@ pub mod pallet {
     use move_vm_backend::{
         balance::BalanceHandler, genesis::VmGenesisConfig, types::VmResult, Mvm,
     };
+    use move_vm_backend_common::abi::ModuleAbi;
     pub use move_vm_backend_common::{
-        abi::ModuleAbi, bytecode::verify_script_integrity_and_check_signers,
-        types::ScriptTransaction,
+        bytecode::verify_script_integrity_and_check_signers, types::ScriptTransaction,
     };
     use sp_core::crypto::AccountId32;
     use sp_std::{vec, vec::Vec};

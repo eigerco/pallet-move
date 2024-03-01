@@ -7,8 +7,7 @@ use jsonrpsee::{
     proc_macros::rpc,
     types::error::{CallError, ErrorObject},
 };
-pub use pallet_move_runtime_api::MoveApi as MoveRuntimeApi;
-use pallet_move_runtime_api::{ModuleAbi, MoveApiEstimation};
+pub use pallet_move::api::{ModuleAbi, MoveApi as MoveRuntimeApi, MoveApiEstimation};
 use serde::{Deserialize, Serialize};
 use sp_api::ProvideRuntimeApi;
 use sp_blockchain::HeaderBackend;
@@ -272,14 +271,11 @@ mod tests {
         let err_str_tst = "\"\\\"test\\\"\"";
         let res = runtime_error_into_rpc_err(err_str);
         match res {
-            JsonRpseeError::Call(err) => match err {
-                CallError::Custom(err) => {
-                    assert_eq!(err.code(), RUNTIME_ERROR);
-                    assert_eq!(err.message(), "Runtime error");
-                    assert_eq!(err.data().unwrap().get(), err_str_tst)
-                }
-                _ => panic!("Wrong error type"),
-            },
+            JsonRpseeError::Call(CallError::Custom(err)) => {
+                assert_eq!(err.code(), RUNTIME_ERROR);
+                assert_eq!(err.message(), "Runtime error");
+                assert_eq!(err.data().unwrap().get(), err_str_tst);
+            }
             _ => panic!("Wrong error type"),
         }
     }
@@ -290,14 +286,11 @@ mod tests {
         let err_str_tst = "\"\\\"\\\"\"";
         let res = runtime_error_into_rpc_err(err_str);
         match res {
-            JsonRpseeError::Call(err) => match err {
-                CallError::Custom(err) => {
-                    assert_eq!(err.code(), RUNTIME_ERROR);
-                    assert_eq!(err.message(), "Runtime error");
-                    assert_eq!(err.data().unwrap().get(), err_str_tst)
-                }
-                _ => panic!("Wrong error type"),
-            },
+            JsonRpseeError::Call(CallError::Custom(err)) => {
+                assert_eq!(err.code(), RUNTIME_ERROR);
+                assert_eq!(err.message(), "Runtime error");
+                assert_eq!(err.data().unwrap().get(), err_str_tst);
+            }
             _ => panic!("Wrong error type"),
         }
     }
