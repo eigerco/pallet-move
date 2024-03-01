@@ -2,14 +2,30 @@ use frame_support::{
     parameter_types,
     traits::{ConstU128, ConstU16, ConstU32, ConstU64},
 };
-use move_core_types::account_address::AccountAddress;
 use sp_core::{crypto::Ss58Codec, sr25519::Public, H256};
 use sp_runtime::{
     traits::{BlakeTwo256, IdentityLookup},
-    AccountId32, BuildStorage,
+    BuildStorage,
 };
 
+use crate as pallet_move;
+use crate::Error;
+
+pub use move_core_types::account_address::AccountAddress;
+pub use move_vm_backend_common::types::ScriptTransaction;
+pub use sp_runtime::AccountId32;
+
 type Block = frame_system::mocking::MockBlock<Test>;
+
+// Configure a mock runtime to test the pallet.
+frame_support::construct_runtime!(
+    pub enum Test
+    {
+        System: frame_system,
+        Balances: pallet_balances,
+        MoveModule: pallet_move,
+    }
+);
 
 impl frame_system::Config for Test {
     type BaseCallFilter = frame_support::traits::Everything;
@@ -74,7 +90,6 @@ impl pallet_move::Config for Test {
 }
 
 /// Test Externalities Builder for an easier test setup.
-#[allow(dead_code)]
 #[derive(Default)]
 pub(crate) struct ExtBuilder {
     /// Overwrite default accounts with balances.
@@ -85,7 +100,6 @@ pub(crate) struct ExtBuilder {
     substrate_stdlib: Option<Vec<u8>>,
 }
 
-#[allow(dead_code)]
 impl ExtBuilder {
     /// Overwrites default balances on dev-test setup.
     pub(crate) fn with_balances(mut self, balances: Vec<(AccountId32, Balance)>) -> Self {
@@ -128,87 +142,78 @@ impl ExtBuilder {
     }
 }
 
-// Build genesis storage according to the mock runtime.
-#[allow(dead_code)]
-pub fn new_test_ext() -> sp_io::TestExternalities {
-    let mut storage = frame_system::GenesisConfig::<Test>::default()
-        .build_storage()
-        .unwrap();
-
-    let pallet_move_config = pallet_move::GenesisConfig::<Test> {
-        _phantom: core::marker::PhantomData,
-        change_default_move_stdlib_bundle_to: None,
-        change_default_substrate_stdlib_bundle_to: None,
-    };
-
-    pallet_move_config.assimilate_storage(&mut storage).unwrap();
-
-    storage.into()
-}
-
 // Common constants accross the tests.
-#[allow(dead_code)]
 pub const EMPTY_CHEQUE: u128 = 0; // Not all scripts need the `cheque_amount` parameter.
-pub const CAFE_ADDR: &str = "0xCAFE";
+pub const CAFE_ADDR: &str = "5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSv4fmh4G"; // == 0xCAFE
 pub const BOB_ADDR: &str = "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty";
 pub const ALICE_ADDR: &str = "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY";
 pub const DAVE_ADDR: &str = "5DAAnrj7VHTznn2AWBemMuyBwZWs6FNFjdyVXUeYum3PTXFy";
-lazy_static::lazy_static! {
-    pub static ref CAFE_ADDR_MOVE: AccountAddress = {
-        AccountAddress::from_hex_literal(CAFE_ADDR).unwrap()
-    };
-    pub static ref CAFE_ADDR_NATIVE: AccountId32 = {
-        MoveModule::to_native_account(&CAFE_ADDR_MOVE).unwrap()
-    };
-    pub static ref BOB_ADDR_NATIVE: AccountId32 = {
-        let (pk, _) = Public::from_ss58check_with_version(BOB_ADDR).unwrap();
-        pk.into()
-    };
-    pub static ref BOB_ADDR_MOVE: AccountAddress = {
-        MoveModule::to_move_address(&BOB_ADDR_NATIVE).unwrap()
-    };
-    pub static ref ALICE_ADDR_NATIVE: AccountId32 = {
-        let (pk, _) = Public::from_ss58check_with_version(ALICE_ADDR).unwrap();
-        pk.into()
-    };
-    pub static ref ALICE_ADDR_MOVE: AccountAddress = {
-        MoveModule::to_move_address(&ALICE_ADDR_NATIVE).unwrap()
-    };
-    pub static ref DAVE_ADDR_NATIVE: AccountId32 = {
-        let (pk, _) = Public::from_ss58check_with_version(DAVE_ADDR).unwrap();
-        pk.into()
-    };
-    pub static ref DAVE_ADDR_MOVE: AccountAddress = {
-        MoveModule::to_move_address(&DAVE_ADDR_NATIVE).unwrap()
-    };
+
+pub fn addr32_from_ss58(ss58addr: &str) -> Result<AccountId32, Error<Test>> {
+    let (pk, _) = Public::from_ss58check_with_version(ss58addr)
+        .map_err(|_| Error::<Test>::InvalidAccountSize)?;
+    let account: AccountId32 = pk.into();
+    Ok(account)
 }
 
-#[allow(dead_code)]
-pub fn addr32_from_ss58(ss58addr: &str) -> AccountId32 {
-    let (pk, _) = Public::from_ss58check_with_version(ss58addr).unwrap();
-    pk.into()
-}
-
-#[allow(dead_code)]
-pub fn addr32_to_move(addr32: &AccountId32) -> Result<AccountAddress, pallet_move::Error<Test>> {
+pub fn addr32_to_move(addr32: &AccountId32) -> Result<AccountAddress, Error<Test>> {
     MoveModule::to_move_address(addr32)
 }
 
-#[allow(dead_code)]
-pub fn addrs_from_ss58(
-    ss58: &str,
-) -> Result<(AccountId32, AccountAddress), pallet_move::Error<Test>> {
-    let addr_32 = addr32_from_ss58(ss58);
+pub fn addrs_from_ss58(ss58: &str) -> Result<(AccountId32, AccountAddress), Error<Test>> {
+    let addr_32 = addr32_from_ss58(ss58)?;
     let addr_mv = addr32_to_move(&addr_32)?;
     Ok((addr_32, addr_mv))
 }
 
-// Configure a mock runtime to test the pallet.
-frame_support::construct_runtime!(
-    pub enum Test
-    {
-        System: frame_system,
-        Balances: pallet_balances,
-        MoveModule: pallet_move,
+pub mod assets {
+    const MOVE_PROJECTS: &str = "src/tests/assets/move-projects";
+
+    /// Reads bytes from a file for the given path.
+    /// Can panic if the file doesn't exist.
+    fn read_bytes(file_path: &str) -> Vec<u8> {
+        std::fs::read(file_path)
+            .unwrap_or_else(|e| panic!("Can't read {file_path}: {e} - make sure you run pallet-move/tests/assets/move-projects/smove-build-all.sh"))
     }
-);
+
+    /// Reads a precompiled Move module from our assets directory.
+    pub fn read_module_from_project(project: &str, module_name: &str) -> Vec<u8> {
+        let path =
+            format!("{MOVE_PROJECTS}/{project}/build/{project}/bytecode_modules/{module_name}.mv");
+        read_bytes(&path)
+    }
+
+    /// Reads a precompiled Move bundle from our assets directory.
+    pub fn read_bundle_from_project(project: &str, bundle_name: &str) -> Vec<u8> {
+        let path = format!("{MOVE_PROJECTS}/{project}/build/{project}/bundles/{bundle_name}.mvb");
+        read_bytes(&path)
+    }
+
+    /// Reads a precompiled Move scripts from our assets directory.
+    pub fn read_script_from_project(project: &str, script_name: &str) -> Vec<u8> {
+        let path =
+            format!("{MOVE_PROJECTS}/{project}/build/{project}/bytecode_scripts/{script_name}.mv");
+        read_bytes(&path)
+    }
+}
+
+#[macro_export]
+macro_rules! script_transaction {
+    ($bytecode:expr, $type_args:expr $(, $args:expr)*) => {
+        {
+            let transaction = ScriptTransaction {
+                bytecode: $bytecode,
+                type_args: $type_args,
+                args: vec![$(bcs::to_bytes($args).unwrap()),*],
+            };
+            bcs::to_bytes(&transaction).unwrap()
+        }
+    }
+}
+
+#[macro_export]
+macro_rules! no_type_args {
+    () => {
+        vec![]
+    };
+}

@@ -1,14 +1,11 @@
-mod assets;
-mod mock;
+use crate::mock::*;
+use crate::Error;
 
 use frame_support::{assert_err, assert_ok, pallet_prelude::DispatchResultWithPostInfo};
-use mock::*;
-use move_core_types::{account_address::AccountAddress, language_storage::TypeTag, u256::U256};
+use move_core_types::{language_storage::TypeTag, u256::U256};
 use move_vm_backend::types::MAX_GAS_AMOUNT;
-use move_vm_backend_common::types::ScriptTransaction;
 use rand::{distributions::Standard, prelude::Distribution, rngs::ThreadRng, Rng};
 use serde::Serialize;
-use sp_runtime::AccountId32;
 
 fn execute_script(
     who: AccountId32,
@@ -99,7 +96,7 @@ impl ParamGenerator {
 /// Script without any parameters executes correctly by anyone.
 #[test]
 fn general_script_no_params_works() {
-    new_test_ext().execute_with(|| {
+    ExtBuilder::default().build().execute_with(|| {
         let (bob_addr_32, _) = addrs_from_ss58(BOB_ADDR).unwrap();
 
         // no_param_at_all()
@@ -113,7 +110,7 @@ fn general_script_no_params_works() {
 /// Script with many non-signers parameters executes correctly by anyone.
 #[test]
 fn general_script_no_signers_param_at_all_works() {
-    new_test_ext().execute_with(|| {
+    ExtBuilder::default().build().execute_with(|| {
         let mut pg = ParamGenerator::new();
         let (bob_addr_32, _) = addrs_from_ss58(BOB_ADDR).unwrap();
 
@@ -138,7 +135,7 @@ fn general_script_no_signers_param_at_all_works() {
 #[test]
 #[ignore = "to be updated"]
 fn general_script_eight_normal_signers_works() {
-    new_test_ext().execute_with(|| {
+    ExtBuilder::default().build().execute_with(|| {
         let mut pg = ParamGenerator::new();
         let (bob_addr_32, bob_addr_mv) = addrs_from_ss58(BOB_ADDR).unwrap();
 
@@ -159,7 +156,7 @@ fn general_script_eight_normal_signers_works() {
 #[test]
 #[ignore = "to be updated"]
 fn general_script_eight_normal_signers_where_eve_tries_to_forge_signers_fails() {
-    new_test_ext().execute_with(|| {
+    ExtBuilder::default().build().execute_with(|| {
         let mut pg = ParamGenerator::new();
         // Eve is basically Bob here, but since Bob is pretending to be bad, we'll rename him.
         let (eve_addr_32, eve_addr_mv) = addrs_from_ss58(BOB_ADDR).unwrap();
@@ -176,14 +173,14 @@ fn general_script_eight_normal_signers_where_eve_tries_to_forge_signers_fails() 
         let params: Vec<&[u8]> = vec![&eve, &eve, &alice, &eve, &eve, &eve, &eve, &eve, &extra];
 
         let result = execute_script(eve_addr_32, script, params, type_args);
-        assert_err!(result, pallet_move::Error::<Test>::ScriptSignatureFailure);
+        assert_err!(result, Error::<Test>::ScriptSignatureFailure);
     })
 }
 
 /// Script with a signer before all possible vector parameters should execute fine.
 #[test]
 fn signer_before_all_possible_vectors_works() {
-    new_test_ext().execute_with(|| {
+    ExtBuilder::default().build().execute_with(|| {
         let mut pg = ParamGenerator::new();
         let (bob_addr_32, bob_addr_mv) = addrs_from_ss58(BOB_ADDR).unwrap();
 
@@ -216,7 +213,7 @@ fn signer_before_all_possible_vectors_works() {
 /// Script with a signer after all possible vector parameters should fail.
 #[test]
 fn signer_after_all_possible_vectors_fails() {
-    new_test_ext().execute_with(|| {
+    ExtBuilder::default().build().execute_with(|| {
         let mut pg = ParamGenerator::new();
         let (bob_addr_32, bob_addr_mv) = addrs_from_ss58(BOB_ADDR).unwrap();
 
@@ -241,17 +238,14 @@ fn signer_after_all_possible_vectors_fails() {
         ];
 
         let result = execute_script(bob_addr_32, script, params, type_args);
-        assert_err!(
-            result,
-            pallet_move::Error::<Test>::InvalidMainFunctionSignature
-        );
+        assert_err!(result, Error::<Test>::InvalidMainFunctionSignature);
     })
 }
 
 /// Script with a vector that contains a signer should fail.
 #[test]
 fn script_with_vector_containing_signer_fails() {
-    new_test_ext().execute_with(|| {
+    ExtBuilder::default().build().execute_with(|| {
         let pg = ParamGenerator::new();
         let (bob_addr_32, bob_addr_mv) = addrs_from_ss58(BOB_ADDR).unwrap();
 
@@ -264,9 +258,6 @@ fn script_with_vector_containing_signer_fails() {
         let params: Vec<&[u8]> = vec![&v_addr];
 
         let result = execute_script(bob_addr_32, script, params, type_args);
-        assert_err!(
-            result,
-            pallet_move::Error::<Test>::InvalidMainFunctionSignature
-        );
+        assert_err!(result, Error::<Test>::InvalidMainFunctionSignature);
     })
 }

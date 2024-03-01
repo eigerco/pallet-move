@@ -1,17 +1,19 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
-pub use crate::pallet::*;
-pub use crate::weights::*;
-
-#[cfg(feature = "runtime-benchmarks")]
-mod benchmarking;
-
 pub mod balance;
+#[cfg(all(test, feature = "runtime-benchmarks"))]
+mod benchmarking;
+#[cfg(test)]
+mod mock;
+mod result;
 mod signer;
 mod storage;
-
-mod result;
+#[cfg(test)]
+mod tests;
 pub mod weights;
+
+pub use pallet::*;
+pub use weights::*;
 
 // The pallet is defined below.
 #[frame_support::pallet]

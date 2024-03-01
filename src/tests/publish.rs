@@ -1,19 +1,20 @@
-mod assets;
-mod mock;
+use crate::mock::*;
+use crate::GasStrategy;
 
 use frame_support::assert_ok;
-use mock::*;
 use move_vm_backend::types::MAX_GAS_AMOUNT;
-use pallet_move::GasStrategy;
 
-#[test]
 /// Test that the module is published correctly.
+#[test]
 fn publish_module_as_user_correct() {
-    new_test_ext().execute_with(|| {
+    let cafe_addr_native = addr32_from_ss58(CAFE_ADDR).unwrap();
+    let bob_addr_native = addr32_from_ss58(BOB_ADDR).unwrap();
+
+    ExtBuilder::default().build().execute_with(|| {
         let module = assets::read_module_from_project("move-basics", "Empty");
 
         let res = MoveModule::publish_module(
-            RuntimeOrigin::signed(CAFE_ADDR_NATIVE.clone()),
+            RuntimeOrigin::signed(cafe_addr_native),
             module,
             MAX_GAS_AMOUNT,
         );
@@ -22,7 +23,7 @@ fn publish_module_as_user_correct() {
         let module = assets::read_module_from_project("move-basics", "EmptyBob");
 
         let res = MoveModule::publish_module(
-            RuntimeOrigin::signed(BOB_ADDR_NATIVE.clone()),
+            RuntimeOrigin::signed(bob_addr_native),
             module,
             MAX_GAS_AMOUNT,
         );
@@ -30,14 +31,16 @@ fn publish_module_as_user_correct() {
     });
 }
 
-#[test]
 /// Test that the module is not published if the user is not the owner.
+#[test]
 fn publish_module_as_user_wrong_user() {
-    new_test_ext().execute_with(|| {
+    let bob_addr_native = addr32_from_ss58(BOB_ADDR).unwrap();
+
+    ExtBuilder::default().build().execute_with(|| {
         let module = assets::read_module_from_project("move-basics", "Empty");
 
         let res = MoveModule::publish_module(
-            RuntimeOrigin::signed(BOB_ADDR_NATIVE.clone()),
+            RuntimeOrigin::signed(bob_addr_native),
             module,
             MAX_GAS_AMOUNT,
         );
@@ -45,26 +48,27 @@ fn publish_module_as_user_wrong_user() {
     });
 }
 
-#[test]
 /// Test that the module is not published if the user does not have enough gas.
+#[test]
 fn publish_module_as_user_insufficient_gas() {
-    new_test_ext().execute_with(|| {
+    let cafe_addr_native = addr32_from_ss58(CAFE_ADDR).unwrap();
+
+    ExtBuilder::default().build().execute_with(|| {
         let module = assets::read_module_from_project("move-basics", "Empty");
 
         let gas_limit = 1;
-        let res = MoveModule::publish_module(
-            RuntimeOrigin::signed(CAFE_ADDR_NATIVE.clone()),
-            module,
-            gas_limit,
-        );
+        let res =
+            MoveModule::publish_module(RuntimeOrigin::signed(cafe_addr_native), module, gas_limit);
         assert!(res.is_err());
     });
 }
 
-#[test]
 /// Test that the module is not published if the bytecode is corrupted.
+#[test]
 fn publish_module_as_user_corrupted_bytecode() {
-    new_test_ext().execute_with(|| {
+    let cafe_addr_native = addr32_from_ss58(CAFE_ADDR).unwrap();
+
+    ExtBuilder::default().build().execute_with(|| {
         let mut module = assets::read_module_from_project("move-basics", "Empty");
 
         // This should be enough to corrupt the bytecode.
@@ -73,7 +77,7 @@ fn publish_module_as_user_corrupted_bytecode() {
         }
 
         let res = MoveModule::publish_module(
-            RuntimeOrigin::signed(CAFE_ADDR_NATIVE.clone()),
+            RuntimeOrigin::signed(cafe_addr_native),
             module,
             MAX_GAS_AMOUNT,
         );
@@ -81,15 +85,17 @@ fn publish_module_as_user_corrupted_bytecode() {
     });
 }
 
-#[test]
 /// Test that the bundle is published correctly.
+#[test]
 fn publish_bundle_as_user_correct() {
-    new_test_ext().execute_with(|| {
+    let bob_addr_native = addr32_from_ss58(BOB_ADDR).unwrap();
+
+    ExtBuilder::default().build().execute_with(|| {
         let bundle =
             assets::read_bundle_from_project("using_stdlib_natives", "using_stdlib_natives");
 
         let res = MoveModule::publish_module_bundle(
-            RuntimeOrigin::signed(BOB_ADDR_NATIVE.clone()),
+            RuntimeOrigin::signed(bob_addr_native),
             bundle,
             MAX_GAS_AMOUNT,
         );
@@ -98,15 +104,17 @@ fn publish_bundle_as_user_correct() {
     });
 }
 
-#[test]
 /// Test that the bundle is not published if the user is not the owner.
+#[test]
 fn publish_bundle_as_user_wrong_user() {
-    new_test_ext().execute_with(|| {
+    let cafe_addr_native = addr32_from_ss58(CAFE_ADDR).unwrap();
+
+    ExtBuilder::default().build().execute_with(|| {
         let bundle =
             assets::read_bundle_from_project("using_stdlib_natives", "using_stdlib_natives");
 
         let res = MoveModule::publish_module_bundle(
-            RuntimeOrigin::signed(CAFE_ADDR_NATIVE.clone()),
+            RuntimeOrigin::signed(cafe_addr_native),
             bundle,
             MAX_GAS_AMOUNT,
         );
@@ -115,16 +123,18 @@ fn publish_bundle_as_user_wrong_user() {
     });
 }
 
-#[test]
 /// Test that the bundle is not published if the user does not have enough gas.
+#[test]
 fn publish_bundle_as_user_insufficient_gas() {
-    new_test_ext().execute_with(|| {
+    let bob_addr_native = addr32_from_ss58(BOB_ADDR).unwrap();
+
+    ExtBuilder::default().build().execute_with(|| {
         let bundle =
             assets::read_bundle_from_project("using_stdlib_natives", "using_stdlib_natives");
 
         let gas_limit = 1;
         let res = MoveModule::publish_module_bundle(
-            RuntimeOrigin::signed(BOB_ADDR_NATIVE.clone()),
+            RuntimeOrigin::signed(bob_addr_native),
             bundle,
             gas_limit,
         );
@@ -133,10 +143,12 @@ fn publish_bundle_as_user_insufficient_gas() {
     });
 }
 
-#[test]
 /// Test that the bundle is not published if the bytecode is corrupted.
+#[test]
 fn publish_bundle_as_user_corrupted_bytecode() {
-    new_test_ext().execute_with(|| {
+    let cafe_addr_native = addr32_from_ss58(CAFE_ADDR).unwrap();
+
+    ExtBuilder::default().build().execute_with(|| {
         let mut bundle =
             assets::read_bundle_from_project("using_stdlib_natives", "using_stdlib_natives");
 
@@ -146,7 +158,7 @@ fn publish_bundle_as_user_corrupted_bytecode() {
         }
 
         let res = MoveModule::publish_module_bundle(
-            RuntimeOrigin::signed(CAFE_ADDR_NATIVE.clone()),
+            RuntimeOrigin::signed(cafe_addr_native),
             bundle,
             MAX_GAS_AMOUNT,
         );
@@ -154,20 +166,22 @@ fn publish_bundle_as_user_corrupted_bytecode() {
     });
 }
 
-#[test]
 /// Test that the module is published correctly when the gas is estimated.
+#[test]
 fn raw_publish_module_dry_run() {
-    new_test_ext().execute_with(|| {
+    let (bob_addr_native, bob_addr_move) = addrs_from_ss58(BOB_ADDR).unwrap();
+
+    ExtBuilder::default().build().execute_with(|| {
         let module = assets::read_module_from_project("using_stdlib_natives", "Vector");
 
         let estimation =
-            MoveModule::raw_publish_module(&BOB_ADDR_MOVE, module.clone(), GasStrategy::DryRun)
+            MoveModule::raw_publish_module(&bob_addr_move, module.clone(), GasStrategy::DryRun)
                 .expect("failed to publish a module")
                 .gas_used;
 
         let insufficient_gas = estimation - 1;
         let invalid_publish = MoveModule::publish_module(
-            RuntimeOrigin::signed(BOB_ADDR_NATIVE.clone()),
+            RuntimeOrigin::signed(bob_addr_native.clone()),
             module.clone(),
             insufficient_gas,
         );
@@ -177,30 +191,28 @@ fn raw_publish_module_dry_run() {
         );
 
         // Use the exact amount of gas.
-        MoveModule::publish_module(
-            RuntimeOrigin::signed(BOB_ADDR_NATIVE.clone()),
-            module,
-            estimation,
-        )
-        .expect("failed to publish a module");
+        MoveModule::publish_module(RuntimeOrigin::signed(bob_addr_native), module, estimation)
+            .expect("failed to publish a module");
     });
 }
 
-#[test]
 /// Test that the bundle is published correctly when the gas is estimated.
+#[test]
 fn raw_publish_bundle_dry_run() {
-    new_test_ext().execute_with(|| {
+    let (bob_addr_native, bob_addr_move) = addrs_from_ss58(BOB_ADDR).unwrap();
+
+    ExtBuilder::default().build().execute_with(|| {
         let bundle =
             assets::read_bundle_from_project("using_stdlib_natives", "using_stdlib_natives");
 
         let estimation =
-            MoveModule::raw_publish_bundle(&BOB_ADDR_MOVE, bundle.clone(), GasStrategy::DryRun)
+            MoveModule::raw_publish_bundle(&bob_addr_move, bundle.clone(), GasStrategy::DryRun)
                 .expect("failed to publish a bundle")
                 .gas_used;
 
         let insufficient_gas = estimation - 1;
         let invalid_publish = MoveModule::publish_module(
-            RuntimeOrigin::signed(BOB_ADDR_NATIVE.clone()),
+            RuntimeOrigin::signed(bob_addr_native.clone()),
             bundle.clone(),
             insufficient_gas,
         );
@@ -211,7 +223,7 @@ fn raw_publish_bundle_dry_run() {
 
         // Use the exact amount of gas.
         MoveModule::publish_module_bundle(
-            RuntimeOrigin::signed(BOB_ADDR_NATIVE.clone()),
+            RuntimeOrigin::signed(bob_addr_native),
             bundle,
             estimation,
         )
@@ -219,15 +231,17 @@ fn raw_publish_bundle_dry_run() {
     });
 }
 
-#[test]
 /// Test that the module publishing fails when gas is exceeded.
+#[test]
 fn publish_module_will_fail_in_case_the_gas_limit_is_exceeded() {
-    new_test_ext().execute_with(|| {
+    let bob_addr_native = addr32_from_ss58(BOB_ADDR).unwrap();
+
+    ExtBuilder::default().build().execute_with(|| {
         let module = assets::read_module_from_project("using_stdlib_natives", "Vector");
 
         // Exceed the maximum gas limit by one.
         let result = MoveModule::publish_module(
-            RuntimeOrigin::signed(BOB_ADDR_NATIVE.clone()),
+            RuntimeOrigin::signed(bob_addr_native),
             module,
             MAX_GAS_AMOUNT + 1,
         );
@@ -238,16 +252,18 @@ fn publish_module_will_fail_in_case_the_gas_limit_is_exceeded() {
     });
 }
 
-#[test]
 /// Test that the bundle publishing fails when gas is exceeded.
+#[test]
 fn publish_bundle_will_fail_in_case_the_gas_limit_is_exceeded() {
-    new_test_ext().execute_with(|| {
+    let bob_addr_native = addr32_from_ss58(BOB_ADDR).unwrap();
+
+    ExtBuilder::default().build().execute_with(|| {
         let bundle =
             assets::read_bundle_from_project("using_stdlib_natives", "using_stdlib_natives");
 
         // Exceed the maximum gas limit by one.
         let result = MoveModule::publish_module_bundle(
-            RuntimeOrigin::signed(BOB_ADDR_NATIVE.clone()),
+            RuntimeOrigin::signed(bob_addr_native),
             bundle,
             MAX_GAS_AMOUNT + 1,
         );
