@@ -1,31 +1,30 @@
 [package]
 name = "pallet-move-rpc"
 version = "0.1.0"
-authors = ["Eiger <hello@eiger.co>"]
-edition = "2021"
-description = 'RPC methods for the Move pallet'
+description = "RPC for the Move Pallet"
+authors = { workspace = true }
+edition = { workspace = true }
+readme = { workspace = true }
+repository = { workspace = true }
 
 [package.metadata.docs.rs]
 targets = ["x86_64-unknown-linux-gnu"]
 
 [dependencies]
-codec = { package = "parity-scale-codec", version = "3.6", default-features = false, features = ["derive"] }
-serde = { version = "1.0", features = [ "derive" ], default-features = false }
-jsonrpsee = { version = "0.16", features = ["server", "macros"] }
+codec = { workspace = true }
+serde = { workspace = true }
+frame-support = { workspace = true }
+jsonrpsee = { workspace = true }
+sp-api = { workspace = true }
+sp-blockchain = { workspace = true }
+sp-runtime = { workspace = true }
 
-# Substrate packages
-frame-support = { default-features = false, git = "https://github.com/paritytech/polkadot-sdk.git", branch = "release-polkadot-v1.4.0" }
-sp-api = { default-features = false, git = "https://github.com/paritytech/polkadot-sdk.git", branch = "release-polkadot-v1.4.0" }
-sp-blockchain = { default-features = false, git = "https://github.com/paritytech/polkadot-sdk.git", branch = "release-polkadot-v1.4.0" }
-sp-runtime = { default-features = false, git = "https://github.com/paritytech/polkadot-sdk.git", branch = "release-polkadot-v1.4.0" }
-
-# local packages
-pallet-move-runtime-api = { path = "./runtime-api", default-features = false }
+pallet-move = { path = "../pallet" }
 
 [features]
 default = ["std"]
 std = [
     "sp-api/std",
     "sp-runtime/std",
-    "pallet-move-runtime-api/std"
+    "pallet-move/std"
 ]
