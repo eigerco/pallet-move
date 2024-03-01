@@ -231,9 +231,8 @@ In order to keep things separated and easy to maintain, we propose to create a s
 
 The package and repository structure will look like this:
 - [`pallet-move`][pallet-move] - contains the pallet codebase, tests, and documentation.
-  - `pallet-move` - the main pallet crate.
-  - `pallet-move-rpc` - the RPC MoveVM pallet crate - placed under `src/rpc` directory. It contains the RPC codebase, tests, and documentation.
-  - `pallet-move-runtime-api` - the runtime API MoveVM pallet crate - placed under `src/rpc/runtime-api` directory.
+  - `pallet-move` - the main pallet crate with the runtime-api - placed under `pallet`.
+  - `pallet-move-rpc` - the RPC MoveVM pallet crate - placed under `rpc` directory. It contains the RPC codebase, tests, and documentation.
 - [`substrate-move`][substrate-move] - Move language fork. Contains all the Move crates and the toolchain.
 - [`substrate-node-template-move-vm-test`][substrate-node-template-move-vm-test] - testing node repository - contains the node codebase, tests, and documentation. Work is done in the `pallet-move` branch.
 - [`bcs`][bcs] - Rust implementation of the Binary Canonical Serialization (BCS) format - a crate which is used by some Move crates.
