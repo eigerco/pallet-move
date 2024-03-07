@@ -1,7 +1,8 @@
 use frame_support::{
     parameter_types,
-    traits::{ConstU128, ConstU16, ConstU32, ConstU64},
+    traits::{ConstU128, ConstU16, ConstU32, ConstU64, OnFinalize, OnIdle, OnInitialize},
 };
+use frame_system::pallet_prelude::BlockNumberFor;
 use sp_core::{crypto::Ss58Codec, sr25519::Public, H256};
 use sp_runtime::{
     traits::{BlakeTwo256, IdentityLookup},
@@ -9,7 +10,7 @@ use sp_runtime::{
 };
 
 use crate as pallet_move;
-use crate::Error;
+use crate::{Error, WeightInfo};
 
 pub use move_core_types::account_address::AccountAddress;
 pub use move_vm_backend_common::types::ScriptTransaction;
@@ -76,13 +77,13 @@ impl pallet_balances::Config for Test {
 }
 
 parameter_types! {
-    pub const MaxRequestLifetime: u32 = 5;
+    pub const MaxLifetimeRequests: BlockNumberFor<Test> = 5;
     pub const MaxScriptSigners: u32 = 8;
 }
 
 impl pallet_move::Config for Test {
     type Currency = Balances;
-    type MaxRequestLifetime = MaxRequestLifetime;
+    type MaxLifetimeRequests = MaxLifetimeRequests;
     type MaxScriptSigners = MaxScriptSigners;
     type RuntimeEvent = RuntimeEvent;
     type WeightInfo = ();
@@ -147,6 +148,7 @@ pub const CAFE_ADDR: &str = "5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSv4fmh4G"; 
 pub const BOB_ADDR: &str = "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty";
 pub const ALICE_ADDR: &str = "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY";
 pub const DAVE_ADDR: &str = "5DAAnrj7VHTznn2AWBemMuyBwZWs6FNFjdyVXUeYum3PTXFy";
+pub const EVE_ADDR: &str = "5HGjWAeFDfFCWPsjFQdVV2Msvz2XtMktvgocEZcCj68kUMaw";
 
 pub(crate) fn addr32_from_ss58(ss58addr: &str) -> Result<AccountId32, Error<Test>> {
     let (pk, _) = Public::from_ss58check_with_version(ss58addr)
@@ -165,11 +167,18 @@ pub(crate) fn addrs_from_ss58(ss58: &str) -> Result<(AccountId32, AccountAddress
     Ok((addr_32, addr_mv))
 }
 
-pub(crate) fn int_to_addr32(n: u128) -> AccountId32 {
-    let mut addr = [0u8; 32];
-    let bytes: [u8; 16] = n.to_be_bytes();
-    bytes.iter().enumerate().for_each(|(i, b)| addr[i] = *b);
-    AccountId32::from(addr)
+pub(crate) fn roll_to(n: BlockNumberFor<Test>) {
+    let weight = <Test as pallet_move::Config>::WeightInfo::chore_multisig_storage() * 2;
+    while System::block_number() < n {
+        <AllPalletsWithSystem as OnFinalize<u64>>::on_finalize(System::block_number());
+        System::set_block_number(System::block_number() + 1);
+        <AllPalletsWithSystem as OnIdle<u64>>::on_idle(System::block_number(), weight);
+        <AllPalletsWithSystem as OnInitialize<u64>>::on_initialize(System::block_number());
+    }
+}
+
+pub(crate) fn last_event() -> RuntimeEvent {
+    System::events().pop().expect("Event expected").event
 }
 
 pub mod assets {

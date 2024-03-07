@@ -16,6 +16,16 @@ pub mod weights;
 pub use pallet::*;
 pub use weights::*;
 
+#[macro_export]
+macro_rules! log {
+	($level:tt, $patter:expr $(, $values:expr)* $(,)?) => {
+		log::$level!(
+			target: "runtime::pallet-move",
+			concat!("[{:?}] 📄 ", $patter), <frame_system::Pallet<T>>::block_number() $(, $values)*
+		)
+	};
+}
+
 // The pallet is defined below.
 #[frame_support::pallet]
 pub mod pallet {
@@ -56,6 +66,9 @@ pub mod pallet {
 
     type MvmResult<T> = Result<Mvm<StorageAdapter<VMStorage<T>>, BalanceAdapter<T>>, Vec<u8>>;
 
+    /// Maximum number of multisig storage entries to be checked per block.
+    const MAX_MULTISIG_CHECKING_PER_BLOCK: u64 = 20;
+
     #[pallet::pallet]
     #[pallet::without_storage_info] // Allows to define storage items without fixed size
     pub struct Pallet<T>(_);
@@ -68,8 +81,11 @@ pub mod pallet {
 
     /// Storage for multi-signature/signer requests.
     #[pallet::storage]
-    pub type MultisigStorage<T: Config> =
-        StorageMap<_, Blake2_128Concat, CallHash, Multisig<T::AccountId, T::MaxScriptSigners>>;
+    pub type MultisigStorage<T> = StorageMap<_, Blake2_128Concat, CallHash, MultisigOf<T>>;
+
+    /// Storage for chore mechanism for old Multisigs in `MultisigStorage`.
+    #[pallet::storage]
+    pub type ChoreOnIdleStorage<T> = StorageValue<_, u64>;
 
     /// MoveVM pallet configuration trait
     #[pallet::config]
@@ -81,7 +97,7 @@ pub mod pallet {
 
         /// Maximum life time for requests.
         #[pallet::constant]
-        type MaxRequestLifetime: Get<u32>;
+        type MaxLifetimeRequests: Get<BlockNumberFor<Self>>;
 
         /// Maximum number of signatories in multi-signer requests.
         #[pallet::constant]
@@ -109,7 +125,7 @@ pub mod pallet {
         ModulePublished { who: T::AccountId },
         /// Event about removed multi-signing request.
         /// [vec<account>]
-        MultiSignRequestRemoved { who: Vec<T::AccountId> },
+        MultiSignRequestRemoved { call: Vec<CallHash> },
         /// Event about another signature for a multi-signer execution request.
         /// [account, multisignstate]
         SignedMultisigScript { who: T::AccountId },
@@ -152,9 +168,62 @@ pub mod pallet {
     }
 
     #[pallet::hooks]
-    impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
-        fn on_idle(_n: BlockNumberFor<T>, remaining_weight: Weight) -> Weight {
-            // TODO: Add maintainance for storage MultisigStorage (remove old requests).
+    impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T>
+    where
+        BalanceOf<T>: From<u128> + Into<u128>,
+    {
+        fn on_idle(block_height: BlockNumberFor<T>, mut remaining_weight: Weight) -> Weight {
+            let len = MultisigStorage::<T>::iter_keys().count() as u64;
+            let lifetime = T::MaxLifetimeRequests::get();
+            // Abort if storage is empty or the allowed lifetime is longer than the blockchain's
+            // existence (otherwise, an integer underflow can occur).
+            if len == 0 || block_height < lifetime {
+                return remaining_weight - T::DbWeight::get().reads(1);
+            }
+
+            // We will read three times for sure and write one time for sure for the storage,
+            // no matter if we execute the internal chore method or not.
+            remaining_weight -= T::DbWeight::get().reads_writes(3, 1);
+
+            let mut idx: u64 = ChoreOnIdleStorage::<T>::get().unwrap_or(0);
+            if idx >= len {
+                idx = 0;
+            }
+
+            let keys = MultisigStorage::<T>::iter_keys().skip(idx as usize);
+            let block_tbr = block_height - lifetime;
+            let mut call = Vec::<CallHash>::new();
+            let mut count: u64 = 0;
+
+            for key in keys {
+                if let Some(call_hash) = Self::chore_multisig_storage(key, block_tbr) {
+                    call.push(call_hash);
+                }
+                count += 1;
+                if let Some(weight) =
+                    remaining_weight.checked_sub(&T::WeightInfo::chore_multisig_storage())
+                {
+                    remaining_weight = weight;
+                    if count >= MAX_MULTISIG_CHECKING_PER_BLOCK {
+                        break;
+                    }
+                } else {
+                    remaining_weight = Weight::zero();
+                    break;
+                }
+            }
+
+            let n_removed = call.len() as u64;
+            idx += count - n_removed;
+            if idx >= len - n_removed {
+                idx = 0;
+            }
+            ChoreOnIdleStorage::<T>::put(idx);
+
+            if !call.is_empty() {
+                Self::deposit_event(Event::<T>::MultiSignRequestRemoved { call });
+            }
+
             remaining_weight
         }
     }
@@ -178,6 +247,7 @@ pub mod pallet {
             gas_limit: u64,
             cheque_limit: BalanceOf<T>,
         ) -> DispatchResultWithPostInfo {
+            // TODO(neutrinoks): Add currency locking in multi-signature executions.
             // A signer for the extrinsic and a signer for the Move script.
             let who = ensure_signed(origin)?;
 
@@ -198,21 +268,22 @@ pub mod pallet {
             let signer_count =
                 verify_script_integrity_and_check_signers(&bytecode).map_err(Error::<T>::from)?;
             let accounts = Self::extract_account_ids_from_args(&args, signer_count)?;
+            let block_height = <frame_system::Pallet<T>>::block_number();
 
             let (mut signature_handler, call_hash) = if signer_count > 1 {
                 // Generate the call hash to identify this multi-sign call request.
-                let mut hasher = Blake2s256::new();
-                hasher.update(&transaction_bc[..]);
-                let call_hash: CallHash = hasher.finalize().into();
+                let call_hash = Self::transaction_bc_call_hash(&transaction_bc[..]);
 
                 let multisig = MultisigStorage::<T>::get(call_hash).unwrap_or(
-                    Multisig::<T::AccountId, T::MaxScriptSigners>::new(accounts)
-                        .map_err(Into::<Error<T>>::into)?,
+                    MultisigOf::<T>::new(accounts, block_height).map_err(Into::<Error<T>>::into)?,
                 );
 
                 (ScriptSignatureHandler::<T>::from(multisig), call_hash)
             } else {
-                (ScriptSignatureHandler::<T>::new(accounts)?, [0u8; 32])
+                (
+                    ScriptSignatureHandler::<T>::new(accounts, block_height)?,
+                    [0u8; 32],
+                )
             };
             if signer_count > 0 {
                 signature_handler.sign_script(&who, cheque_limit.into())?;
@@ -220,10 +291,15 @@ pub mod pallet {
 
             // If the script is signed correctly, we can execute it in MoveVM and update the
             // blockchain storage or the balance sheet.
+            // If we have only one signer, it will skip this; if not, we have to wait for more signers, so we store it as a multi-signer request.
             if !signature_handler.all_signers_approved() {
                 MultisigStorage::<T>::insert(call_hash, signature_handler.into_inner());
                 Self::deposit_event(Event::SignedMultisigScript { who });
                 return result::execute_only_signing();
+            }
+            // If we have multiple signers and they all have signed, we have to remove the multi-signer request from the MultisigStorage.
+            if signer_count > 1 {
+                MultisigStorage::<T>::remove(call_hash);
             }
 
             // We need to provide MoveVM read only access to balance sheet - MoveVM is allowed to
@@ -468,6 +544,22 @@ pub mod pallet {
             }
 
             Ok(accounts)
+        }
+
+        fn chore_multisig_storage(key: CallHash, block_tbr: BlockNumberFor<T>) -> Option<CallHash> {
+            let multisig = MultisigStorage::<T>::get(key)?;
+            if *multisig.block_number() > block_tbr {
+                None
+            } else {
+                MultisigStorage::<T>::remove(key);
+                Some(key)
+            }
+        }
+
+        pub fn transaction_bc_call_hash(transaction_bc: &[u8]) -> CallHash {
+            let mut hasher = Blake2s256::new();
+            hasher.update(transaction_bc);
+            hasher.finalize().into()
         }
     }
 

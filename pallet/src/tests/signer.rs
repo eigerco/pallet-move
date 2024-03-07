@@ -1,5 +1,4 @@
-use crate::mock::*;
-use crate::Error;
+use crate::{mock::*, no_type_args, script_transaction, Error, Event, MultisigStorage};
 
 use frame_support::{assert_err, assert_ok, pallet_prelude::DispatchResultWithPostInfo};
 use move_core_types::{language_storage::TypeTag, u256::U256};
@@ -134,112 +133,48 @@ fn general_script_no_signers_param_at_all_works() {
 /// Script with many signers parameters executes correctly when all signers are signed by one account.
 #[test]
 fn general_script_eight_normal_signers_works() {
-    let user1_native = int_to_addr32(1);
-    let user1_move = addr32_to_move(&user1_native).unwrap();
-    let user2_native = int_to_addr32(2);
-    let user2_move = addr32_to_move(&user2_native).unwrap();
-    let user3_native = int_to_addr32(3);
-    let user3_move = addr32_to_move(&user3_native).unwrap();
-    let user4_native = int_to_addr32(4);
-    let user4_move = addr32_to_move(&user4_native).unwrap();
-    let user5_native = int_to_addr32(5);
-    let user5_move = addr32_to_move(&user5_native).unwrap();
-    let user6_native = int_to_addr32(6);
-    let user6_move = addr32_to_move(&user6_native).unwrap();
-    let user7_native = int_to_addr32(7);
-    let user7_move = addr32_to_move(&user7_native).unwrap();
-    let user8_native = int_to_addr32(8);
-    let user8_move = addr32_to_move(&user8_native).unwrap();
+    let (bob_addr_32, bob_addr_mv) = addrs_from_ss58(BOB_ADDR).unwrap();
 
     ExtBuilder::default()
-        .with_balances(vec![
-            (user1_native.clone(), EXISTENTIAL_DEPOSIT),
-            (user2_native.clone(), EXISTENTIAL_DEPOSIT),
-            (user3_native.clone(), EXISTENTIAL_DEPOSIT),
-            (user4_native.clone(), EXISTENTIAL_DEPOSIT),
-            (user5_native.clone(), EXISTENTIAL_DEPOSIT),
-            (user6_native.clone(), EXISTENTIAL_DEPOSIT),
-            (user7_native.clone(), EXISTENTIAL_DEPOSIT),
-            (user8_native.clone(), EXISTENTIAL_DEPOSIT),
-        ])
+        .with_balances(vec![(bob_addr_32.clone(), EXISTENTIAL_DEPOSIT)])
         .build()
         .execute_with(|| {
+            // Roll to first block in case of block based event checkings and processes.
+            roll_to(1);
+
             // eight_normal_signers(_s1: signer, _s2: signer, _s3: &signer, _s4: signer, _s5: &signer,
             // _s6: signer, _s7: &signer, _s8: &signer, _extra: u32)
             let script = assets::read_script_from_project("signer-scripts", "eight_normal_signers");
             let type_args: Vec<TypeTag> = vec![];
 
             let mut pg = ParamGenerator::new();
-            let s1 = pg.address(&user1_move);
-            let s2 = pg.address(&user2_move);
-            let s3 = pg.address(&user3_move);
-            let s4 = pg.address(&user4_move);
-            let s5 = pg.address(&user5_move);
-            let s6 = pg.address(&user6_move);
-            let s7 = pg.address(&user7_move);
-            let s8 = pg.address(&user8_move);
+            let s1 = pg.address(&bob_addr_mv);
             let extra = pg.rand::<u32>();
-            let params: Vec<&[u8]> = vec![&s1, &s2, &s3, &s4, &s5, &s6, &s7, &s8, &extra];
+            let params: Vec<&[u8]> = vec![&s1, &s1, &s1, &s1, &s1, &s1, &s1, &s1, &extra];
 
             assert_ok!(execute_script(
-                user1_native,
+                bob_addr_32.clone(),
                 script.clone(),
                 params.clone(),
                 type_args.clone()
             ));
-            assert_ok!(execute_script(
-                user2_native,
-                script.clone(),
-                params.clone(),
-                type_args.clone()
-            ));
-            assert_ok!(execute_script(
-                user3_native,
-                script.clone(),
-                params.clone(),
-                type_args.clone()
-            ));
-            assert_ok!(execute_script(
-                user4_native,
-                script.clone(),
-                params.clone(),
-                type_args.clone()
-            ));
-            assert_ok!(execute_script(
-                user5_native,
-                script.clone(),
-                params.clone(),
-                type_args.clone()
-            ));
-            assert_ok!(execute_script(
-                user6_native,
-                script.clone(),
-                params.clone(),
-                type_args.clone()
-            ));
-            assert_ok!(execute_script(
-                user7_native,
-                script.clone(),
-                params.clone(),
-                type_args.clone()
-            ));
-            assert_ok!(execute_script(
-                user8_native,
-                script.clone(),
-                params.clone(),
-                type_args.clone()
-            ));
+            assert_eq!(
+                last_event(),
+                RuntimeEvent::MoveModule(Event::<Test>::ExecuteCalled {
+                    who: vec![bob_addr_32]
+                })
+            );
         })
 }
 
 /// Script with many signers parameters fails if all signers don't provide an actual signature.
 #[test]
-fn general_script_eight_normal_signers_where_eve_tries_to_forge_signers_fails() {
+fn eve_cant_execute_multisig_script_without_other_signers_works() {
     ExtBuilder::default().build().execute_with(|| {
         let mut pg = ParamGenerator::new();
         // Eve is basically Bob here, but since Bob is pretending to be bad, we'll rename him.
         let (eve_addr_32, eve_addr_mv) = addrs_from_ss58(BOB_ADDR).unwrap();
-        let (_, alice_addr_mv) = addrs_from_ss58(ALICE_ADDR).unwrap();
+        let (alice_addr_32, alice_addr_mv) = addrs_from_ss58(ALICE_ADDR).unwrap();
 
         // eight_normal_signers(_s1: signer, _s2: signer, _s3: &signer, _s4: signer, _s5: &signer,
         // _s6: signer, _s7: &signer, _s8: &signer, _extra: u32)
@@ -257,8 +192,19 @@ fn general_script_eight_normal_signers_where_eve_tries_to_forge_signers_fails() 
             params.clone(),
             type_args.clone()
         ));
-        let result = execute_script(eve_addr_32, script, params, type_args);
+        let result = execute_script(
+            eve_addr_32,
+            script.clone(),
+            params.clone(),
+            type_args.clone(),
+        );
         assert_err!(result, Error::<Test>::UserHasAlreadySigned);
+        assert_ok!(execute_script(
+            alice_addr_32.clone(),
+            script.clone(),
+            params.clone(),
+            type_args.clone()
+        ));
     })
 }
 
@@ -345,4 +291,209 @@ fn script_with_vector_containing_signer_fails() {
         let result = execute_script(bob_addr_32, script, params, type_args);
         assert_err!(result, Error::<Test>::InvalidMainFunctionSignature);
     })
+}
+
+#[test]
+fn multiple_signers_in_multisig_script_works() {
+    const BALANCE: Balance = 80_000_000_000_000;
+    let (bob_addr_32, bob_addr_mv) = addrs_from_ss58(BOB_ADDR).unwrap();
+    let (alice_addr_32, alice_addr_mv) = addrs_from_ss58(ALICE_ADDR).unwrap();
+    let (dave_addr_32, dave_addr_mv) = addrs_from_ss58(DAVE_ADDR).unwrap();
+    let (eve_addr_32, eve_addr_mv) = addrs_from_ss58(EVE_ADDR).unwrap();
+
+    ExtBuilder::default()
+        .with_balances(vec![
+            (bob_addr_32.clone(), BALANCE),
+            (alice_addr_32.clone(), BALANCE),
+            (dave_addr_32.clone(), BALANCE),
+            (eve_addr_32.clone(), BALANCE),
+        ])
+        .build()
+        .execute_with(|| {
+            // Roll to first block in case of block based event checkings and processes.
+            roll_to(1);
+
+            // Initialisation & Setup by developer Bob.
+            let module = assets::read_module_from_project("multiple-signers", "Dorm");
+            assert_ok!(MoveModule::publish_module(
+                RuntimeOrigin::signed(bob_addr_32.clone()),
+                module,
+                MAX_GAS_AMOUNT
+            ));
+            assert_eq!(
+                last_event(),
+                RuntimeEvent::MoveModule(Event::<Test>::ModulePublished {
+                    who: bob_addr_32.clone()
+                })
+            );
+
+            let script = assets::read_script_from_project("multiple-signers", "init_module");
+            let transaction_bc = script_transaction!(script, no_type_args!(), &bob_addr_mv);
+            assert_ok!(MoveModule::execute(
+                RuntimeOrigin::signed(bob_addr_32.clone()),
+                transaction_bc.clone(),
+                MAX_GAS_AMOUNT,
+                BALANCE,
+            ));
+            assert_eq!(
+                last_event(),
+                RuntimeEvent::MoveModule(Event::<Test>::ExecuteCalled {
+                    who: vec![bob_addr_32.clone()]
+                })
+            );
+
+            // Now our three tenants want to rent the 3-room apartment.
+            let script = assets::read_script_from_project("multiple-signers", "rent_apartment");
+            let transaction_bc = script_transaction!(
+                script,
+                no_type_args!(),
+                &alice_addr_mv,
+                &dave_addr_mv,
+                &eve_addr_mv,
+                &2u8
+            );
+            let call_hash = MoveModule::transaction_bc_call_hash(&transaction_bc[..]);
+            assert!(MultisigStorage::<Test>::try_get(call_hash).is_err());
+            assert_ok!(MoveModule::execute(
+                RuntimeOrigin::signed(alice_addr_32.clone()),
+                transaction_bc.clone(),
+                MAX_GAS_AMOUNT,
+                BALANCE,
+            ));
+            assert_eq!(
+                last_event(),
+                RuntimeEvent::MoveModule(Event::<Test>::SignedMultisigScript {
+                    who: alice_addr_32.clone()
+                })
+            );
+            assert!(MultisigStorage::<Test>::try_get(call_hash).is_ok());
+
+            assert_ok!(MoveModule::execute(
+                RuntimeOrigin::signed(dave_addr_32.clone()),
+                transaction_bc.clone(),
+                MAX_GAS_AMOUNT,
+                BALANCE,
+            ));
+            assert_eq!(
+                last_event(),
+                RuntimeEvent::MoveModule(Event::<Test>::SignedMultisigScript {
+                    who: dave_addr_32.clone()
+                })
+            );
+
+            assert_ok!(MoveModule::execute(
+                RuntimeOrigin::signed(eve_addr_32.clone()),
+                transaction_bc.clone(),
+                MAX_GAS_AMOUNT,
+                BALANCE,
+            ));
+            assert_eq!(
+                last_event(),
+                RuntimeEvent::MoveModule(Event::<Test>::ExecuteCalled {
+                    who: vec![
+                        dave_addr_32.clone(),
+                        alice_addr_32.clone(),
+                        eve_addr_32.clone()
+                    ]
+                })
+            );
+            // Now after all signers have signed the multsig script, we can expect that the script
+            // will be executed and the multisg storage will remove the pending mutlisig script
+            // data, since the script has been executed.
+            assert!(MultisigStorage::<Test>::try_get(call_hash).is_err());
+        })
+}
+
+/// Multi-signer script execution request gets removed after defined period.
+#[test]
+fn verify_old_multi_signer_requests_getting_removed() {
+    const BALANCE: Balance = 80_000_000_000_000;
+    let (bob_addr_32, bob_addr_mv) = addrs_from_ss58(BOB_ADDR).unwrap();
+    let (alice_addr_32, alice_addr_mv) = addrs_from_ss58(ALICE_ADDR).unwrap();
+    let (dave_addr_32, dave_addr_mv) = addrs_from_ss58(DAVE_ADDR).unwrap();
+    let (eve_addr_32, eve_addr_mv) = addrs_from_ss58(EVE_ADDR).unwrap();
+
+    ExtBuilder::default()
+        .with_balances(vec![
+            (bob_addr_32.clone(), BALANCE),
+            (alice_addr_32.clone(), BALANCE),
+            (dave_addr_32.clone(), BALANCE),
+            (eve_addr_32.clone(), BALANCE),
+        ])
+        .build()
+        .execute_with(|| {
+            // Roll to first block in case of block based event checkings and processes.
+            roll_to(1);
+
+            // Initialisation & Setup by developer Bob.
+            let module = assets::read_module_from_project("multiple-signers", "Dorm");
+            assert_ok!(MoveModule::publish_module(
+                RuntimeOrigin::signed(bob_addr_32.clone()),
+                module,
+                MAX_GAS_AMOUNT
+            ));
+            let script = assets::read_script_from_project("multiple-signers", "init_module");
+            let transaction_bc = script_transaction!(script, no_type_args!(), &bob_addr_mv);
+            assert_ok!(MoveModule::execute(
+                RuntimeOrigin::signed(bob_addr_32.clone()),
+                transaction_bc.clone(),
+                MAX_GAS_AMOUNT,
+                BALANCE,
+            ));
+
+            // Now only 2 of 3 planned signers will sign the script execution.
+            let script = assets::read_script_from_project("multiple-signers", "rent_apartment");
+            let transaction_bc = script_transaction!(
+                script,
+                no_type_args!(),
+                &alice_addr_mv,
+                &dave_addr_mv,
+                &eve_addr_mv
+            );
+            assert_ok!(MoveModule::execute(
+                RuntimeOrigin::signed(alice_addr_32.clone()),
+                transaction_bc.clone(),
+                MAX_GAS_AMOUNT,
+                BALANCE,
+            ));
+            assert_ok!(MoveModule::execute(
+                RuntimeOrigin::signed(dave_addr_32.clone()),
+                transaction_bc.clone(),
+                MAX_GAS_AMOUNT,
+                BALANCE,
+            ));
+            // Sloppy or distrustful Eve is missing...
+
+            // Verify expected Multisig data in storage.
+            let call_hash = MoveModule::transaction_bc_call_hash(&transaction_bc[..]);
+            let _request = MultisigStorage::<Test>::try_get(call_hash).unwrap();
+
+            // Let's roll forward to block number 4 and check our request still exists.
+            roll_to(5);
+            assert!(MultisigStorage::<Test>::try_get(call_hash).is_ok());
+
+            // One more block forward and it shall be removed!
+            roll_to(6);
+            assert!(MultisigStorage::<Test>::try_get(call_hash).is_err());
+            assert_eq!(
+                last_event(),
+                RuntimeEvent::MoveModule(Event::<Test>::MultiSignRequestRemoved {
+                    call: vec![call_hash],
+                })
+            );
+
+            // If Eve now tries to sign that multi-signer request, a new request will be created.
+            assert_ok!(MoveModule::execute(
+                RuntimeOrigin::signed(eve_addr_32.clone()),
+                transaction_bc.clone(),
+                MAX_GAS_AMOUNT,
+                BALANCE,
+            ));
+            assert_eq!(
+                last_event(),
+                RuntimeEvent::MoveModule(Event::<Test>::SignedMultisigScript {
+                    who: eve_addr_32.clone()
+                })
+            );
+        })
 }
