@@ -1,4 +1,6 @@
 use frame_support::{
+    dispatch::DispatchErrorWithPostInfo,
+    pallet_prelude::{DispatchError, DispatchResultWithPostInfo},
     parameter_types,
     traits::{ConstU128, ConstU16, ConstU32, ConstU64, OnFinalize, OnIdle, OnInitialize},
 };
@@ -179,6 +181,22 @@ pub(crate) fn roll_to(n: BlockNumberFor<Test>) {
 
 pub(crate) fn last_event() -> RuntimeEvent {
     System::events().pop().expect("Event expected").event
+}
+
+pub(crate) fn verify_module_error_with_msg(
+    res: DispatchResultWithPostInfo,
+    e_msg: &str,
+) -> Result<bool, String> {
+    if let Err(DispatchErrorWithPostInfo {
+        error: DispatchError::Module(moderr),
+        ..
+    }) = res
+    {
+        if let Some(msg) = moderr.message {
+            return Ok(msg == e_msg);
+        }
+    }
+    Err(format!("{res:?} does not match '{e_msg}'"))
 }
 
 pub mod assets {

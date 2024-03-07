@@ -3,9 +3,7 @@
 use crate::mock::*;
 use crate::{no_type_args, script_transaction};
 
-use frame_support::{
-    assert_err, assert_ok, dispatch::DispatchErrorWithPostInfo, pallet_prelude::*,
-};
+use frame_support::{assert_err, assert_ok, pallet_prelude::*};
 use move_stdlib::move_stdlib_bundle;
 use move_vm_backend::types::MAX_GAS_AMOUNT;
 
@@ -15,22 +13,6 @@ fn mock_move_stdlib() -> Vec<u8> {
 
 fn mock_substrate_stdlib() -> Vec<u8> {
     assets::read_bundle_from_project("testing-substrate-stdlib", "testing-substrate-stdlib")
-}
-
-fn verify_module_error_with_msg(
-    res: DispatchResultWithPostInfo,
-    e_msg: &str,
-) -> Result<bool, String> {
-    if let Err(DispatchErrorWithPostInfo {
-        error: DispatchError::Module(moderr),
-        ..
-    }) = res
-    {
-        if let Some(msg) = moderr.message {
-            return Ok(msg == e_msg);
-        }
-    }
-    Err(format!("{res:?} does not match '{e_msg}'"))
 }
 
 #[test]
