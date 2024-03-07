@@ -9,6 +9,7 @@ build_dir=(
     "car-wash-example"
     "get-resource"
     "move-basics"
+    "multiple-signers"
     "signer-scripts"
     # Bundles
     "testing-move-stdlib"

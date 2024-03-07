@@ -8,6 +8,7 @@ build_dir=(
     "car-wash-example"
     "get-resource"
     "move-basics"
+    "multiple-signers"
     "signer-scripts"
 )
 bundle_dir=(

@@ -19,6 +19,7 @@ hashbrown = { workspace = true }
 frame-benchmarking = { workspace = true, optional = true }
 frame-support = { workspace = true }
 frame-system = { workspace = true }
+log = { workspace = true }
 move-core-types = { workspace = true }
 move-vm-backend = { workspace = true }
 move-vm-backend-common = { workspace = true }
