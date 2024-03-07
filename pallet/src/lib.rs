@@ -34,14 +34,16 @@ pub mod pallet {
     extern crate alloc;
     #[cfg(not(feature = "std"))]
     use alloc::format;
-    use blake2::{Blake2s256, Digest};
+    use blake2::{digest::consts::U8, Blake2b, Blake2s256, Digest};
     use core::convert::AsRef;
 
     use codec::{FullCodec, FullEncode};
     use frame_support::{
         dispatch::DispatchResultWithPostInfo,
         pallet_prelude::*,
-        traits::{Currency, Get, LockableCurrency, ReservableCurrency},
+        traits::{
+            tokens::currency::LockIdentifier, Currency, Get, LockableCurrency, ReservableCurrency,
+        },
     };
     use frame_system::pallet_prelude::*;
     pub use move_core_types::language_storage::TypeTag;
@@ -247,7 +249,6 @@ pub mod pallet {
             gas_limit: u64,
             cheque_limit: BalanceOf<T>,
         ) -> DispatchResultWithPostInfo {
-            // TODO(neutrinoks): Add currency locking in multi-signature executions.
             // A signer for the extrinsic and a signer for the Move script.
             let who = ensure_signed(origin)?;
 
@@ -286,7 +287,8 @@ pub mod pallet {
                 )
             };
             if signer_count > 0 {
-                signature_handler.sign_script(&who, cheque_limit.into())?;
+                let lock_id = Self::multi_signer_lock_id(&who, &transaction_bc[..], &cheque_limit);
+                signature_handler.sign_script(&who, cheque_limit.into(), lock_id)?;
             }
 
             // If the script is signed correctly, we can execute it in MoveVM and update the
@@ -559,6 +561,18 @@ pub mod pallet {
         pub fn transaction_bc_call_hash(transaction_bc: &[u8]) -> CallHash {
             let mut hasher = Blake2s256::new();
             hasher.update(transaction_bc);
+            hasher.finalize().into()
+        }
+
+        pub fn multi_signer_lock_id(
+            who: &T::AccountId,
+            transaction_bc: &[u8],
+            cheque_limit: &BalanceOf<T>,
+        ) -> LockIdentifier {
+            let mut hasher = Blake2b::<U8>::new();
+            hasher.update(transaction_bc);
+            hasher.update(&who.encode()[..]);
+            hasher.update(&cheque_limit.encode()[..]);
             hasher.finalize().into()
         }
     }

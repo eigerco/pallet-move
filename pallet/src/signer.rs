@@ -1,7 +1,17 @@
 use core::marker::PhantomData;
 
 use codec::{Decode, Encode, MaxEncodedLen};
-use frame_support::{pallet_prelude::RuntimeDebug, traits::Get, BoundedBTreeMap, Parameter};
+use frame_support::{
+    pallet_prelude::RuntimeDebug,
+    traits::{
+        tokens::{
+            currency::{LockIdentifier, LockableCurrency},
+            WithdrawReasons,
+        },
+        Get,
+    },
+    BoundedBTreeMap, Parameter,
+};
 use frame_system::{pallet_prelude::BlockNumberFor, Config as SysConfig};
 use scale_info::TypeInfo;
 use sp_runtime::traits::MaybeSerializeDeserialize;
@@ -54,6 +64,8 @@ pub struct SignerData {
     pub signature: Signature,
     /// Individual cheque-limit.
     pub cheque_limit: u128,
+    /// Lock ID for locked currency.
+    pub lock_id: LockIdentifier,
 }
 
 /// Storage struct definition for a multi-signer request.
@@ -183,6 +195,7 @@ where
         &mut self,
         account: &T::AccountId,
         cheque_limit: u128,
+        lock_id: LockIdentifier,
     ) -> Result<(), Error<T>> {
         if let Some(ms_data) = self.multisig_info.get_mut(account) {
             if matches!(ms_data.signature, Signature::Approved) {
@@ -190,6 +203,9 @@ where
             } else {
                 ms_data.signature = Signature::Approved;
                 ms_data.cheque_limit = cheque_limit;
+                ms_data.lock_id = lock_id;
+                let amount = BalanceOf::<T>::from(cheque_limit);
+                T::Currency::set_lock(lock_id, account, amount, WithdrawReasons::all());
                 Ok(())
             }
         } else {
@@ -209,6 +225,7 @@ where
     pub(crate) fn write_cheques(&self) -> Result<BalanceAdapter<T>, Error<T>> {
         let mut balances = BalanceAdapter::<T>::new();
         for (account, ms_data) in self.multisig_info.iter() {
+            T::Currency::remove_lock(ms_data.lock_id, account);
             balances
                 .write_cheque(account, &BalanceOf::<T>::from(ms_data.cheque_limit))
                 .map_err(|_| Error::<T>::InsufficientBalance)?;
