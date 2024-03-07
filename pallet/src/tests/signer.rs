@@ -1,6 +1,10 @@
 use crate::{mock::*, no_type_args, script_transaction, Error, Event, MultisigStorage};
 
-use frame_support::{assert_err, assert_ok, pallet_prelude::DispatchResultWithPostInfo};
+use frame_support::{
+    assert_err, assert_ok,
+    pallet_prelude::DispatchResultWithPostInfo,
+    traits::{tokens::WithdrawReasons, Currency},
+};
 use move_core_types::{language_storage::TypeTag, u256::U256};
 use move_vm_backend::types::MAX_GAS_AMOUNT;
 use rand::{distributions::Standard, prelude::Distribution, rngs::ThreadRng, Rng};
@@ -296,6 +300,7 @@ fn script_with_vector_containing_signer_fails() {
 #[test]
 fn multiple_signers_in_multisig_script_works() {
     const BALANCE: Balance = 80_000_000_000_000;
+    const CHANGE: Balance = 20_000_000_000_000;
     let (bob_addr_32, bob_addr_mv) = addrs_from_ss58(BOB_ADDR).unwrap();
     let (alice_addr_32, alice_addr_mv) = addrs_from_ss58(ALICE_ADDR).unwrap();
     let (dave_addr_32, dave_addr_mv) = addrs_from_ss58(DAVE_ADDR).unwrap();
@@ -353,7 +358,29 @@ fn multiple_signers_in_multisig_script_works() {
                 &2u8
             );
             let call_hash = MoveModule::transaction_bc_call_hash(&transaction_bc[..]);
+
+            // Verify that no lock has been set so far and that the Multisig request entry cannot
+            // be found in storage.
             assert!(MultisigStorage::<Test>::try_get(call_hash).is_err());
+            assert_ok!(Balances::ensure_can_withdraw(
+                &alice_addr_32,
+                BALANCE,
+                WithdrawReasons::TRANSFER,
+                0
+            ));
+            assert_ok!(Balances::ensure_can_withdraw(
+                &dave_addr_32,
+                BALANCE,
+                WithdrawReasons::TRANSFER,
+                0
+            ));
+            assert_ok!(Balances::ensure_can_withdraw(
+                &eve_addr_32,
+                BALANCE,
+                WithdrawReasons::TRANSFER,
+                0
+            ));
+
             assert_ok!(MoveModule::execute(
                 RuntimeOrigin::signed(alice_addr_32.clone()),
                 transaction_bc.clone(),
@@ -367,6 +394,25 @@ fn multiple_signers_in_multisig_script_works() {
                 })
             );
             assert!(MultisigStorage::<Test>::try_get(call_hash).is_ok());
+            assert!(Balances::ensure_can_withdraw(
+                &alice_addr_32,
+                BALANCE,
+                WithdrawReasons::TRANSFER,
+                0
+            )
+            .is_err());
+            assert_ok!(Balances::ensure_can_withdraw(
+                &dave_addr_32,
+                BALANCE,
+                WithdrawReasons::TRANSFER,
+                0
+            ));
+            assert_ok!(Balances::ensure_can_withdraw(
+                &eve_addr_32,
+                BALANCE,
+                WithdrawReasons::TRANSFER,
+                0
+            ));
 
             assert_ok!(MoveModule::execute(
                 RuntimeOrigin::signed(dave_addr_32.clone()),
@@ -380,6 +426,27 @@ fn multiple_signers_in_multisig_script_works() {
                     who: dave_addr_32.clone()
                 })
             );
+            // Now this candidate should also not be able to transfer the locked tokens.
+            assert!(Balances::ensure_can_withdraw(
+                &alice_addr_32,
+                BALANCE,
+                WithdrawReasons::TRANSFER,
+                0
+            )
+            .is_err());
+            assert!(Balances::ensure_can_withdraw(
+                &dave_addr_32,
+                BALANCE,
+                WithdrawReasons::TRANSFER,
+                0
+            )
+            .is_err());
+            assert_ok!(Balances::ensure_can_withdraw(
+                &eve_addr_32,
+                BALANCE,
+                WithdrawReasons::TRANSFER,
+                0
+            ));
 
             assert_ok!(MoveModule::execute(
                 RuntimeOrigin::signed(eve_addr_32.clone()),
@@ -397,6 +464,24 @@ fn multiple_signers_in_multisig_script_works() {
                     ]
                 })
             );
+            assert_ok!(Balances::ensure_can_withdraw(
+                &alice_addr_32,
+                CHANGE,
+                WithdrawReasons::TRANSFER,
+                0
+            ));
+            assert_ok!(Balances::ensure_can_withdraw(
+                &dave_addr_32,
+                CHANGE,
+                WithdrawReasons::TRANSFER,
+                0
+            ));
+            assert_ok!(Balances::ensure_can_withdraw(
+                &eve_addr_32,
+                CHANGE,
+                WithdrawReasons::TRANSFER,
+                0
+            ));
             // Now after all signers have signed the multsig script, we can expect that the script
             // will be executed and the multisg storage will remove the pending mutlisig script
             // data, since the script has been executed.
@@ -448,7 +533,8 @@ fn verify_old_multi_signer_requests_getting_removed() {
                 no_type_args!(),
                 &alice_addr_mv,
                 &dave_addr_mv,
-                &eve_addr_mv
+                &eve_addr_mv,
+                &2u8
             );
             assert_ok!(MoveModule::execute(
                 RuntimeOrigin::signed(alice_addr_32.clone()),
@@ -495,5 +581,73 @@ fn verify_old_multi_signer_requests_getting_removed() {
                     who: eve_addr_32.clone()
                 })
             );
+        })
+}
+
+#[test]
+fn cheque_limit_in_multi_signer_execution_works() {
+    const BALANCE: Balance = 80_000_000_000_000;
+    let (bob_addr_32, bob_addr_mv) = addrs_from_ss58(BOB_ADDR).unwrap();
+    let (alice_addr_32, alice_addr_mv) = addrs_from_ss58(ALICE_ADDR).unwrap();
+    let (dave_addr_32, dave_addr_mv) = addrs_from_ss58(DAVE_ADDR).unwrap();
+    let (eve_addr_32, eve_addr_mv) = addrs_from_ss58(EVE_ADDR).unwrap();
+
+    ExtBuilder::default()
+        .with_balances(vec![
+            (bob_addr_32.clone(), BALANCE),
+            (alice_addr_32.clone(), BALANCE),
+            (dave_addr_32.clone(), BALANCE),
+            (eve_addr_32.clone(), BALANCE),
+        ])
+        .build()
+        .execute_with(|| {
+            // Roll to first block in case of block based event checkings and processes.
+            roll_to(1);
+
+            // Initialisation & Setup by developer Bob.
+            let module = assets::read_module_from_project("multiple-signers", "Dorm");
+            assert_ok!(MoveModule::publish_module(
+                RuntimeOrigin::signed(bob_addr_32.clone()),
+                module,
+                MAX_GAS_AMOUNT
+            ));
+            let script = assets::read_script_from_project("multiple-signers", "init_module");
+            let transaction_bc = script_transaction!(script, no_type_args!(), &bob_addr_mv);
+            assert_ok!(MoveModule::execute(
+                RuntimeOrigin::signed(bob_addr_32.clone()),
+                transaction_bc.clone(),
+                MAX_GAS_AMOUNT,
+                BALANCE,
+            ));
+
+            // Now only 2 of 3 planned signers will sign the script execution.
+            let script = assets::read_script_from_project("multiple-signers", "rent_apartment");
+            let transaction_bc = script_transaction!(
+                script,
+                no_type_args!(),
+                &alice_addr_mv,
+                &dave_addr_mv,
+                &eve_addr_mv,
+                &2u8
+            );
+            assert_ok!(MoveModule::execute(
+                RuntimeOrigin::signed(dave_addr_32.clone()),
+                transaction_bc.clone(),
+                MAX_GAS_AMOUNT,
+                BALANCE,
+            ));
+            assert_ok!(MoveModule::execute(
+                RuntimeOrigin::signed(eve_addr_32.clone()),
+                transaction_bc.clone(),
+                MAX_GAS_AMOUNT,
+                BALANCE,
+            ));
+            let res = MoveModule::execute(
+                RuntimeOrigin::signed(alice_addr_32.clone()),
+                transaction_bc.clone(),
+                MAX_GAS_AMOUNT,
+                BALANCE / 2,
+            );
+            assert!(verify_module_error_with_msg(res, "Aborted").unwrap());
         })
 }
