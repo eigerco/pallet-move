@@ -51,10 +51,7 @@ impl<T: Config> From<Error<T>> for StatusCode {
 
 /// Balance adapter for providing basic access to balance cheques within the MoveVM.
 #[derive(Clone)]
-pub struct BalanceAdapter<T: Config + SysConfig>
-where
-    BalanceOf<T>: From<u128> + Into<u128>,
-{
+pub struct BalanceAdapter<T: Config + SysConfig> {
     _pd_config: PhantomData<T>,
     /// Virtual cheques record of involved users.
     cheques: Rc<RefCell<HashMap<EncodedAccount, BalanceOf<T>>>>,
@@ -62,10 +59,7 @@ where
     initial_state: HashMap<EncodedAccount, BalanceOf<T>>,
 }
 
-impl<T: Config + SysConfig> BalanceAdapter<T>
-where
-    BalanceOf<T>: From<u128> + Into<u128>,
-{
+impl<T: Config + SysConfig> BalanceAdapter<T> {
     /// Create a new [`BalanceAdapter`].
     pub fn new() -> Self {
         BalanceAdapter {
@@ -180,19 +174,13 @@ where
     }
 }
 
-impl<T: Config> Default for BalanceAdapter<T>
-where
-    BalanceOf<T>: From<u128> + Into<u128>,
-{
+impl<T: Config> Default for BalanceAdapter<T> {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl<T: Config> BalanceHandler for BalanceAdapter<T>
-where
-    BalanceOf<T>: From<u128> + Into<u128>,
-{
+impl<T: Config> BalanceHandler for BalanceAdapter<T> {
     type Error = StatusCode;
 
     fn transfer(
