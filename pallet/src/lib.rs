@@ -93,9 +93,22 @@ pub mod pallet {
     #[pallet::config]
     pub trait Config: frame_system::Config {
         /// The currency mechanism.
-        type Currency: Currency<Self::AccountId>
-            + ReservableCurrency<Self::AccountId>
-            + LockableCurrency<Self::AccountId>;
+        type Currency: Currency<Self::AccountId, Balance = Self::CurrencyBalance>
+            + ReservableCurrency<Self::AccountId, Balance = Self::CurrencyBalance>
+            + LockableCurrency<Self::AccountId, Balance = Self::CurrencyBalance>;
+
+        /// Just the `Currency::Balance` type; we have this item to allow us to
+        /// constrain it to `From<u128>` and `Into<u128>`.
+        type CurrencyBalance: sp_runtime::traits::AtLeast32BitUnsigned
+            + FullCodec
+            + Copy
+            + MaybeSerializeDeserialize
+            + core::fmt::Debug
+            + Default
+            + From<u128>
+            + Into<u128>
+            + TypeInfo
+            + MaxEncodedLen;
 
         /// Maximum life time for requests.
         #[pallet::constant]
@@ -170,10 +183,7 @@ pub mod pallet {
     }
 
     #[pallet::hooks]
-    impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T>
-    where
-        BalanceOf<T>: From<u128> + Into<u128>,
-    {
+    impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
         fn on_idle(block_height: BlockNumberFor<T>, mut remaining_weight: Weight) -> Weight {
             let len = MultisigStorage::<T>::iter_keys().count() as u64;
             let lifetime = T::MaxLifetimeRequests::get();
@@ -234,10 +244,7 @@ pub mod pallet {
     // These functions materialize as "extrinsics", which are often compared to transactions.
     // Dispatchable functions must be annotated with a weight and must return a DispatchResult.
     #[pallet::call]
-    impl<T: Config> Pallet<T>
-    where
-        BalanceOf<T>: From<u128> + Into<u128>,
-    {
+    impl<T: Config> Pallet<T> {
         /// Execute Move script transaction sent by the user.
         // TODO(eiger) in M3: ensure the weight depends on basic extrinsic cost + gas_limit + size of the
         // transaction_bc.
@@ -288,7 +295,7 @@ pub mod pallet {
             };
             if signer_count > 0 {
                 let lock_id = Self::multi_signer_lock_id(&who, &transaction_bc[..], &cheque_limit);
-                signature_handler.sign_script(&who, cheque_limit.into(), lock_id)?;
+                signature_handler.sign_script(&who, &cheque_limit, lock_id)?;
             }
 
             // If the script is signed correctly, we can execute it in MoveVM and update the
@@ -412,10 +419,7 @@ pub mod pallet {
         type VmStorage = VMStorage<T>;
     }
 
-    impl<T: Config> Pallet<T>
-    where
-        BalanceOf<T>: From<u128> + Into<u128>,
-    {
+    impl<T: Config> Pallet<T> {
         // Internal helper for creating new MoveVM instance with StorageAdapter.
         fn move_vm() -> MvmResult<T> {
             // Balance won't actually be used here.
