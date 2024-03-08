@@ -3,7 +3,7 @@ name: Common jobs (fmt, clippy, test)
 on:
   pull_request:
     paths:
-      - src/**
+      - pallet/**
       - Cargo.toml
       - rpc/**
       - .github/workflows/common.yml
