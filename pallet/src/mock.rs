@@ -92,6 +92,7 @@ parameter_types! {
 
 impl pallet_move::Config for Test {
     type Currency = Balances;
+    type CurrencyBalance = Balance;
     type MaxLifetimeRequests = MaxLifetimeRequests;
     type MaxScriptSigners = MaxScriptSigners;
     type RuntimeEvent = RuntimeEvent;
