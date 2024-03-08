@@ -41,6 +41,7 @@ pub mod pallet {
     use frame_support::{
         dispatch::DispatchResultWithPostInfo,
         pallet_prelude::*,
+        parameter_types,
         traits::{
             tokens::currency::LockIdentifier, Currency, Get, LockableCurrency, ReservableCurrency,
         },
@@ -57,6 +58,7 @@ pub mod pallet {
         bytecode::verify_script_integrity_and_check_signers, types::ScriptTransaction,
     };
     use sp_core::crypto::AccountId32;
+    use sp_runtime::traits::{AtLeast32BitUnsigned, One};
     use sp_std::{vec, vec::Vec};
 
     use super::*;
@@ -68,8 +70,9 @@ pub mod pallet {
 
     type MvmResult<T> = Result<Mvm<StorageAdapter<VMStorage<T>>, BalanceAdapter<T>>, Vec<u8>>;
 
-    /// Maximum number of multisig storage entries to be checked per block.
-    const MAX_MULTISIG_CHECKING_PER_BLOCK: u64 = 20;
+    parameter_types! {
+        pub const MaxChoreEntriesPerVec: u32 = 128;
+    }
 
     #[pallet::pallet]
     #[pallet::without_storage_info] // Allows to define storage items without fixed size
@@ -85,9 +88,16 @@ pub mod pallet {
     #[pallet::storage]
     pub type MultisigStorage<T> = StorageMap<_, Blake2_128Concat, CallHash, MultisigOf<T>>;
 
-    /// Storage for chore mechanism for old Multisigs in `MultisigStorage`.
     #[pallet::storage]
-    pub type ChoreOnIdleStorage<T> = StorageValue<_, u64>;
+    pub type ChoreOnIdleStorage<T> = StorageMap<
+        _,
+        Blake2_128Concat,
+        BlockNumberFor<T>,
+        BoundedVec<CallHash, MaxChoreEntriesPerVec>,
+    >;
+
+    #[pallet::storage]
+    pub type ChoreOnIdleIndex<T> = StorageValue<_, BlockNumberFor<T>>;
 
     /// MoveVM pallet configuration trait
     #[pallet::config]
@@ -99,7 +109,7 @@ pub mod pallet {
 
         /// Just the `Currency::Balance` type; we have this item to allow us to
         /// constrain it to `From<u128>` and `Into<u128>`.
-        type CurrencyBalance: sp_runtime::traits::AtLeast32BitUnsigned
+        type CurrencyBalance: AtLeast32BitUnsigned
             + FullCodec
             + Copy
             + MaybeSerializeDeserialize
@@ -185,56 +195,23 @@ pub mod pallet {
     #[pallet::hooks]
     impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
         fn on_idle(block_height: BlockNumberFor<T>, mut remaining_weight: Weight) -> Weight {
-            let len = MultisigStorage::<T>::iter_keys().count() as u64;
-            let lifetime = T::MaxLifetimeRequests::get();
-            // Abort if storage is empty or the allowed lifetime is longer than the blockchain's
-            // existence (otherwise, an integer underflow can occur).
-            if len == 0 || block_height < lifetime {
-                return remaining_weight - T::DbWeight::get().reads(1);
-            }
+            // This method will at least read and write once each anyway.
+            remaining_weight -= T::DbWeight::get().reads_writes(1, 1);
+            // Check block index, how far did we already clean up?
+            let mut block = ChoreOnIdleIndex::<T>::try_get().unwrap_or(block_height);
 
-            // We will read three times for sure and write one time for sure for the storage,
-            // no matter if we execute the internal chore method or not.
-            remaining_weight -= T::DbWeight::get().reads_writes(3, 1);
-
-            let mut idx: u64 = ChoreOnIdleStorage::<T>::get().unwrap_or(0);
-            if idx >= len {
-                idx = 0;
-            }
-
-            let keys = MultisigStorage::<T>::iter_keys().skip(idx as usize);
-            let block_tbr = block_height - lifetime;
-            let mut call = Vec::<CallHash>::new();
-            let mut count: u64 = 0;
-
-            for key in keys {
-                if let Some(call_hash) = Self::chore_multisig_storage(key, block_tbr) {
-                    call.push(call_hash);
-                }
-                count += 1;
+            while block <= block_height {
                 if let Some(weight) =
-                    remaining_weight.checked_sub(&T::WeightInfo::chore_multisig_storage())
+                    remaining_weight.checked_sub(&Self::chore_multisig_storage(block))
                 {
                     remaining_weight = weight;
-                    if count >= MAX_MULTISIG_CHECKING_PER_BLOCK {
-                        break;
-                    }
+                    block += BlockNumberFor::<T>::one();
                 } else {
                     remaining_weight = Weight::zero();
                     break;
                 }
             }
-
-            let n_removed = call.len() as u64;
-            idx += count - n_removed;
-            if idx >= len - n_removed {
-                idx = 0;
-            }
-            ChoreOnIdleStorage::<T>::put(idx);
-
-            if !call.is_empty() {
-                Self::deposit_event(Event::<T>::MultiSignRequestRemoved { call });
-            }
+            ChoreOnIdleIndex::<T>::put(block);
 
             remaining_weight
         }
@@ -302,7 +279,12 @@ pub mod pallet {
             // blockchain storage or the balance sheet.
             // If we have only one signer, it will skip this; if not, we have to wait for more signers, so we store it as a multi-signer request.
             if !signature_handler.all_signers_approved() {
-                MultisigStorage::<T>::insert(call_hash, signature_handler.into_inner());
+                // Use the initial block height always when the first signer initiates the
+                // multi-signer execution request. This will prevent the lifetime of such requests
+                // from being extended with each signing.
+                let multisig = signature_handler.into_inner();
+                Self::new_multi_sign_request_chore(*multisig.block_number(), call_hash)?;
+                MultisigStorage::<T>::insert(call_hash, multisig);
                 Self::deposit_event(Event::SignedMultisigScript { who });
                 return result::execute_only_signing();
             }
@@ -552,14 +534,56 @@ pub mod pallet {
             Ok(accounts)
         }
 
-        fn chore_multisig_storage(key: CallHash, block_tbr: BlockNumberFor<T>) -> Option<CallHash> {
-            let multisig = MultisigStorage::<T>::get(key)?;
-            if *multisig.block_number() > block_tbr {
-                None
-            } else {
-                MultisigStorage::<T>::remove(key);
-                Some(key)
+        fn new_multi_sign_request_chore(
+            multisig_creation_block_height: BlockNumberFor<T>,
+            hash: CallHash,
+        ) -> Result<(), Error<T>> {
+            // Increase the actual block-height by the maximum lifetime of a request.
+            let expires_at_block_height =
+                multisig_creation_block_height + T::MaxLifetimeRequests::get();
+
+            // Check for an existing entry or create an empty one.
+            let mut hashes_ready_for_cleanup: BoundedVec<CallHash, MaxChoreEntriesPerVec> =
+                ChoreOnIdleStorage::<T>::try_get(expires_at_block_height).unwrap_or_default();
+
+            // Check if this hash is already included, then it is ok.
+            for h in hashes_ready_for_cleanup.iter() {
+                if *h == hash {
+                    return Ok(());
+                }
             }
+
+            // Verify that it is not full, in case it already exists. Then add this new request.
+            if hashes_ready_for_cleanup.is_full() {
+                return Err(Error::<T>::ChoreOnIdleVecOverflow);
+            }
+            hashes_ready_for_cleanup.force_push(hash);
+
+            // Store entry to `ChoreOnIdleStorage`.
+            ChoreOnIdleStorage::<T>::insert(expires_at_block_height, hashes_ready_for_cleanup);
+
+            Ok(())
+        }
+
+        pub fn chore_multisig_storage(block: BlockNumberFor<T>) -> Weight {
+            // Check storage, if we have an entry for this block.
+            let Ok(hashes_ready_for_cleanup) = ChoreOnIdleStorage::<T>::try_get(block) else {
+                return T::DbWeight::get().reads(1);
+            };
+            // We don't need this entry in storage anymore, remove it!
+            ChoreOnIdleStorage::<T>::remove(block);
+
+            // Remove all that entries from MultisigStorage.
+            for hash in hashes_ready_for_cleanup.iter() {
+                MultisigStorage::<T>::remove(hash);
+            }
+
+            // Emit event about removed old multi-signer execution requests.
+            let writes = (hashes_ready_for_cleanup.len() as u64) + 1u64;
+            let call: Vec<CallHash> = hashes_ready_for_cleanup.into();
+            Self::deposit_event(Event::<T>::MultiSignRequestRemoved { call });
+
+            T::DbWeight::get().reads_writes(1, writes)
         }
 
         pub fn transaction_bc_call_hash(transaction_bc: &[u8]) -> CallHash {
@@ -606,6 +630,8 @@ pub mod pallet {
         UserHasAlreadySigned,
         /// Script contains more signers than allowed maximum number of signers.
         MaxSignersExceeded,
+        /// No space left in the ChoreOnIdleStorage during this block.
+        ChoreOnIdleVecOverflow,
 
         // Errors that can be received from MoveVM
         /// Unknown validation status
