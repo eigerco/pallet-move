@@ -1,6 +1,6 @@
 use frame_support::{
     dispatch::DispatchErrorWithPostInfo,
-    pallet_prelude::{DispatchError, DispatchResultWithPostInfo},
+    pallet_prelude::{DispatchError, DispatchResultWithPostInfo, Weight},
     parameter_types,
     traits::{ConstU128, ConstU16, ConstU32, ConstU64, OnFinalize, OnIdle, OnInitialize},
 };
@@ -12,7 +12,7 @@ use sp_runtime::{
 };
 
 use crate as pallet_move;
-use crate::{Error, WeightInfo};
+use crate::Error;
 
 pub use move_core_types::account_address::AccountAddress;
 pub use move_vm_backend_common::types::ScriptTransaction;
@@ -174,7 +174,7 @@ pub(crate) fn addrs_from_ss58(ss58: &str) -> Result<(AccountId32, AccountAddress
 
 /// Rolls forward in history to the given block height.
 pub(crate) fn roll_to(n: BlockNumberFor<Test>) {
-    let weight = <Test as pallet_move::Config>::WeightInfo::chore_multisig_storage() * 2;
+    let weight = Weight::from_parts(100_000_000_000, 1);
     while System::block_number() < n {
         <AllPalletsWithSystem as OnFinalize<u64>>::on_finalize(System::block_number());
         System::set_block_number(System::block_number() + 1);
