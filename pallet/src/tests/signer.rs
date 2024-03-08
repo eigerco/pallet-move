@@ -2,7 +2,7 @@ use crate::{mock::*, no_type_args, script_transaction, Error, Event, MultisigSto
 
 use frame_support::{
     assert_err, assert_ok,
-    pallet_prelude::DispatchResultWithPostInfo,
+    pallet_prelude::{DispatchResult, DispatchResultWithPostInfo},
     traits::{tokens::WithdrawReasons, Currency},
 };
 use move_core_types::{language_storage::TypeTag, u256::U256};
@@ -11,7 +11,7 @@ use rand::{distributions::Standard, prelude::Distribution, rngs::ThreadRng, Rng}
 use serde::Serialize;
 
 fn execute_script(
-    who: AccountId32,
+    who: &AccountId32,
     script: Vec<u8>,
     params: Vec<&[u8]>,
     type_args: Vec<TypeTag>,
@@ -28,6 +28,15 @@ fn execute_script(
         transaction,
         MAX_GAS_AMOUNT,
         EMPTY_CHEQUE,
+    )
+}
+
+fn ensure_can_withdraw(who: &AccountId32, amount: Balance) -> DispatchResult {
+    Balances::ensure_can_withdraw(
+        who,                       // Account to be checked
+        amount,                    // Amount that shall be able to withdrawn
+        WithdrawReasons::TRANSFER, // Any kind of reason, because we have locked all kinds
+        0,                         // Expected account balance after that possible withdrawel
     )
 }
 
@@ -106,7 +115,7 @@ fn general_script_no_params_works() {
         let script = assets::read_script_from_project("signer-scripts", "no_param_at_all");
         let type_args: Vec<TypeTag> = vec![];
         let params: Vec<&[u8]> = vec![];
-        assert_ok!(execute_script(bob_addr_32, script, params, type_args));
+        assert_ok!(execute_script(&bob_addr_32, script, params, type_args));
     })
 }
 
@@ -130,7 +139,7 @@ fn general_script_no_signers_param_at_all_works() {
         let f = pg.rand::<bool>();
         let params: Vec<&[u8]> = vec![&iter, &a, &b, &c, &d, &e, &f];
 
-        assert_ok!(execute_script(bob_addr_32, script, params, type_args));
+        assert_ok!(execute_script(&bob_addr_32, script, params, type_args));
     })
 }
 
@@ -157,7 +166,7 @@ fn general_script_eight_normal_signers_works() {
             let params: Vec<&[u8]> = vec![&s1, &s1, &s1, &s1, &s1, &s1, &s1, &s1, &extra];
 
             assert_ok!(execute_script(
-                bob_addr_32.clone(),
+                &bob_addr_32,
                 script.clone(),
                 params.clone(),
                 type_args.clone()
@@ -191,20 +200,20 @@ fn eve_cant_execute_multisig_script_without_other_signers_works() {
         let params: Vec<&[u8]> = vec![&eve, &eve, &alice, &eve, &eve, &eve, &eve, &eve, &extra];
 
         assert_ok!(execute_script(
-            eve_addr_32.clone(),
+            &eve_addr_32,
             script.clone(),
             params.clone(),
             type_args.clone()
         ));
         let result = execute_script(
-            eve_addr_32,
+            &eve_addr_32,
             script.clone(),
             params.clone(),
             type_args.clone(),
         );
         assert_err!(result, Error::<Test>::UserHasAlreadySigned);
         assert_ok!(execute_script(
-            alice_addr_32.clone(),
+            &alice_addr_32,
             script.clone(),
             params.clone(),
             type_args.clone()
@@ -241,7 +250,7 @@ fn signer_before_all_possible_vectors_works() {
             &bob, &v_u8, &v_u16, &v_u32, &v_u64, &v_u128, &v_u256, &v_addr, &v_bool,
         ];
 
-        assert_ok!(execute_script(bob_addr_32, script, params, type_args));
+        assert_ok!(execute_script(&bob_addr_32, script, params, type_args));
     })
 }
 
@@ -272,7 +281,7 @@ fn signer_after_all_possible_vectors_fails() {
             &v_u8, &v_u16, &v_u32, &v_u64, &v_u128, &v_u256, &v_addr, &v_bool, &bob,
         ];
 
-        let result = execute_script(bob_addr_32, script, params, type_args);
+        let result = execute_script(&bob_addr_32, script, params, type_args);
         assert_err!(result, Error::<Test>::InvalidMainFunctionSignature);
     })
 }
@@ -292,7 +301,7 @@ fn script_with_vector_containing_signer_fails() {
         let v_addr = pg.address_vec(vec![&bob_addr_mv]);
         let params: Vec<&[u8]> = vec![&v_addr];
 
-        let result = execute_script(bob_addr_32, script, params, type_args);
+        let result = execute_script(&bob_addr_32, script, params, type_args);
         assert_err!(result, Error::<Test>::InvalidMainFunctionSignature);
     })
 }
@@ -360,100 +369,69 @@ fn multiple_signers_in_multisig_script_works() {
             let call_hash = MoveModule::transaction_bc_call_hash(&transaction_bc[..]);
 
             // Verify that no lock has been set so far and that the Multisig request entry cannot
-            // be found in storage.
+            // be found in storage, because it hasn't been created so far.
             assert!(MultisigStorage::<Test>::try_get(call_hash).is_err());
-            assert_ok!(Balances::ensure_can_withdraw(
-                &alice_addr_32,
-                BALANCE,
-                WithdrawReasons::TRANSFER,
-                0
-            ));
-            assert_ok!(Balances::ensure_can_withdraw(
-                &dave_addr_32,
-                BALANCE,
-                WithdrawReasons::TRANSFER,
-                0
-            ));
-            assert_ok!(Balances::ensure_can_withdraw(
-                &eve_addr_32,
-                BALANCE,
-                WithdrawReasons::TRANSFER,
-                0
-            ));
+            assert_ok!(ensure_can_withdraw(&alice_addr_32, BALANCE));
+            assert_ok!(ensure_can_withdraw(&dave_addr_32, BALANCE));
+            assert_ok!(ensure_can_withdraw(&eve_addr_32, BALANCE));
 
+            // Alice as the first one will now start the multi-signing execution request.
             assert_ok!(MoveModule::execute(
                 RuntimeOrigin::signed(alice_addr_32.clone()),
                 transaction_bc.clone(),
                 MAX_GAS_AMOUNT,
                 BALANCE,
             ));
+
+            // Expect event `SignedMultisigScript` to be emitted with Alice address.
             assert_eq!(
                 last_event(),
                 RuntimeEvent::MoveModule(Event::<Test>::SignedMultisigScript {
                     who: alice_addr_32.clone()
                 })
             );
-            assert!(MultisigStorage::<Test>::try_get(call_hash).is_ok());
-            assert!(Balances::ensure_can_withdraw(
-                &alice_addr_32,
-                BALANCE,
-                WithdrawReasons::TRANSFER,
-                0
-            )
-            .is_err());
-            assert_ok!(Balances::ensure_can_withdraw(
-                &dave_addr_32,
-                BALANCE,
-                WithdrawReasons::TRANSFER,
-                0
-            ));
-            assert_ok!(Balances::ensure_can_withdraw(
-                &eve_addr_32,
-                BALANCE,
-                WithdrawReasons::TRANSFER,
-                0
-            ));
 
+            // Now we expect an entry in the `MultisigStorage`, because we have a pending request.
+            assert!(MultisigStorage::<Test>::try_get(call_hash).is_ok());
+
+            // By signing the pending multisig script, Alice locked her funds until the script is
+            // either executed (or discarded due to timeout).
+            assert!(ensure_can_withdraw(&alice_addr_32, BALANCE).is_err());
+            // Eve and Dave still haven't signed the scripts, so their funds are not locked.
+            assert_ok!(ensure_can_withdraw(&dave_addr_32, BALANCE));
+            assert_ok!(ensure_can_withdraw(&eve_addr_32, BALANCE));
+
+            // Now Dave is the next one.
             assert_ok!(MoveModule::execute(
                 RuntimeOrigin::signed(dave_addr_32.clone()),
                 transaction_bc.clone(),
                 MAX_GAS_AMOUNT,
                 BALANCE,
             ));
+
+            // We expect the same kind of event, because the request is still pending.
             assert_eq!(
                 last_event(),
                 RuntimeEvent::MoveModule(Event::<Test>::SignedMultisigScript {
                     who: dave_addr_32.clone()
                 })
             );
-            // Now this candidate should also not be able to transfer the locked tokens.
-            assert!(Balances::ensure_can_withdraw(
-                &alice_addr_32,
-                BALANCE,
-                WithdrawReasons::TRANSFER,
-                0
-            )
-            .is_err());
-            assert!(Balances::ensure_can_withdraw(
-                &dave_addr_32,
-                BALANCE,
-                WithdrawReasons::TRANSFER,
-                0
-            )
-            .is_err());
-            assert_ok!(Balances::ensure_can_withdraw(
-                &eve_addr_32,
-                BALANCE,
-                WithdrawReasons::TRANSFER,
-                0
-            ));
 
+            // Dave should also not be able to transfer the locked tokens anymore.
+            assert!(ensure_can_withdraw(&alice_addr_32, BALANCE).is_err());
+            assert!(ensure_can_withdraw(&dave_addr_32, BALANCE).is_err());
+            assert_ok!(ensure_can_withdraw(&eve_addr_32, BALANCE));
+
+            // Last signer Eve will now finish the request, we expect it to be executed, cleared up
+            // from the storage and remaining funds to be unlocked again.
             assert_ok!(MoveModule::execute(
                 RuntimeOrigin::signed(eve_addr_32.clone()),
                 transaction_bc.clone(),
                 MAX_GAS_AMOUNT,
                 BALANCE,
             ));
+
+            // No more `SignedMultisigScript` event expected - the `ExecuteCalled` instead.
             assert_eq!(
                 last_event(),
                 RuntimeEvent::MoveModule(Event::<Test>::ExecuteCalled {
@@ -464,28 +442,14 @@ fn multiple_signers_in_multisig_script_works() {
                     ]
                 })
             );
-            assert_ok!(Balances::ensure_can_withdraw(
-                &alice_addr_32,
-                CHANGE,
-                WithdrawReasons::TRANSFER,
-                0
-            ));
-            assert_ok!(Balances::ensure_can_withdraw(
-                &dave_addr_32,
-                CHANGE,
-                WithdrawReasons::TRANSFER,
-                0
-            ));
-            assert_ok!(Balances::ensure_can_withdraw(
-                &eve_addr_32,
-                CHANGE,
-                WithdrawReasons::TRANSFER,
-                0
-            ));
-            // Now after all signers have signed the multsig script, we can expect that the script
-            // will be executed and the multisg storage will remove the pending mutlisig script
-            // data, since the script has been executed.
+
+            // Multisig entry in storage should be cleaned up again after executing it.
             assert!(MultisigStorage::<Test>::try_get(call_hash).is_err());
+
+            // Remaining funds should be unlocked again.
+            assert_ok!(ensure_can_withdraw(&alice_addr_32, CHANGE));
+            assert_ok!(ensure_can_withdraw(&dave_addr_32, CHANGE));
+            assert_ok!(ensure_can_withdraw(&eve_addr_32, CHANGE));
         })
 }
 
@@ -529,12 +493,12 @@ fn verify_old_multi_signer_requests_getting_removed() {
             // Now only 2 of 3 planned signers will sign the script execution.
             let script = assets::read_script_from_project("multiple-signers", "rent_apartment");
             let transaction_bc = script_transaction!(
-                script,
-                no_type_args!(),
-                &alice_addr_mv,
+                script,          // script bytecode
+                no_type_args!(), // no generic arguments
+                &alice_addr_mv,  // the three potential tenants
                 &dave_addr_mv,
                 &eve_addr_mv,
-                &2u8
+                &2u8 // number of months
             );
             assert_ok!(MoveModule::execute(
                 RuntimeOrigin::signed(alice_addr_32.clone()),
@@ -585,7 +549,7 @@ fn verify_old_multi_signer_requests_getting_removed() {
 }
 
 #[test]
-fn cheque_limit_in_multi_signer_execution_works() {
+fn insufficient_cheque_limit_aborts_the_multisig_script_works() {
     const BALANCE: Balance = 80_000_000_000_000;
     let (bob_addr_32, bob_addr_mv) = addrs_from_ss58(BOB_ADDR).unwrap();
     let (alice_addr_32, alice_addr_mv) = addrs_from_ss58(ALICE_ADDR).unwrap();
@@ -623,12 +587,12 @@ fn cheque_limit_in_multi_signer_execution_works() {
             // Now only 2 of 3 planned signers will sign the script execution.
             let script = assets::read_script_from_project("multiple-signers", "rent_apartment");
             let transaction_bc = script_transaction!(
-                script,
-                no_type_args!(),
-                &alice_addr_mv,
+                script,          // script bytecode
+                no_type_args!(), // no generic arguments
+                &alice_addr_mv,  // the three potential tenants
                 &dave_addr_mv,
                 &eve_addr_mv,
-                &2u8
+                &2u8 // number of months
             );
             assert_ok!(MoveModule::execute(
                 RuntimeOrigin::signed(dave_addr_32.clone()),
@@ -642,12 +606,16 @@ fn cheque_limit_in_multi_signer_execution_works() {
                 MAX_GAS_AMOUNT,
                 BALANCE,
             ));
+            // One of the signers will set his cheque-limit too low to rent the apartment. The
+            // script "rent_apartment" expects every of the signers to pay the same equal amount.
             let res = MoveModule::execute(
                 RuntimeOrigin::signed(alice_addr_32.clone()),
                 transaction_bc.clone(),
                 MAX_GAS_AMOUNT,
                 BALANCE / 2,
             );
+            // Verify that the execution will be aborted since on of the signers has a too low
+            // cheque-limit to pay his part of the bill.
             assert!(verify_module_error_with_msg(res, "Aborted").unwrap());
         })
 }

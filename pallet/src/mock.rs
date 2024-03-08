@@ -18,7 +18,17 @@ pub use move_core_types::account_address::AccountAddress;
 pub use move_vm_backend_common::types::ScriptTransaction;
 pub use sp_runtime::AccountId32;
 
-type Block = frame_system::mocking::MockBlock<Test>;
+// Primitive type definitions for this mockup.
+pub type Balance = u128;
+pub type Block = frame_system::mocking::MockBlock<Test>;
+// Key constants or frequently used ones.
+pub const EXISTENTIAL_DEPOSIT: Balance = 100;
+pub const EMPTY_CHEQUE: Balance = 0;
+pub const CAFE_ADDR: &str = "5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSv4fmh4G"; // == 0xCAFE
+pub const BOB_ADDR: &str = "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty";
+pub const ALICE_ADDR: &str = "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY";
+pub const DAVE_ADDR: &str = "5DAAnrj7VHTznn2AWBemMuyBwZWs6FNFjdyVXUeYum3PTXFy";
+pub const EVE_ADDR: &str = "5HGjWAeFDfFCWPsjFQdVV2Msvz2XtMktvgocEZcCj68kUMaw";
 
 // Configure a mock runtime to test the pallet.
 frame_support::construct_runtime!(
@@ -55,9 +65,6 @@ impl frame_system::Config for Test {
     type OnSetCode = ();
     type MaxConsumers = frame_support::traits::ConstU32<16>;
 }
-
-pub type Balance = u128;
-pub const EXISTENTIAL_DEPOSIT: u128 = 100;
 
 impl pallet_balances::Config for Test {
     type MaxLocks = ConstU32<50>;
@@ -144,14 +151,7 @@ impl ExtBuilder {
     }
 }
 
-// Common constants accross the tests.
-pub const EMPTY_CHEQUE: u128 = 0; // Not all scripts need the `cheque_amount` parameter.
-pub const CAFE_ADDR: &str = "5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSv4fmh4G"; // == 0xCAFE
-pub const BOB_ADDR: &str = "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty";
-pub const ALICE_ADDR: &str = "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY";
-pub const DAVE_ADDR: &str = "5DAAnrj7VHTznn2AWBemMuyBwZWs6FNFjdyVXUeYum3PTXFy";
-pub const EVE_ADDR: &str = "5HGjWAeFDfFCWPsjFQdVV2Msvz2XtMktvgocEZcCj68kUMaw";
-
+/// Creates a native 32-byte address from a given ss58 string.
 pub(crate) fn addr32_from_ss58(ss58addr: &str) -> Result<AccountId32, Error<Test>> {
     let (pk, _) = Public::from_ss58check_with_version(ss58addr)
         .map_err(|_| Error::<Test>::InvalidAccountSize)?;
@@ -159,16 +159,19 @@ pub(crate) fn addr32_from_ss58(ss58addr: &str) -> Result<AccountId32, Error<Test
     Ok(account)
 }
 
+/// Converts a native 32-byte address into a Move memory address.
 pub(crate) fn addr32_to_move(addr32: &AccountId32) -> Result<AccountAddress, Error<Test>> {
     MoveModule::to_move_address(addr32)
 }
 
+/// Creates a native 32-byte address and it's Move memory address by given ss58 string.
 pub(crate) fn addrs_from_ss58(ss58: &str) -> Result<(AccountId32, AccountAddress), Error<Test>> {
     let addr_32 = addr32_from_ss58(ss58)?;
     let addr_mv = addr32_to_move(&addr_32)?;
     Ok((addr_32, addr_mv))
 }
 
+/// Rolls forward in history to the given block height.
 pub(crate) fn roll_to(n: BlockNumberFor<Test>) {
     let weight = <Test as pallet_move::Config>::WeightInfo::chore_multisig_storage() * 2;
     while System::block_number() < n {
@@ -179,10 +182,13 @@ pub(crate) fn roll_to(n: BlockNumberFor<Test>) {
     }
 }
 
+/// Returns the last emitted event by the blockchain.
 pub(crate) fn last_event() -> RuntimeEvent {
     System::events().pop().expect("Event expected").event
 }
 
+/// In case of an error returned from MoveVM, this method compares the encapsuled error string at
+/// the level of the returned `DispatchResultWithPostInfo`.
 pub(crate) fn verify_module_error_with_msg(
     res: DispatchResultWithPostInfo,
     e_msg: &str,
