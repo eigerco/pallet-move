@@ -69,6 +69,21 @@ impl<T: Config + SysConfig> BalanceAdapter<T> {
         }
     }
 
+    /// Creates a new [`BalanceAdapter`] with unlimited cheque-limits for every signer for the
+    /// usage within a dry-run. Therefor, the extracted arguments and the signer count of a given
+    /// script transaction has to be provided.
+    pub fn for_dry_run(args: &[&[u8]], signer_count: usize) -> Result<BalanceAdapter<T>, Error<T>> {
+        let mut handler = BalanceAdapter::new();
+
+        let accounts = Pallet::<T>::extract_account_ids_from_args(args, signer_count)?;
+
+        for acc in &accounts {
+            handler.write_cheque_internal(acc, &BalanceOf::<T>::from(u128::MAX));
+        }
+
+        Ok(handler)
+    }
+
     /// Writes a cheque for the account.
     pub fn write_cheque(
         &mut self,
@@ -76,7 +91,12 @@ impl<T: Config + SysConfig> BalanceAdapter<T> {
         balance: &BalanceOf<T>,
     ) -> DispatchResult {
         self.ensure_can_withdraw(account, balance)?;
+        self.write_cheque_internal(account, balance);
+        Ok(())
+    }
 
+    // Internal method for writing the cheque.
+    fn write_cheque_internal(&mut self, account: &AccountIdOf<T>, balance: &BalanceOf<T>) {
         let account: EncodedAccount = account.encode();
 
         let mut cheques = self.cheques.borrow_mut();
@@ -91,8 +111,6 @@ impl<T: Config + SysConfig> BalanceAdapter<T> {
         } else {
             self.initial_state.insert(account.clone(), *balance);
         }
-
-        Ok(())
     }
 
     /// Executes the true transactions on the blockchain/substrate side after execution of

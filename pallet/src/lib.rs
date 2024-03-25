@@ -515,7 +515,7 @@ pub mod pallet {
                 .map_err(|e| format!("error in get_resource: {e:?}").into())
         }
 
-        fn extract_account_ids_from_args(
+        pub(crate) fn extract_account_ids_from_args(
             script_args: &[&[u8]],
             signer_count: usize,
         ) -> Result<Vec<T::AccountId>, Error<T>> {
