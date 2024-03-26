@@ -14,7 +14,6 @@ use move_vm_backend::balance::BalanceHandler;
 use sp_runtime::traits::Zero;
 use sp_std::{
     cell::{Ref, RefCell},
-    default::Default,
     rc::Rc,
     vec::Vec,
 };

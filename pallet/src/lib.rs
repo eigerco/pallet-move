@@ -45,6 +45,7 @@ pub mod pallet {
         traits::{
             tokens::currency::LockIdentifier, Currency, Get, LockableCurrency, ReservableCurrency,
         },
+        BoundedBTreeSet,
     };
     use frame_system::pallet_prelude::*;
     pub use move_core_types::language_storage::TypeTag;
@@ -86,7 +87,7 @@ pub mod pallet {
 
     /// Storage for multi-signature/signer requests.
     #[pallet::storage]
-    pub type MultisigStorage<T> = StorageMap<_, Blake2_128Concat, CallHash, MultisigOf<T>>;
+    pub type MultisigStorage<T> = StorageMap<_, Blake2_128Concat, CallHash, SigDataOf<T>>;
 
     #[pallet::storage]
     pub type ChoreOnIdleStorage<T> = StorageMap<
@@ -252,45 +253,61 @@ pub mod pallet {
             // Make sure the scripts are not maliciously trying to use forged signatures.
             let signer_count =
                 verify_script_integrity_and_check_signers(&bytecode).map_err(Error::<T>::from)?;
-            let accounts = Self::extract_account_ids_from_args(&args, signer_count)?;
-            let block_height = <frame_system::Pallet<T>>::block_number();
+            let unique_signers = Self::extract_account_ids_from_args(&args, signer_count)?;
 
-            let (mut signature_handler, call_hash) = if signer_count > 1 {
-                // Generate the call hash to identify this multi-sign call request.
-                let call_hash = Self::transaction_bc_call_hash(&transaction_bc[..]);
+            // Based on the number of unique signers, decide the following:
+            let (is_signature_required, contains_multisig) = match unique_signers.len() {
+                0 => (false, None),
+                1 => (true, None),
+                _ => (
+                    true,
+                    // Generate the unique script tx hash to identify this multi-sign call request.
+                    Some(Self::transaction_bc_call_hash(&transaction_bc[..])),
+                ),
+            };
 
-                let multisig = MultisigStorage::<T>::get(call_hash).unwrap_or(
-                    MultisigOf::<T>::new(accounts, block_height).map_err(Into::<Error<T>>::into)?,
+            let mut signature_handler = if let Some(script_hash) = contains_multisig {
+                let multisig_data = MultisigStorage::<T>::get(script_hash).unwrap_or(
+                    SigDataOf::<T>::new(unique_signers).map_err(Into::<Error<T>>::into)?,
                 );
 
-                (ScriptSignatureHandler::<T>::from(multisig), call_hash)
+                ScriptSignatureHandler::<T>::from(multisig_data)
             } else {
-                (
-                    ScriptSignatureHandler::<T>::new(accounts, block_height)?,
-                    [0u8; 32],
-                )
+                ScriptSignatureHandler::<T>::new(unique_signers)?
             };
-            if signer_count > 0 {
+
+            if is_signature_required {
                 let lock_id = Self::multi_signer_lock_id(&who, &transaction_bc[..], &cheque_limit);
                 signature_handler.sign_script(&who, &cheque_limit, lock_id)?;
             }
 
-            // If the script is signed correctly, we can execute it in MoveVM and update the
-            // blockchain storage or the balance sheet.
-            // If we have only one signer, it will skip this; if not, we have to wait for more signers, so we store it as a multi-signer request.
+            // The script needs to be signed by all signers before we can execute it in MoveVM and
+            // update the blockchain storage or the balance sheet.
             if !signature_handler.all_signers_approved() {
-                // Use the initial block height always when the first signer initiates the
-                // multi-signer execution request. This will prevent the lifetime of such requests
-                // from being extended with each signing.
-                let multisig = signature_handler.into_inner();
-                Self::new_multi_sign_request_chore(*multisig.block_number(), call_hash)?;
-                MultisigStorage::<T>::insert(call_hash, multisig);
+                // We can enter this block only in multisig scenario, so unwrap can't fail here.
+                let script_hash = contains_multisig.expect("multisig script hash not found");
+                let mut sig_data = signature_handler.into_inner();
+
+                // The deadline for collecting all signatures is set by the first signer in the
+                // multisig scenario. There's no way to extend the initally set deadline.
+                if sig_data.stored_block_height().is_none() {
+                    let block_height = <frame_system::Pallet<T>>::block_number();
+
+                    sig_data.set_block_height(block_height);
+                    Self::new_multi_sign_request_chore(block_height, script_hash)?;
+                }
+
+                MultisigStorage::<T>::insert(script_hash, sig_data);
+
                 Self::deposit_event(Event::SignedMultisigScript { who });
                 return result::execute_only_signing();
             }
+
             // If we have multiple signers and they all have signed, we have to remove the multi-signer request from the MultisigStorage.
-            if signer_count > 1 {
-                MultisigStorage::<T>::remove(call_hash);
+            if let Some(script_hash) = contains_multisig {
+                // TODO: Consider remove the entry from the ChoreOnIdleStorage in the future. Not
+                // cleaning it shall cause no harm.
+                MultisigStorage::<T>::remove(script_hash);
             }
 
             // We need to provide MoveVM read only access to balance sheet - MoveVM is allowed to
@@ -308,7 +325,11 @@ pub mod pallet {
             let result = result::from_vm_result::<T>(vm_result)?;
 
             // Emit an event.
-            let signers = signature_handler.into_signer_accounts()?;
+            let mut signers = signature_handler.into_signer_accounts()?;
+            if signers.is_empty() {
+                // Signer list can be empty in zero-signer scripts, so append here the user at least.
+                signers.push(who);
+            }
             Self::deposit_event(Event::ExecuteCalled { who: signers });
 
             Ok(result)
@@ -518,17 +539,20 @@ pub mod pallet {
         pub(crate) fn extract_account_ids_from_args(
             script_args: &[&[u8]],
             signer_count: usize,
-        ) -> Result<Vec<T::AccountId>, Error<T>> {
+        ) -> Result<BoundedBTreeSet<T::AccountId, T::MaxScriptSigners>, Error<T>> {
             if signer_count > script_args.len() {
                 return Err(Error::<T>::ScriptSignatureFailure);
             }
 
-            let mut accounts = Vec::<T::AccountId>::new();
+            let mut accounts = BoundedBTreeSet::<T::AccountId, T::MaxScriptSigners>::new();
             for signer in &script_args[..signer_count] {
                 let account_address =
                     bcs::from_bytes(signer).map_err(|_| Error::<T>::UnableToDeserializeAccount)?;
                 let account = Self::to_native_account(&account_address)?;
-                accounts.push(account);
+
+                accounts
+                    .try_insert(account)
+                    .map_err(|_| Error::<T>::NumberOfSignerArgumentsMismatch)?;
             }
 
             Ok(accounts)
@@ -570,7 +594,7 @@ pub mod pallet {
             let Ok(hashes_ready_for_cleanup) = ChoreOnIdleStorage::<T>::try_get(block) else {
                 return T::DbWeight::get().reads(1);
             };
-            // We don't need this entry in storage anymore, remove it!
+            // We don't need this entry in storage anymore, remove it.
             ChoreOnIdleStorage::<T>::remove(block);
 
             // Remove all that entries from MultisigStorage.
@@ -622,6 +646,8 @@ pub mod pallet {
         InsufficientBalance,
         /// Script signature failure.
         ScriptSignatureFailure,
+        /// If the script expects a list of signers, only users from that list can sign the transaction.
+        UnexpectedUserSignature,
         /// Script transaction cannot be deserialized.
         InvalidScriptTransaction,
         /// User tried to publish module in a protected memory area.
