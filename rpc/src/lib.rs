@@ -64,9 +64,7 @@ pub trait MoveApi<BlockHash, AccountId> {
     #[method(name = "mvm_estimateGasExecuteScript")]
     fn estimate_gas_execute_script(
         &self,
-        account: AccountId,
         transaction: Vec<u8>,
-        cheque_limit: u128,
         at: Option<BlockHash>,
     ) -> RpcResult<Estimation>;
 
@@ -177,18 +175,14 @@ where
 
     fn estimate_gas_execute_script(
         &self,
-        account: AccountId,
         transaction: Vec<u8>,
-        cheque_limit: u128,
         at: Option<<Block as BlockT>::Hash>,
     ) -> RpcResult<Estimation> {
         let api = self.client.runtime_api();
         let res = api
             .estimate_gas_execute_script(
                 at.unwrap_or_else(|| self.client.info().best_hash),
-                account,
                 transaction,
-                cheque_limit,
             )
             .map_err(runtime_error_into_rpc_err)?;
 
