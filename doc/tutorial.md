@@ -244,6 +244,8 @@ Now, let's execute the following actions:
 ------------------------------------------------------------------------------------------------------------------------------------------------------------
 We hope you finished our tutorial without any issues! And we hope you liked it. To see the full API for this pallet, check our design [document](final-design.md) here.
 
+To learn about the differences in executing a script with multiple signers, have a look at this additional [tutorial](tutorial-multi-signer.md).
+
 If you want to report feedback, please feel free to do so. We are always available at [hello@eiger.co](mailto:hello@eiger.co).
 
 [polkadotjs]: https://polkadot.js.org/apps/
