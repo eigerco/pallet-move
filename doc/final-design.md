@@ -5,6 +5,7 @@ This article discusses the pallet-move functionality.
   - [Extrinsics](#extrinsics)
   - [RPC](#rpc)
 - [Design architecture](#design-architecture)
+- [Multi Signer Script Execution](#multi-signer-script-execution)
 
 
 # Pallet API
@@ -119,11 +120,7 @@ Estimate gas for executing a Move script.
 
 **Parameters**
 
-`account: AccountId` - Account ID which is publishing the module.
-
 `transaction: Vec<u8>` - Script transaction bytecode.
-
-`cheque_limit: u128` - The amount the account is willing to possibly spend.
 
 `at: Option<BlockHash>` - Optional block.
 
@@ -186,3 +183,23 @@ How it works under the hood is shown in a simple UML diagram below:
 
 [smove]: https://github.com/eigerco/smove
 [substrate-move]: https://github.com/eigerco/substrate-move
+
+# Multi Signer Script Execution
+
+Executing Move scripts with multiple signers works basically the same as for a single signer.
+When the first signer executes a script transaction with multiple signers, the Move pallet will create a multi-signer execution request in the storage.
+Each following signer will execute the same script transaction with its individual cheque limit for the planned script execution.
+Pallet move will store the state of each signature and each cheque limit and keep track if all users have signed or not.
+After each signer has signed by calling the exact same extrinsic call with the same script transaction, the Move pallet will execute the script.
+
+**Differences to single signer:**
+- The cheque limit (tokens) of each signer will be locked on their accounts until the request gets finally executed or deleted.
+- Except for the final signer, the event `SignedMultisigScript` will be emitted instead of `ExecuteCalled`.
+- When all signers have signed, the script will be executed, the tokens be unlocked, and balances applied according to the Move script.
+- Every user needs to sign the script within a certain time limit; otherwise, the request will expire, which means it will be removed automatically after a certain amount of time (as defined by the blockchain developer).
+- If a multi-signature request expires, then all previous signatures are dropped in vain. If some user then reinitiates the request, all signers need to provide their signature again.
+- The point of time of the first signature defines the expiration timeout for that multi-signature script. New signatures for that multi-signer script cannot extend the time limit.
+- If all signatures are collected and then the script execution fails (e.g. because of insufficient cheque amount), no change will take place in the MoveVM storage / balance. The only way to re-execute the script is to restart the request and try to collect all signatures once again.
+- The signer order doesn't matter (it is independent of the order of the script function arguments).
+- If the script function argument list has a signer in multiple places in the argument list, this signer (user) has to sign the script only once.
+- _TODO (Eiger): Add information about gas usage._
