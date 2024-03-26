@@ -109,6 +109,9 @@ impl ParamGenerator {
 #[test]
 fn general_script_no_params_works() {
     ExtBuilder::default().build().execute_with(|| {
+        // Roll to first block in case of block based event checkings and processes.
+        roll_to(1);
+
         let (bob_addr_32, _) = addrs_from_ss58(BOB_ADDR).unwrap();
 
         // no_param_at_all()
@@ -116,6 +119,12 @@ fn general_script_no_params_works() {
         let type_args: Vec<TypeTag> = vec![];
         let params: Vec<&[u8]> = vec![];
         assert_ok!(execute_script(&bob_addr_32, script, params, type_args));
+        assert_eq!(
+            last_event(),
+            RuntimeEvent::MoveModule(Event::<Test>::ExecuteCalled {
+                who: vec![bob_addr_32]
+            })
+        );
     })
 }
 
@@ -123,6 +132,9 @@ fn general_script_no_params_works() {
 #[test]
 fn general_script_no_signers_param_at_all_works() {
     ExtBuilder::default().build().execute_with(|| {
+        // Roll to first block in case of block based event checkings and processes.
+        roll_to(1);
+
         let mut pg = ParamGenerator::new();
         let (bob_addr_32, _) = addrs_from_ss58(BOB_ADDR).unwrap();
 
@@ -140,6 +152,54 @@ fn general_script_no_signers_param_at_all_works() {
         let params: Vec<&[u8]> = vec![&iter, &a, &b, &c, &d, &e, &f];
 
         assert_ok!(execute_script(&bob_addr_32, script, params, type_args));
+        assert_eq!(
+            last_event(),
+            RuntimeEvent::MoveModule(Event::<Test>::ExecuteCalled {
+                who: vec![bob_addr_32]
+            })
+        );
+    })
+}
+
+/// Script with a single signer fails if executed by the wrong user.
+#[test]
+fn script_with_single_signer_fails_if_executed_by_the_wrong_user() {
+    let (bob_addr_32, bob_addr_mv) = addrs_from_ss58(BOB_ADDR).unwrap();
+    let (eve_addr_32, _) = addrs_from_ss58(EVE_ADDR).unwrap();
+    const BALANCE_UNUSED: Balance = 0;
+
+    ExtBuilder::default().build().execute_with(|| {
+        // Roll to first block in case of block based event checkings and processes.
+        roll_to(1);
+
+        // We are using this script below here, but any script with a single signer could have been used here.
+        // trying_with_signer_reference(_ref: &signer)
+        let script =
+            assets::read_script_from_project("signer-scripts", "trying_with_signer_reference");
+        let transaction_bc = script_transaction!(script, no_type_args!(), &bob_addr_mv);
+
+        // Eve cannot execute a script which requires signers, when Eve is not in the signer list.
+        let res = MoveModule::execute(
+            RuntimeOrigin::signed(eve_addr_32.clone()),
+            transaction_bc.clone(),
+            MAX_GAS_AMOUNT,
+            BALANCE_UNUSED,
+        );
+        assert!(verify_module_error_with_msg(res, "UnexpectedUserSignature").unwrap());
+
+        // Only Bob can execute this script and generate the `ExecuteCalled` event.
+        assert_ok!(MoveModule::execute(
+            RuntimeOrigin::signed(bob_addr_32.clone()),
+            transaction_bc.clone(),
+            MAX_GAS_AMOUNT,
+            BALANCE_UNUSED,
+        ));
+        assert_eq!(
+            last_event(),
+            RuntimeEvent::MoveModule(Event::<Test>::ExecuteCalled {
+                who: vec![bob_addr_32]
+            })
+        );
     })
 }
 
@@ -184,6 +244,9 @@ fn general_script_eight_normal_signers_works() {
 #[test]
 fn eve_cant_execute_multisig_script_without_other_signers_works() {
     ExtBuilder::default().build().execute_with(|| {
+        // Roll to first block in case of block based event checkings and processes.
+        roll_to(1);
+
         let mut pg = ParamGenerator::new();
         // Eve is basically Bob here, but since Bob is pretending to be bad, we'll rename him.
         let (eve_addr_32, eve_addr_mv) = addrs_from_ss58(BOB_ADDR).unwrap();
@@ -199,12 +262,21 @@ fn eve_cant_execute_multisig_script_without_other_signers_works() {
         let extra = pg.rand::<u32>();
         let params: Vec<&[u8]> = vec![&eve, &eve, &alice, &eve, &eve, &eve, &eve, &eve, &extra];
 
+        // We don't expect `ExecuteCalled` event here. Only `SignedMultisigScript` event from Eve.
         assert_ok!(execute_script(
             &eve_addr_32,
             script.clone(),
             params.clone(),
             type_args.clone()
         ));
+        assert_eq!(
+            last_event(),
+            RuntimeEvent::MoveModule(Event::<Test>::SignedMultisigScript {
+                who: eve_addr_32.clone()
+            })
+        );
+
+        // Executing twice will result in an error.
         let result = execute_script(
             &eve_addr_32,
             script.clone(),
@@ -212,12 +284,20 @@ fn eve_cant_execute_multisig_script_without_other_signers_works() {
             type_args.clone(),
         );
         assert_err!(result, Error::<Test>::UserHasAlreadySigned);
+
+        // With both signatures, we can expect the `ExecuteCalled` event.
         assert_ok!(execute_script(
             &alice_addr_32,
             script.clone(),
             params.clone(),
             type_args.clone()
         ));
+        assert_eq!(
+            last_event(),
+            RuntimeEvent::MoveModule(Event::<Test>::ExecuteCalled {
+                who: vec![eve_addr_32, alice_addr_32]
+            })
+        );
     })
 }
 
@@ -225,6 +305,9 @@ fn eve_cant_execute_multisig_script_without_other_signers_works() {
 #[test]
 fn signer_before_all_possible_vectors_works() {
     ExtBuilder::default().build().execute_with(|| {
+        // Roll to first block in case of block based event checkings and processes.
+        roll_to(1);
+
         let mut pg = ParamGenerator::new();
         let (bob_addr_32, bob_addr_mv) = addrs_from_ss58(BOB_ADDR).unwrap();
 
@@ -251,6 +334,12 @@ fn signer_before_all_possible_vectors_works() {
         ];
 
         assert_ok!(execute_script(&bob_addr_32, script, params, type_args));
+        assert_eq!(
+            last_event(),
+            RuntimeEvent::MoveModule(Event::<Test>::ExecuteCalled {
+                who: vec![bob_addr_32]
+            })
+        );
     })
 }
 
@@ -324,8 +413,9 @@ fn multiple_signers_in_multisig_script_works() {
         ])
         .build()
         .execute_with(|| {
+            let block_no_1 = 1;
             // Roll to first block in case of block based event checkings and processes.
-            roll_to(1);
+            roll_to(block_no_1);
 
             // Initialisation & Setup by developer Bob.
             let module = assets::read_module_from_project("multiple-signers", "Dorm");
@@ -450,6 +540,11 @@ fn multiple_signers_in_multisig_script_works() {
             assert_ok!(ensure_can_withdraw(&alice_addr_32, CHANGE));
             assert_ok!(ensure_can_withdraw(&dave_addr_32, CHANGE));
             assert_ok!(ensure_can_withdraw(&eve_addr_32, CHANGE));
+
+            // Make sure the cleanup chore won't complain for trying to delete the sigdata for
+            // an already executed multisig script in ChoreOnIdleStorage - related to TODO in the
+            // lib.rs.
+            roll_to(block_no_1 + 100000); // Using an arbitrary big number here.
         })
 }
 
@@ -606,6 +701,7 @@ fn insufficient_cheque_limit_aborts_the_multisig_script_works() {
                 MAX_GAS_AMOUNT,
                 BALANCE,
             ));
+
             // One of the signers will set his cheque-limit too low to rent the apartment. The
             // script "rent_apartment" expects every of the signers to pay the same equal amount.
             let res = MoveModule::execute(
@@ -614,6 +710,7 @@ fn insufficient_cheque_limit_aborts_the_multisig_script_works() {
                 MAX_GAS_AMOUNT,
                 BALANCE / 2,
             );
+
             // Verify that the execution will be aborted since on of the signers has a too low
             // cheque-limit to pay his part of the bill.
             assert!(verify_module_error_with_msg(res, "Aborted").unwrap());

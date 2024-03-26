@@ -172,7 +172,7 @@ pub(crate) fn addrs_from_ss58(ss58: &str) -> Result<(AccountId32, AccountAddress
     Ok((addr_32, addr_mv))
 }
 
-/// Rolls forward in history to the given block height.
+/// Rolls forward in future to the given block height.
 pub(crate) fn roll_to(n: BlockNumberFor<Test>) {
     let weight = Weight::from_parts(100_000_000_000, 1);
     while System::block_number() < n {

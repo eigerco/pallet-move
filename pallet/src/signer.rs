@@ -10,7 +10,7 @@ use frame_support::{
         },
         Get,
     },
-    BoundedBTreeMap, Parameter,
+    BoundedBTreeMap, BoundedBTreeSet, Parameter,
 };
 use frame_system::{pallet_prelude::BlockNumberFor, Config as SysConfig};
 use scale_info::TypeInfo;
@@ -24,7 +24,7 @@ use crate::{
 
 // Some alias definition to make life easier.
 pub type MaxSignersOf<T> = <T as Config>::MaxScriptSigners;
-pub type MultisigOf<T> = Multisig<AccountIdOf<T>, BalanceOf<T>, BlockNumberFor<T>, MaxSignersOf<T>>;
+pub type SigDataOf<T> = SigData<AccountIdOf<T>, BalanceOf<T>, BlockNumberFor<T>, MaxSignersOf<T>>;
 
 /// This definition stores the hash value of a script transaction.
 pub type CallHash = [u8; 32];
@@ -40,20 +40,20 @@ pub enum Signature {
 }
 
 #[derive(Clone, Eq, PartialEq)]
-pub enum MultisigError {
+pub enum SigDataError {
     MaxSignersExceeded,
     ScriptSignatureFailure,
     UnableToDeserializeAccount,
     UserHasAlreadySigned,
 }
 
-impl<T> From<MultisigError> for Error<T> {
-    fn from(err: MultisigError) -> Self {
+impl<T> From<SigDataError> for Error<T> {
+    fn from(err: SigDataError) -> Self {
         match err {
-            MultisigError::MaxSignersExceeded => Error::<T>::MaxSignersExceeded,
-            MultisigError::ScriptSignatureFailure => Error::<T>::ScriptSignatureFailure,
-            MultisigError::UnableToDeserializeAccount => Error::<T>::UnableToDeserializeAccount,
-            MultisigError::UserHasAlreadySigned => Error::<T>::UserHasAlreadySigned,
+            SigDataError::MaxSignersExceeded => Error::<T>::MaxSignersExceeded,
+            SigDataError::ScriptSignatureFailure => Error::<T>::ScriptSignatureFailure,
+            SigDataError::UnableToDeserializeAccount => Error::<T>::UnableToDeserializeAccount,
+            SigDataError::UserHasAlreadySigned => Error::<T>::UserHasAlreadySigned,
         }
     }
 }
@@ -71,7 +71,7 @@ pub struct SignerData<Balance> {
 /// Storage struct definition for a multi-signer request.
 #[derive(Clone, Eq, PartialEq, Encode, Decode, RuntimeDebug, TypeInfo, MaxEncodedLen)]
 #[scale_info(skip_type_params(Size))]
-pub struct Multisig<AccountId, Balance, BlockNumber, Size>
+pub struct SigData<AccountId, Balance, BlockNumber, Size>
 where
     AccountId: Parameter + Ord + MaybeSerializeDeserialize,
     Balance: From<u128> + Into<u128> + Default,
@@ -80,43 +80,50 @@ where
 {
     /// The signers of a script transaction.
     signers: BoundedBTreeMap<AccountId, SignerData<Balance>, Size>,
-    /// The block number when this `Multisig` was created and stored.
-    block_height: BlockNumber,
+
+    /// The block height at which this `SigData` was initally stored.
+    ///
+    /// Used only for multisig purposes. Is set to `None` otherwise (non-multisig scenarios).
+    stored_block_height: Option<BlockNumber>,
 }
 
-impl<AccountId, Balance, BlockNumber, Size> Multisig<AccountId, Balance, BlockNumber, Size>
+impl<AccountId, Balance, BlockNumber, Size> SigData<AccountId, Balance, BlockNumber, Size>
 where
     AccountId: Parameter + Ord + MaybeSerializeDeserialize,
     Balance: From<u128> + Into<u128> + Default,
     BlockNumber: Parameter + Ord + MaybeSerializeDeserialize + Default,
     Size: Get<u32>,
 {
-    /// Creates a new [`Multisig`] with all blank signatures for the provided script.
-    pub fn new(signers: Vec<AccountId>, block_height: BlockNumber) -> Result<Self, MultisigError> {
+    /// Creates a new [`SigData`] with all blank signatures for the provided script.
+    pub fn new(signers: BoundedBTreeSet<AccountId, Size>) -> Result<Self, SigDataError> {
         if signers.len() > (Size::get() as usize) {
-            return Err(MultisigError::MaxSignersExceeded);
+            return Err(SigDataError::MaxSignersExceeded);
         }
 
-        let mut multisig_info = Multisig::<AccountId, Balance, BlockNumber, Size> {
-            block_height,
+        let mut sig_info = SigData::<AccountId, Balance, BlockNumber, Size> {
+            stored_block_height: None,
             ..Default::default()
         };
         for account in signers.iter() {
-            multisig_info
+            sig_info
                 .try_insert(account.clone(), SignerData::default())
-                .map_err(|_| MultisigError::UnableToDeserializeAccount)?;
+                .map_err(|_| SigDataError::UnableToDeserializeAccount)?;
         }
 
-        Ok(multisig_info)
+        Ok(sig_info)
     }
 
-    pub fn block_number(&self) -> &BlockNumber {
-        &self.block_height
+    pub fn stored_block_height(&self) -> Option<&BlockNumber> {
+        self.stored_block_height.as_ref()
+    }
+
+    pub fn set_block_height(&mut self, block_height: BlockNumber) {
+        self.stored_block_height = Some(block_height);
     }
 }
 
 impl<AccountId, Balance, BlockNumber, Size> core::ops::Deref
-    for Multisig<AccountId, Balance, BlockNumber, Size>
+    for SigData<AccountId, Balance, BlockNumber, Size>
 where
     AccountId: Parameter + Ord + MaybeSerializeDeserialize,
     Balance: From<u128> + Into<u128> + Default,
@@ -131,7 +138,7 @@ where
 }
 
 impl<AccountId, Balance, BlockNumber, Size> core::ops::DerefMut
-    for Multisig<AccountId, Balance, BlockNumber, Size>
+    for SigData<AccountId, Balance, BlockNumber, Size>
 where
     AccountId: Parameter + Ord + MaybeSerializeDeserialize,
     Balance: From<u128> + Into<u128> + Default,
@@ -145,7 +152,7 @@ where
 
 // Because in substrate_move::AccountAddress Default impl is missing.
 impl<AccountId, Balance, BlockNumber, Size> Default
-    for Multisig<AccountId, Balance, BlockNumber, Size>
+    for SigData<AccountId, Balance, BlockNumber, Size>
 where
     AccountId: Parameter + Ord + MaybeSerializeDeserialize,
     Balance: From<u128> + Into<u128> + Default,
@@ -153,9 +160,9 @@ where
     Size: Get<u32>,
 {
     fn default() -> Self {
-        Multisig {
+        SigData {
             signers: BoundedBTreeMap::<AccountId, SignerData<Balance>, Size>::new(),
-            block_height: BlockNumber::default(),
+            stored_block_height: None,
         }
     }
 }
@@ -163,20 +170,18 @@ where
 /// Script signature handler tracks required signatures for the provided script.
 pub(crate) struct ScriptSignatureHandler<T: Config + SysConfig> {
     _pd_config: PhantomData<T>,
-    /// All required multisig_info.
-    multisig_info: MultisigOf<T>,
+    /// All required script signature info.
+    sig_info: SigDataOf<T>,
 }
 
 impl<T: Config + SysConfig> ScriptSignatureHandler<T> {
     /// Creates a new [`ScriptSignatureHandler`] with all blank signatures for the provided script.
     pub(crate) fn new(
-        accounts: Vec<T::AccountId>,
-        block_height: BlockNumberFor<T>,
+        accounts: BoundedBTreeSet<T::AccountId, T::MaxScriptSigners>,
     ) -> Result<Self, Error<T>> {
         Ok(Self {
             _pd_config: PhantomData,
-            multisig_info: MultisigOf::<T>::new(accounts, block_height)
-                .map_err(Into::<Error<T>>::into)?,
+            sig_info: SigDataOf::<T>::new(accounts).map_err(Into::<Error<T>>::into)?,
         })
     }
 
@@ -193,24 +198,26 @@ impl<T: Config + SysConfig> ScriptSignatureHandler<T> {
         cheque_limit: &BalanceOf<T>,
         lock_id: LockIdentifier,
     ) -> Result<(), Error<T>> {
-        if let Some(ms_data) = self.multisig_info.get_mut(account) {
-            if matches!(ms_data.signature, Signature::Approved) {
-                Err(Error::<T>::UserHasAlreadySigned)
-            } else {
-                ms_data.signature = Signature::Approved;
-                ms_data.cheque_limit = *cheque_limit;
-                ms_data.lock_id = lock_id;
-                T::Currency::set_lock(lock_id, account, *cheque_limit, WithdrawReasons::all());
-                Ok(())
-            }
-        } else {
-            Err(Error::<T>::ScriptSignatureFailure)
+        // Only users that are on the signer list can sign this script.
+        let Some(ms_data) = self.sig_info.get_mut(account) else {
+            return Err(Error::<T>::UnexpectedUserSignature);
+        };
+
+        // User can sign only once.
+        if matches!(ms_data.signature, Signature::Approved) {
+            return Err(Error::<T>::UserHasAlreadySigned);
         }
+
+        ms_data.signature = Signature::Approved;
+        ms_data.cheque_limit = *cheque_limit;
+        ms_data.lock_id = lock_id;
+        T::Currency::set_lock(lock_id, account, *cheque_limit, WithdrawReasons::all());
+        Ok(())
     }
 
     /// Check whether the script has been approved by all required signers.
     pub(crate) fn all_signers_approved(&self) -> bool {
-        self.multisig_info
+        self.sig_info
             .values()
             .all(|signer| signer.signature == Signature::Approved)
     }
@@ -219,7 +226,7 @@ impl<T: Config + SysConfig> ScriptSignatureHandler<T> {
     /// Function returns an error if not all signers have signed.
     pub(crate) fn write_cheques(&self) -> Result<BalanceAdapter<T>, Error<T>> {
         let mut balances = BalanceAdapter::<T>::new();
-        for (account, ms_data) in self.multisig_info.iter() {
+        for (account, ms_data) in self.sig_info.iter() {
             T::Currency::remove_lock(ms_data.lock_id, account);
             balances
                 .write_cheque(account, &ms_data.cheque_limit)
@@ -229,23 +236,23 @@ impl<T: Config + SysConfig> ScriptSignatureHandler<T> {
         Ok(balances)
     }
 
-    /// Consumes [`ScriptSignatureHandler`] and returns innner `Multisig`.
-    pub(crate) fn into_inner(self) -> MultisigOf<T> {
-        self.multisig_info
+    /// Consumes [`ScriptSignatureHandler`] and returns innner `SigData`.
+    pub(crate) fn into_inner(self) -> SigDataOf<T> {
+        self.sig_info
     }
 
     /// Consumes [`ScriptSignatureHandler`] and returns accounts of all signers as vector.
     pub(crate) fn into_signer_accounts(self) -> Result<Vec<T::AccountId>, Error<T>> {
-        let accounts: Vec<T::AccountId> = self.multisig_info.keys().cloned().collect();
+        let accounts: Vec<T::AccountId> = self.sig_info.keys().cloned().collect();
         Ok(accounts)
     }
 }
 
-impl<T: Config + SysConfig> From<MultisigOf<T>> for ScriptSignatureHandler<T> {
-    fn from(multisig_info: MultisigOf<T>) -> Self {
+impl<T: Config + SysConfig> From<SigDataOf<T>> for ScriptSignatureHandler<T> {
+    fn from(sig_info: SigDataOf<T>) -> Self {
         Self {
             _pd_config: PhantomData,
-            multisig_info,
+            sig_info,
         }
     }
 }
