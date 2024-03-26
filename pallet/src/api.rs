@@ -37,7 +37,7 @@ sp_api::decl_runtime_apis! {
         fn estimate_gas_publish_bundle(account: AccountId, bytecode: Vec<u8>) -> Result<MoveApiEstimation, DispatchError>;
 
         // Estimate gas for script execution.
-        fn estimate_gas_execute_script(account: AccountId, transaction: Vec<u8>, cheque_limit: u128) -> Result<MoveApiEstimation, DispatchError>;
+        fn estimate_gas_execute_script(transaction: Vec<u8>) -> Result<MoveApiEstimation, DispatchError>;
 
         // Get module binary by its address.
         fn get_module(address: String, name: String) -> Result<Option<Vec<u8>>, Vec<u8>>;
