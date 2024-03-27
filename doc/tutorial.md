@@ -155,7 +155,7 @@ It means the script and provided parameters have been serialized into the specif
 
 Now - like when publishing a module - the optimal amount of needed gas for the script execution can also be estimated by using `smove`:
 ```sh
-smove node rpc estimate-gas-execute-script -a 5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty -s build/car-wash-example/script_transactions/initial_coin_minting.mvt --cheque-limit 0
+smove node rpc estimate-gas-execute-script -s build/car-wash-example/script_transactions/initial_coin_minting.mvt
 ```
 with response:
 ```sh
@@ -196,7 +196,7 @@ Now, let's execute the following actions:
     smove create-transaction --compiled-script-path build/car-wash-example/bytecode_scripts/register_new_user.mv --args signer:5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY
 
     # Now let's estimate gas for this transaction-script:
-    smove node rpc estimate-gas-execute-script -a 5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY -s build/car-wash-example/script_transactions/register_new_user.mvt --cheque-limit 0
+    smove node rpc estimate-gas-execute-script -s build/car-wash-example/script_transactions/register_new_user.mvt
     ```
     </details>
     
@@ -215,7 +215,7 @@ Now, let's execute the following actions:
 
     # Now let's estimate gas for this transaction-script.
     # `cheque_limit` also needs to be specified here, the RPC command will just if the use has enough funds, if not, it will report an error:
-    smove node rpc estimate-gas-execute-script -a 5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY -s build/car-wash-example/script_transactions/buy_coin.mvt --cheque-limit 1000000000000
+    smove node rpc estimate-gas-execute-script -s build/car-wash-example/script_transactions/buy_coin.mvt
     ```
     
     | ![polkadot.js_execute_script_buy.png](assets/polkadot.js_execute_script_buy.png) |
@@ -233,7 +233,7 @@ Now, let's execute the following actions:
     smove create-transaction --compiled-script-path build/car-wash-example/bytecode_scripts/wash_car.mv --args signer:5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY
 
     # Now let's estimate gas for this transaction-script:
-    smove node rpc estimate-gas-execute-script -a 5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY -s build/car-wash-example/script_transactions/wash_car.mvt --cheque-limit 0
+    smove node rpc estimate-gas-execute-script -s build/car-wash-example/script_transactions/wash_car.mvt
     ```
     </details>
 
