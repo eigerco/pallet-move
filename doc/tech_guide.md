@@ -75,12 +75,11 @@ Read detailed info about test concepts (what tests cover and how) in the [old te
 
 ## Pallet Configuration in a Substrate-Node
 
-The pallet's configuration is concise. Besides the regular `RuntimeEvent` and a predefined `WeightInfo`, you have to tell the pallet about your `Currency` handler, the used balance data type in your blockchain (`CurrencyBalance`), the maximum lifetime (`MaxLifetimeRequests`) and maximum number of signers (`MaxScriptSigners`) in case of a multi signer script execution request:
+The pallet's configuration is concise. Besides the regular `RuntimeEvent` and a predefined `WeightInfo`, you have to tell the pallet about your `Currency` handler, the used balance data type in your blockchain (`CurrencyBalance`), the maximum lifetime (`MultisigReqExpireTime`) and maximum number of signers (`MaxScriptSigners`) in case of a multi signer script execution request:
 ```rust
 parameter_types! {
     // Number of blocks after that a multi signer request gets removed.
-    // TODO: Rename to MultisigReqExpireTime.
-    pub const MaxLifetimeRequests: BlockNumberFor<Test> = 5;
+    pub const MultisigReqExpireTime: BlockNumberFor<Test> = 5;
     // Maximum number of signers in a multi signer script execution.
     pub const MaxScriptSigners: u32 = 8;
 }
@@ -91,7 +90,7 @@ impl pallet_move::Config for Test {
     // The used balance type. For example: `type Balance = u128;`.
     type CurrencyBalance = Balance;
     // Max lifetime of a multi signer execution request, see constant above.
-    type MaxLifetimeRequests = MaxLifetimeRequests;
+    type MultisigReqExpireTime = MultisigReqExpireTime;
     // Max number of signers in a multi signer execution request.
     type MaxScriptSigners = MaxScriptSigners;
     // Runtime event of this blockchain.

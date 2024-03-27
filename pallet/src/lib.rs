@@ -123,7 +123,7 @@ pub mod pallet {
 
         /// Maximum life time for requests.
         #[pallet::constant]
-        type MaxLifetimeRequests: Get<BlockNumberFor<Self>>;
+        type MultisigReqExpireTime: Get<BlockNumberFor<Self>>;
 
         /// Maximum number of signatories in multi-signer requests.
         #[pallet::constant]
@@ -564,7 +564,7 @@ pub mod pallet {
         ) -> Result<(), Error<T>> {
             // Increase the actual block-height by the maximum lifetime of a request.
             let expires_at_block_height =
-                multisig_creation_block_height + T::MaxLifetimeRequests::get();
+                multisig_creation_block_height + T::MultisigReqExpireTime::get();
 
             // Check for an existing entry or create an empty one.
             let mut hashes_ready_for_cleanup: BoundedVec<CallHash, MaxChoreEntriesPerVec> =
