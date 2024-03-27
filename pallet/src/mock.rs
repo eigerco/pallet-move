@@ -86,14 +86,14 @@ impl pallet_balances::Config for Test {
 }
 
 parameter_types! {
-    pub const MaxLifetimeRequests: BlockNumberFor<Test> = 5;
+    pub const MultisigReqExpireTime: BlockNumberFor<Test> = 5;
     pub const MaxScriptSigners: u32 = 8;
 }
 
 impl pallet_move::Config for Test {
     type Currency = Balances;
     type CurrencyBalance = Balance;
-    type MaxLifetimeRequests = MaxLifetimeRequests;
+    type MultisigReqExpireTime = MultisigReqExpireTime;
     type MaxScriptSigners = MaxScriptSigners;
     type RuntimeEvent = RuntimeEvent;
     type WeightInfo = ();
