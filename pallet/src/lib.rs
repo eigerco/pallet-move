@@ -64,6 +64,7 @@ pub mod pallet {
 
     use super::*;
     use crate::{
+        api::MoveApiEstimation,
         balance::{BalanceAdapter, BalanceOf},
         signer::*,
         storage::{MoveVmStorage, StorageAdapter},
@@ -626,6 +627,100 @@ pub mod pallet {
             hasher.update(&who.encode()[..]);
             hasher.update(&cheque_limit.encode()[..]);
             hasher.finalize().into()
+        }
+    }
+
+    // RPC method implementation for simple node integration.
+    impl<T: Config> Pallet<T> {
+        pub fn rpc_gas_to_weight(_gas_limit: u64) -> Weight {
+            // TODO (eiger): implement in M3
+            Weight::from_parts(1_123_123, 0) // Hardcoded for testing
+        }
+
+        pub fn rpc_weight_to_gas(_weight: Weight) -> u64 {
+            // TODO (eiger): implement in M3
+            100
+        }
+
+        pub fn rpc_estimate_gas_publish_module(
+            account: &T::AccountId,
+            bytecode: Vec<u8>,
+        ) -> Result<MoveApiEstimation, DispatchError> {
+            let address = Self::to_move_address(account)?;
+            let vm_result = Self::raw_publish_module(&address, bytecode, GasStrategy::DryRun)?;
+
+            Ok(MoveApiEstimation {
+                vm_status_code: vm_result.status_code.into(),
+                gas_used: vm_result.gas_used,
+            })
+        }
+
+        pub fn rpc_estimate_gas_publish_bundle(
+            account: &T::AccountId,
+            bytecode: Vec<u8>,
+        ) -> Result<MoveApiEstimation, DispatchError> {
+            let address = Self::to_move_address(account)?;
+            let vm_result = Self::raw_publish_bundle(&address, bytecode, GasStrategy::DryRun)?;
+
+            Ok(MoveApiEstimation {
+                vm_status_code: vm_result.status_code.into(),
+                gas_used: vm_result.gas_used,
+            })
+        }
+
+        pub fn rpc_estimate_gas_execute_script(
+            transaction_bc: Vec<u8>,
+        ) -> Result<MoveApiEstimation, DispatchError> {
+            // Main input for the VM are these script parameters.
+            let ScriptTransaction {
+                bytecode,
+                args,
+                type_args,
+            } = ScriptTransaction::try_from(transaction_bc.as_ref())
+                .map_err(|_| Error::<T>::InvalidScriptTransaction)?;
+            let args: Vec<&[u8]> = args.iter().map(AsRef::as_ref).collect();
+
+            // Make sure the script parameters are valid.
+            let signer_count =
+                verify_script_integrity_and_check_signers(&bytecode).map_err(Error::<T>::from)?;
+
+            // In the case of a dry run, we have an "unlimited" balance (u128::MAX) because it is
+            // not relevant to the gas estimation (no changes will be applied).
+            let unlimited_balance = BalanceAdapter::<T>::for_dry_run(&args, signer_count)?;
+
+            let vm_result = Self::raw_execute_script(
+                &bytecode,
+                type_args,
+                args,
+                GasStrategy::DryRun,
+                unlimited_balance,
+            )?;
+
+            Ok(MoveApiEstimation {
+                vm_status_code: vm_result.status_code.into(),
+                gas_used: vm_result.gas_used,
+            })
+        }
+
+        pub fn rpc_get_module(
+            account: T::AccountId,
+            name: String,
+        ) -> Result<Option<Vec<u8>>, Vec<u8>> {
+            Self::get_module(&account, &name)
+        }
+
+        pub fn rpc_get_module_abi(
+            account: T::AccountId,
+            name: String,
+        ) -> Result<Option<ModuleAbi>, Vec<u8>> {
+            Self::get_module_abi(&account, &name)
+        }
+
+        pub fn rpc_get_resource(
+            account: T::AccountId,
+            tag: Vec<u8>,
+        ) -> Result<Option<Vec<u8>>, Vec<u8>> {
+            Self::get_resource(&account, tag.as_slice())
         }
     }
 

@@ -40,10 +40,10 @@ sp_api::decl_runtime_apis! {
         fn estimate_gas_execute_script(transaction: Vec<u8>) -> Result<MoveApiEstimation, DispatchError>;
 
         // Get module binary by its address.
-        fn get_module(address: String, name: String) -> Result<Option<Vec<u8>>, Vec<u8>>;
+        fn get_module(address: AccountId, name: String) -> Result<Option<Vec<u8>>, Vec<u8>>;
 
         // Get module ABI by its address.
-        fn get_module_abi(address: String, name: String) -> Result<Option<ModuleAbi>, Vec<u8>>;
+        fn get_module_abi(address: AccountId, name: String) -> Result<Option<ModuleAbi>, Vec<u8>>;
 
         // Get resource.
         fn get_resource(account: AccountId, tag: Vec<u8>) -> Result<Option<Vec<u8>>, Vec<u8>>;
