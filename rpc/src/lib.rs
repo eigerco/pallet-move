@@ -81,7 +81,7 @@ pub trait MoveApi<BlockHash, AccountId> {
     #[method(name = "mvm_getModuleABI")]
     fn get_module_abi(
         &self,
-        address: &str,
+        address: AccountId,
         name: &str,
         at: Option<BlockHash>,
     ) -> RpcResult<Option<ModuleAbi>>;
@@ -90,7 +90,7 @@ pub trait MoveApi<BlockHash, AccountId> {
     #[method(name = "mvm_getModule")]
     fn get_module(
         &self,
-        address: &str,
+        address: AccountId,
         name: &str,
         at: Option<BlockHash>,
     ) -> RpcResult<Option<Vec<u8>>>;
@@ -210,14 +210,14 @@ where
 
     fn get_module_abi(
         &self,
-        address: &str,
+        address: AccountId,
         name: &str,
         at: Option<<Block as BlockT>::Hash>,
     ) -> RpcResult<Option<ModuleAbi>> {
         let api = self.client.runtime_api();
         let res = api.get_module_abi(
             at.unwrap_or_else(|| self.client.info().best_hash),
-            address.to_string(),
+            address,
             name.to_string(),
         );
 
@@ -227,14 +227,14 @@ where
 
     fn get_module(
         &self,
-        address: &str,
+        address: AccountId,
         name: &str,
         at: Option<<Block as BlockT>::Hash>,
     ) -> RpcResult<Option<Vec<u8>>> {
         let api = self.client.runtime_api();
         let res = api.get_module(
             at.unwrap_or_else(|| self.client.info().best_hash),
-            address.to_string(),
+            address,
             name.to_string(),
         );
 
