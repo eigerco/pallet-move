@@ -1,5 +1,4 @@
-use crate::mock::*;
-use crate::{no_type_args, script_transaction, Error};
+use crate::{assets, mock::*, no_type_args, script_transaction, Error};
 
 use frame_support::{assert_err, assert_ok};
 use move_core_types::{identifier::Identifier, language_storage::StructTag};

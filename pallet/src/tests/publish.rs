@@ -1,5 +1,4 @@
-use crate::mock::*;
-use crate::GasStrategy;
+use crate::{assets, mock::*, GasStrategy};
 
 use frame_support::assert_ok;
 use move_vm_backend::types::MAX_GAS_AMOUNT;

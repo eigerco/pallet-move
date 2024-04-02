@@ -1,4 +1,4 @@
-use crate::mock::*;
+use crate::{assets, mock::*};
 
 use frame_support::assert_ok;
 use move_core_types::{identifier::Identifier, language_storage::StructTag};

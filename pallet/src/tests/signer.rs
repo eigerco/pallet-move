@@ -1,4 +1,4 @@
-use crate::{mock::*, no_type_args, script_transaction, Error, Event, MultisigStorage};
+use crate::{assets, mock::*, no_type_args, script_transaction, Error, Event, MultisigStorage};
 
 use frame_support::{
     assert_err, assert_ok,

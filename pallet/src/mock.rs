@@ -1,15 +1,16 @@
 use frame_support::{
     dispatch::DispatchErrorWithPostInfo,
     pallet_prelude::{DispatchError, DispatchResultWithPostInfo, Weight},
+    traits::{OnFinalize, OnIdle, OnInitialize},
+};
+use frame_support::{
     parameter_types,
-    traits::{ConstU128, ConstU16, ConstU32, ConstU64, OnFinalize, OnIdle, OnInitialize},
+    traits::{ConstU128, ConstU16, ConstU32, ConstU64},
 };
 use frame_system::pallet_prelude::BlockNumberFor;
 use sp_core::{crypto::Ss58Codec, sr25519::Public, H256};
-use sp_runtime::{
-    traits::{BlakeTwo256, IdentityLookup},
-    BuildStorage,
-};
+use sp_runtime::traits::{BlakeTwo256, IdentityLookup};
+use sp_runtime::BuildStorage;
 
 use crate as pallet_move;
 use crate::Error;
@@ -21,14 +22,21 @@ pub use sp_runtime::AccountId32;
 // Primitive type definitions for this mockup.
 pub type Balance = u128;
 pub type Block = frame_system::mocking::MockBlock<Test>;
-// Key constants or frequently used ones.
+
 pub const EXISTENTIAL_DEPOSIT: Balance = 100;
-pub const EMPTY_CHEQUE: Balance = 0;
-pub const CAFE_ADDR: &str = "5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSv4fmh4G"; // == 0xCAFE
-pub const BOB_ADDR: &str = "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty";
-pub const ALICE_ADDR: &str = "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY";
-pub const DAVE_ADDR: &str = "5DAAnrj7VHTznn2AWBemMuyBwZWs6FNFjdyVXUeYum3PTXFy";
-pub const EVE_ADDR: &str = "5HGjWAeFDfFCWPsjFQdVV2Msvz2XtMktvgocEZcCj68kUMaw";
+
+mod constants {
+    // Key constants or frequently used ones.
+    pub const EMPTY_CHEQUE: super::Balance = 0;
+    pub const COIN_PRICE: u128 = 1_000_000_000_000;
+    pub const BOB_ADDR: &str = "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty";
+    pub const CAFE_ADDR: &str = "5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSv4fmh4G"; // == 0xCAFE
+    pub const ALICE_ADDR: &str = "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY";
+    pub const DAVE_ADDR: &str = "5DAAnrj7VHTznn2AWBemMuyBwZWs6FNFjdyVXUeYum3PTXFy";
+    pub const EVE_ADDR: &str = "5HGjWAeFDfFCWPsjFQdVV2Msvz2XtMktvgocEZcCj68kUMaw";
+}
+
+pub use constants::*;
 
 // Configure a mock runtime to test the pallet.
 frame_support::construct_runtime!(
@@ -204,56 +212,4 @@ pub(crate) fn verify_module_error_with_msg(
         }
     }
     Err(format!("{res:?} does not match '{e_msg}'"))
-}
-
-pub mod assets {
-    const MOVE_PROJECTS: &str = "src/tests/assets/move-projects";
-
-    /// Reads bytes from a file for the given path.
-    /// Can panic if the file doesn't exist.
-    fn read_bytes(file_path: &str) -> Vec<u8> {
-        std::fs::read(file_path)
-            .unwrap_or_else(|e| panic!("Can't read {file_path}: {e} - make sure you run pallet-move/tests/assets/move-projects/smove-build-all.sh"))
-    }
-
-    /// Reads a precompiled Move module from our assets directory.
-    pub fn read_module_from_project(project: &str, module_name: &str) -> Vec<u8> {
-        let path =
-            format!("{MOVE_PROJECTS}/{project}/build/{project}/bytecode_modules/{module_name}.mv");
-        read_bytes(&path)
-    }
-
-    /// Reads a precompiled Move bundle from our assets directory.
-    pub fn read_bundle_from_project(project: &str, bundle_name: &str) -> Vec<u8> {
-        let path = format!("{MOVE_PROJECTS}/{project}/build/{project}/bundles/{bundle_name}.mvb");
-        read_bytes(&path)
-    }
-
-    /// Reads a precompiled Move scripts from our assets directory.
-    pub fn read_script_from_project(project: &str, script_name: &str) -> Vec<u8> {
-        let path =
-            format!("{MOVE_PROJECTS}/{project}/build/{project}/bytecode_scripts/{script_name}.mv");
-        read_bytes(&path)
-    }
-}
-
-#[macro_export]
-macro_rules! script_transaction {
-    ($bytecode:expr, $type_args:expr $(, $args:expr)*) => {
-        {
-            let transaction = ScriptTransaction {
-                bytecode: $bytecode,
-                type_args: $type_args,
-                args: vec![$(bcs::to_bytes($args).unwrap()),*],
-            };
-            bcs::to_bytes(&transaction).unwrap()
-        }
-    }
-}
-
-#[macro_export]
-macro_rules! no_type_args {
-    () => {
-        vec![]
-    };
 }

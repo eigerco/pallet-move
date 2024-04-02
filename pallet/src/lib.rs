@@ -1,11 +1,14 @@
 #![cfg_attr(not(feature = "std"), no_std)]
+#![recursion_limit = "256"]
 
 pub mod api;
+#[cfg(any(test, feature = "runtime-benchmarks"))]
+pub(crate) mod assets;
 pub mod balance;
-#[cfg(all(test, feature = "runtime-benchmarks"))]
-mod benchmarking;
+#[cfg(feature = "runtime-benchmarks")]
+pub mod benchmarking;
 #[cfg(test)]
-mod mock;
+pub(crate) mod mock;
 mod result;
 mod signer;
 mod storage;
@@ -14,7 +17,6 @@ mod tests;
 pub mod weights;
 
 pub use pallet::*;
-pub use weights::*;
 
 #[macro_export]
 macro_rules! log {
@@ -26,14 +28,25 @@ macro_rules! log {
 	};
 }
 
+pub mod weight_info {
+    use frame_support::pallet_prelude::Weight;
+
+    /// Weight functions needed for pallet_move.
+    pub trait WeightInfo {
+        fn execute(gas: u32) -> Weight;
+        fn publish_module(gas: u32) -> Weight;
+        fn publish_module_bundle() -> Weight;
+        fn update_stdlib_bundle() -> Weight;
+    }
+}
+
 // The pallet is defined below.
 #[frame_support::pallet]
 pub mod pallet {
 
-    #[cfg(not(feature = "std"))]
     extern crate alloc;
-    #[cfg(not(feature = "std"))]
-    use alloc::format;
+
+    use alloc::{format, string::String};
     use blake2::{digest::consts::U8, Blake2b, Blake2s256, Digest};
     use core::convert::AsRef;
 
@@ -68,6 +81,7 @@ pub mod pallet {
         balance::{BalanceAdapter, BalanceOf},
         signer::*,
         storage::{MoveVmStorage, StorageAdapter},
+        weight_info::WeightInfo,
     };
 
     type MvmResult<T> = Result<Mvm<StorageAdapter<VMStorage<T>>, BalanceAdapter<T>>, Vec<u8>>;
@@ -228,7 +242,7 @@ pub mod pallet {
         // TODO(eiger) in M3: ensure the weight depends on basic extrinsic cost + gas_limit + size of the
         // transaction_bc.
         #[pallet::call_index(0)]
-        #[pallet::weight(T::WeightInfo::execute())]
+        #[pallet::weight(T::WeightInfo::execute(*gas_limit as u32))]
         pub fn execute(
             origin: OriginFor<T>,
             transaction_bc: Vec<u8>,
@@ -340,7 +354,7 @@ pub mod pallet {
         /// Module is published under its sender's address.
         // TODO(eiger) in M3: ensure the weight depends on basic extrinsic cost + gas_limit
         #[pallet::call_index(1)]
-        #[pallet::weight(T::WeightInfo::publish_module())]
+        #[pallet::weight(T::WeightInfo::publish_module(*gas_limit as u32))]
         pub fn publish_module(
             origin: OriginFor<T>,
             bytecode: Vec<u8>,
@@ -396,7 +410,7 @@ pub mod pallet {
         ///
         /// All standard libraries are published at their default address 0x1.
         #[pallet::call_index(3)]
-        #[pallet::weight(T::WeightInfo::update_stdlib())]
+        #[pallet::weight(T::WeightInfo::update_stdlib_bundle())]
         pub fn update_stdlib_bundle(
             origin: OriginFor<T>,
             stdlib: Vec<u8>,
