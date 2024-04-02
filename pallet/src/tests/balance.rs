@@ -1,4 +1,5 @@
 use crate::{
+    assets,
     balance::{BalanceAdapter, BalanceOf},
     mock::*,
     no_type_args, script_transaction,

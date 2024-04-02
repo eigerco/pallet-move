@@ -1,7 +1,6 @@
 //! Integration tests related to extrinsic call `update_stdlib`.
 
-use crate::mock::*;
-use crate::{no_type_args, script_transaction};
+use crate::{assets, mock::*, no_type_args, script_transaction};
 
 use frame_support::{assert_err, assert_ok, pallet_prelude::*};
 use move_stdlib::move_stdlib_bundle;

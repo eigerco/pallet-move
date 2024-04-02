@@ -1,11 +1,9 @@
-use crate::mock::*;
-use crate::{no_type_args, script_transaction};
+use crate::{assets, mock::*, no_type_args, script_transaction};
 
 use frame_support::assert_ok;
 use move_vm_backend::types::MAX_GAS_AMOUNT;
 
 const PROJECT: &str = "car-wash-example";
-const COIN_PRICE: u128 = 1_000_000_000_000;
 
 /// Test the regular, ideal flow of our example project.
 #[test]
