@@ -5,7 +5,7 @@
 Requirement: Before publishing the module for user _Bob_.
 
 ```sh
-smove node rpc estimate-gas-publish-module --account-id 5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty --module-path build/car-wash-example/bytecode_modules/CarWash.mv
+smove node rpc estimate-gas-publish-module -a 5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty -m build/car-wash-example/bytecode_modules/CarWash.mv
 ```
 
 ### Estimate Gas for Script `initial_coin_minting`

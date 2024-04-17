@@ -1,4 +1,4 @@
-# #!/bin/bash
+#!/bin/bash
 
 # Position the cwd in the same folder with the script (where the below folders are located)
 cd $(dirname $0)
@@ -18,13 +18,19 @@ bundle_dir=(
 )
 
 # Build simple packages
-for i in "${build_dir[@]}"; do
-    echo $i
-    smove build -p $i
+for dir in "${build_dir[@]}"; do
+    echo $dir
+    build_script=$dir"/build.sh"
+    if [ -f "$build_script" ];
+    then
+        sh $build_script
+    else
+        smove build -p $dir
+    fi
 done
 
 # Build bundles
-for i in "${bundle_dir[@]}"; do
-    echo $i
-    smove bundle -p $i
+for dir in "${bundle_dir[@]}"; do
+    echo $dir
+    smove bundle -p $dir
 done
