@@ -1,12 +1,10 @@
 //! Benchmarking setup for pallet-move.
 
 use frame_benchmarking::*;
-use frame_support::traits::Currency;
 use frame_system::{Config as SysConfig, RawOrigin};
 use move_core_types::account_address::AccountAddress;
 use move_vm_backend::types::MAX_GAS_AMOUNT;
 pub use sp_core::{crypto::Ss58Codec, sr25519::Public};
-use sp_runtime::traits::Zero;
 use sp_std::{vec, vec::Vec};
 
 #[cfg(test)]
@@ -26,42 +24,84 @@ benchmarks! {
     }
 
     execute {
-        let n in 0 .. 3;
+        let n in 0 .. 7;
 
-        let bob_32: T::AccountId = Public::from_ss58check(BOB_ADDR).unwrap().into();
-        let bob_mv = Pallet::<T>::to_move_address(&bob_32).unwrap();
-        let _ = T::Currency::deposit_creating(&bob_32, BalanceOf::<T>::from(u128::MAX));
-        let alice_32: T::AccountId = Public::from_ss58check(ALICE_ADDR).unwrap().into();
-        let alice_mv = Pallet::<T>::to_move_address(&alice_32).unwrap();
-        let _ = T::Currency::deposit_creating(&alice_32, BalanceOf::<T>::from(u128::MAX));
-        let dave_32: T::AccountId = Public::from_ss58check(DAVE_ADDR).unwrap().into();
-        let dave_mv = Pallet::<T>::to_move_address(&dave_32).unwrap();
-        let _ = T::Currency::deposit_creating(&dave_32, BalanceOf::<T>::from(u128::MAX));
-        let eve_32: T::AccountId = Public::from_ss58check(EVE_ADDR).unwrap().into();
-        let eve_mv = Pallet::<T>::to_move_address(&eve_32).unwrap();
-        let _ = T::Currency::deposit_creating(&eve_32, BalanceOf::<T>::from(u128::MAX));
+        let (bob_32, bob_mv) = account_address::<T>(BOB_ADDR);
+        let (alice_32, alice_mv) = account_address::<T>(ALICE_ADDR);
+        let (dave_32, dave_mv) = account_address::<T>(DAVE_ADDR);
+        let (eve_32, eve_mv) = account_address::<T>(EVE_ADDR);
 
-        // Prepare car-wash-example move-project on mockup.
+        // Our benchmark plan (each is a test scenario with different parameters).
+        let script_bcs = [
+            car_wash_initial_coin_miniting(&bob_mv),
+            multiple_signers_init_module(&bob_mv),
+            car_wash_register_new_user(&alice_mv),
+            car_wash_buy_coin(&alice_mv, 1),
+            car_wash_wash_car(&alice_mv),
+            multiple_signers_rent_apartment(&alice_mv, &dave_mv, &eve_mv, 1),
+            multiple_signers_rent_apartment(&alice_mv, &dave_mv, &eve_mv, 1),
+            multiple_signers_rent_apartment(&alice_mv, &dave_mv, &eve_mv, 1),
+        ];
+        // Sequence of account-IDs who will execute each extrinsic call.
+        let accounts = [
+            bob_32.clone(),
+            bob_32.clone(),
+            alice_32.clone(),
+            alice_32.clone(),
+            alice_32.clone(),
+            alice_32.clone(),
+            dave_32,
+            eve_32,
+        ];
+        // Needed gas amounts for each script, estimated by smove.
+        let gas = [21, 21, 15, 31, 18, 66, 66, 66];
+
+        // Now we have to prepare each script execution with a proper setup.
+        // Publish both modules always.
         Pallet::<T>::publish_module(
             RawOrigin::Signed(bob_32.clone()).into(),
             car_wash_example_module(),
             MAX_GAS_AMOUNT
         ).unwrap();
-        // Prepare multiple-signers move-project on mockup.
         Pallet::<T>::publish_module(
             RawOrigin::Signed(bob_32.clone()).into(),
             multiple_signers_module(),
             MAX_GAS_AMOUNT
         ).unwrap();
 
-        let accounts = [bob_32.clone(), bob_32, alice_32.clone(), alice_32];
-        let script_bcs = [
-            car_wash_initial_coin_miniting(&bob_mv),
-            multiple_signers_init_module(&bob_mv),
-            car_wash_register_new_user(&alice_mv),
-            multiple_signers_rent_apartment(&alice_mv, &dave_mv, &eve_mv, 1),
-        ];
-        let gas = [21, 21, 15, 66];
+        // Now prepare individual situations for proper script sequences.
+        if n > 1 && n < 5 {
+            Pallet::<T>::execute(
+                RawOrigin::Signed(bob_32.clone()).into(),
+                car_wash_initial_coin_miniting(&bob_mv),
+                MAX_GAS_AMOUNT,
+                LIMIT.into()
+            ).unwrap();
+            if n > 2 {
+                Pallet::<T>::execute(
+                    RawOrigin::Signed(alice_32.clone()).into(),
+                    car_wash_register_new_user(&alice_mv),
+                    MAX_GAS_AMOUNT,
+                    LIMIT.into()
+                ).unwrap();
+            }
+            if n > 3 {
+                Pallet::<T>::execute(
+                    RawOrigin::Signed(alice_32.clone()).into(),
+                    car_wash_buy_coin(&alice_mv, 1),
+                    MAX_GAS_AMOUNT,
+                    LIMIT.into()
+                ).unwrap();
+            }
+        }
+        if n > 4 {
+            Pallet::<T>::execute(
+                RawOrigin::Signed(bob_32.clone()).into(),
+                multiple_signers_init_module(&bob_mv),
+                MAX_GAS_AMOUNT,
+                LIMIT.into()
+            ).unwrap();
+        }
 
     }: _(RawOrigin::Signed(accounts[n as usize].clone()), script_bcs[n as usize].clone(), gas[n as usize], BalanceOf::<T>::from(LIMIT))
 
@@ -95,9 +135,45 @@ benchmarks! {
 #[cfg(test)]
 impl_benchmark_test_suite!(
     Pallet,
-    crate::mock::ExtBuilder::default().build(),
+    crate::mock::ExtBuilder::default()
+        .with_balances(vec![
+            (
+                crate::benchmarking::account::<crate::mock::Test>(crate::benchmarking::BOB_ADDR),
+                u128::MAX
+            ),
+            (
+                crate::benchmarking::account::<crate::mock::Test>(crate::benchmarking::ALICE_ADDR),
+                u128::MAX
+            ),
+            (
+                crate::benchmarking::account::<crate::mock::Test>(crate::benchmarking::DAVE_ADDR),
+                u128::MAX
+            ),
+            (
+                crate::benchmarking::account::<crate::mock::Test>(crate::benchmarking::EVE_ADDR),
+                u128::MAX
+            ),
+        ])
+        .build(),
     crate::mock::Test
 );
+
+#[cfg(test)]
+fn account<T: SysConfig + Config>(name: &str) -> T::AccountId
+where
+    T::AccountId: From<Public>,
+{
+    Public::from_ss58check(name).unwrap().into()
+}
+
+fn account_address<T: SysConfig + Config>(name: &str) -> (T::AccountId, AccountAddress)
+where
+    T::AccountId: From<Public>,
+{
+    let account: T::AccountId = Public::from_ss58check(name).unwrap().into();
+    let address = Pallet::<T>::to_move_address(&account).unwrap();
+    (account, address)
+}
 
 // Move Basics Example
 fn move_basics_module() -> Vec<u8> {
@@ -136,6 +212,14 @@ fn car_wash_buy_coin(addr: &AccountAddress, cnt: u8) -> Vec<u8> {
     )
     .to_vec();
     script_transaction!(script, no_type_args!(), addr, &cnt)
+}
+
+fn car_wash_wash_car(addr: &AccountAddress) -> Vec<u8> {
+    let script = core::include_bytes!(
+        "assets/move-projects/car-wash-example/build/car-wash-example/bytecode_scripts/wash_car.mv"
+    )
+    .to_vec();
+    script_transaction!(script, no_type_args!(), addr)
 }
 
 // Multiple Signers Example
