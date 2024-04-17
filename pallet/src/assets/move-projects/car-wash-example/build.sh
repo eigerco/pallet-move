@@ -1,4 +1,5 @@
 #!/bin/sh
+cd $(dirname $0)
 # Build the project
 smove build
 # Create all Script-Transactions
