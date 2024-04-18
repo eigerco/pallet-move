@@ -8,12 +8,11 @@ use frame_support::{
     traits::{ConstU128, ConstU16, ConstU32, ConstU64},
 };
 use frame_system::pallet_prelude::BlockNumberFor;
-use sp_core::{crypto::Ss58Codec, sr25519::Public, H256};
+use sp_core::H256;
 use sp_runtime::traits::{BlakeTwo256, IdentityLookup};
 use sp_runtime::BuildStorage;
 
 use crate as pallet_move;
-use crate::Error;
 
 pub use move_core_types::account_address::AccountAddress;
 pub use move_vm_backend_common::types::ScriptTransaction;
@@ -29,11 +28,6 @@ mod constants {
     // Key constants or frequently used ones.
     pub const EMPTY_CHEQUE: super::Balance = 0;
     pub const COIN_PRICE: u128 = 1_000_000_000_000;
-    pub const BOB_ADDR: &str = "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty";
-    pub const CAFE_ADDR: &str = "5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSv4fmh4G"; // == 0xCAFE
-    pub const ALICE_ADDR: &str = "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY";
-    pub const DAVE_ADDR: &str = "5DAAnrj7VHTznn2AWBemMuyBwZWs6FNFjdyVXUeYum3PTXFy";
-    pub const EVE_ADDR: &str = "5HGjWAeFDfFCWPsjFQdVV2Msvz2XtMktvgocEZcCj68kUMaw";
 }
 
 pub use constants::*;
@@ -158,26 +152,6 @@ impl ExtBuilder {
 
         ext.into()
     }
-}
-
-/// Creates a native 32-byte address from a given ss58 string.
-pub(crate) fn addr32_from_ss58(ss58addr: &str) -> Result<AccountId32, Error<Test>> {
-    let (pk, _) = Public::from_ss58check_with_version(ss58addr)
-        .map_err(|_| Error::<Test>::InvalidAccountSize)?;
-    let account: AccountId32 = pk.into();
-    Ok(account)
-}
-
-/// Converts a native 32-byte address into a Move memory address.
-pub(crate) fn addr32_to_move(addr32: &AccountId32) -> Result<AccountAddress, Error<Test>> {
-    MoveModule::to_move_address(addr32)
-}
-
-/// Creates a native 32-byte address and it's Move memory address by given ss58 string.
-pub(crate) fn addrs_from_ss58(ss58: &str) -> Result<(AccountId32, AccountAddress), Error<Test>> {
-    let addr_32 = addr32_from_ss58(ss58)?;
-    let addr_mv = addr32_to_move(&addr_32)?;
-    Ok((addr_32, addr_mv))
 }
 
 /// Rolls forward in future to the given block height.

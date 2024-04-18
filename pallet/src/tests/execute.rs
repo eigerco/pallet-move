@@ -1,4 +1,4 @@
-use crate::{assets, mock::*, no_type_args, script_transaction, Error};
+use crate::{mock::*, mock_utils as utils, no_type_args, script_transaction, Error};
 
 use frame_support::{assert_err, assert_ok};
 use move_core_types::{identifier::Identifier, language_storage::StructTag};
@@ -25,10 +25,10 @@ fn get_vm_resource(
 /// Test execution of a script.
 #[test]
 fn execute_script_empty() {
-    let addr_native = addr32_from_ss58(CAFE_ADDR).unwrap();
+    let addr_native = utils::account::<Test>(utils::CAFE_ADDR);
 
     ExtBuilder::default().build().execute_with(|| {
-        let script = assets::read_script_from_project("move-basics", "empty_scr");
+        let script = utils::read_script_from_project("move-basics", "empty_scr");
 
         let transaction_bc = script_transaction!(script, no_type_args!());
 
@@ -41,7 +41,7 @@ fn execute_script_empty() {
 
         assert_ok!(res);
 
-        let script = assets::read_script_from_project("move-basics", "empty_loop");
+        let script = utils::read_script_from_project("move-basics", "empty_loop");
 
         let transaction_bc = script_transaction!(script, no_type_args!());
 
@@ -59,10 +59,10 @@ fn execute_script_empty() {
 /// Test execution of a script with parametrized function.
 #[test]
 fn execute_script_params() {
-    let addr_native = addr32_from_ss58(CAFE_ADDR).unwrap();
+    let addr_native = utils::account::<Test>(utils::CAFE_ADDR);
 
     ExtBuilder::default().build().execute_with(|| {
-        let script = assets::read_script_from_project("move-basics", "empty_loop_param");
+        let script = utils::read_script_from_project("move-basics", "empty_loop_param");
 
         let transaction_bc = script_transaction!(script, no_type_args!(), &10u64);
 
@@ -81,10 +81,10 @@ fn execute_script_params() {
 /// are not allowed.
 #[test]
 fn execute_script_generic_fails() {
-    let addr_native = addr32_from_ss58(CAFE_ADDR).unwrap();
+    let addr_native = utils::account::<Test>(utils::CAFE_ADDR);
 
     ExtBuilder::default().build().execute_with(|| {
-        let script = assets::read_script_from_project("move-basics", "generic_1");
+        let script = utils::read_script_from_project("move-basics", "generic_1");
 
         let transaction_bc = script_transaction!(script, no_type_args!(), &100u64);
 
@@ -102,12 +102,12 @@ fn execute_script_generic_fails() {
 /// Test execution of a script with correct parameters which stores something inside the storage.
 #[test]
 fn execute_script_storage_correct() {
-    let (bob_addr_32, bob_addr_mv) = addrs_from_ss58(BOB_ADDR).unwrap();
-    let (alice_addr_32, alice_addr_mv) = addrs_from_ss58(ALICE_ADDR).unwrap();
+    let (bob_addr_32, bob_addr_mv) = utils::account_n_address::<Test>(utils::BOB_ADDR);
+    let (alice_addr_32, alice_addr_mv) = utils::account_n_address::<Test>(utils::ALICE_ADDR);
 
     ExtBuilder::default().build().execute_with(|| {
         // Bob publishes the move-module 'Counter', test preparation.
-        let module = assets::read_module_from_project("get-resource", "Counter");
+        let module = utils::read_module_from_project("get-resource", "Counter");
         assert_ok!(MoveModule::publish_module(
             RuntimeOrigin::signed(bob_addr_32.clone()),
             module,
@@ -127,7 +127,7 @@ fn execute_script_storage_correct() {
         );
 
         // Alice and Bob execute a script to create a counter using the move-module 'Counter'.
-        let script = assets::read_script_from_project("get-resource", "create_counter");
+        let script = utils::read_script_from_project("get-resource", "create_counter");
         let transaction_bc = script_transaction!(script.clone(), no_type_args!(), &alice_addr_mv);
         assert_ok!(MoveModule::execute(
             RuntimeOrigin::signed(alice_addr_32.clone()),
@@ -156,7 +156,7 @@ fn execute_script_storage_correct() {
         assert_eq!(counter, vec![0, 0, 0, 0, 0, 0, 0, 0]);
 
         // Execute script that counts that created counter, but only for Alice.
-        let script = assets::read_script_from_project("get-resource", "count");
+        let script = utils::read_script_from_project("get-resource", "count");
         let transaction_bc = script_transaction!(script.clone(), no_type_args!(), &alice_addr_mv);
         assert_ok!(MoveModule::execute(
             RuntimeOrigin::signed(alice_addr_32.clone()),
@@ -181,11 +181,11 @@ fn execute_script_storage_correct() {
 /// Test execution of a script with correct parameters but with insufficient gas.
 #[test]
 fn execute_script_insufficient_gas() {
-    let (bob_addr_32, bob_addr_mv) = addrs_from_ss58(BOB_ADDR).unwrap();
+    let (bob_addr_32, bob_addr_mv) = utils::account_n_address::<Test>(utils::BOB_ADDR);
 
     ExtBuilder::default().build().execute_with(|| {
         // Bob publishes the move-module 'Counter', test preparation.
-        let module = assets::read_module_from_project("get-resource", "Counter");
+        let module = utils::read_module_from_project("get-resource", "Counter");
         assert_ok!(MoveModule::publish_module(
             RuntimeOrigin::signed(bob_addr_32.clone()),
             module,
@@ -193,7 +193,7 @@ fn execute_script_insufficient_gas() {
         ));
 
         // Bob wants to execute a script which shall trigger that module but with too little gas.
-        let script = assets::read_script_from_project("get-resource", "create_counter");
+        let script = utils::read_script_from_project("get-resource", "create_counter");
         let transaction_bc = script_transaction!(script.clone(), no_type_args!(), &bob_addr_mv);
         assert!(MoveModule::execute(
             RuntimeOrigin::signed(bob_addr_32.clone()),
@@ -208,11 +208,11 @@ fn execute_script_insufficient_gas() {
 /// Test execution of a script with corrupted bytecode.
 #[test]
 fn execute_script_corrupted_bytecode() {
-    let (bob_addr_32, bob_addr_mv) = addrs_from_ss58(BOB_ADDR).unwrap();
+    let (bob_addr_32, bob_addr_mv) = utils::account_n_address::<Test>(utils::BOB_ADDR);
 
     ExtBuilder::default().build().execute_with(|| {
         // Bob publishes the move-module 'Counter', test preparation.
-        let module = assets::read_module_from_project("get-resource", "Counter");
+        let module = utils::read_module_from_project("get-resource", "Counter");
         assert_ok!(MoveModule::publish_module(
             RuntimeOrigin::signed(bob_addr_32.clone()),
             module,
@@ -220,7 +220,7 @@ fn execute_script_corrupted_bytecode() {
         ));
 
         // Bob executes a corrupted script.
-        let script = assets::read_script_from_project("get-resource", "create_counter");
+        let script = utils::read_script_from_project("get-resource", "create_counter");
         let mut transaction_bc = script_transaction!(script.clone(), no_type_args!(), &bob_addr_mv);
         transaction_bc[10] += 1;
         assert!(MoveModule::execute(

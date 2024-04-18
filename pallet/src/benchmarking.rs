@@ -1,46 +1,40 @@
 //! Benchmarking setup for pallet-move.
 
-use frame_benchmarking::*;
-use frame_system::{Config as SysConfig, RawOrigin};
-use move_core_types::account_address::AccountAddress;
-use move_vm_backend::types::MAX_GAS_AMOUNT;
-pub use sp_core::{crypto::Ss58Codec, sr25519::Public};
-use sp_std::{vec, vec::Vec};
-
+use frame_benchmarking::benchmarks;
 #[cfg(test)]
-use crate::mock::*;
-use crate::{balance::BalanceOf, *};
+use frame_benchmarking::impl_benchmark_test_suite;
+use frame_system::{Config as SysConfig, RawOrigin};
+use move_vm_backend::types::MAX_GAS_AMOUNT;
+use sp_core::crypto::Ss58Codec;
 
-const LIMIT: u128 = 30_000_000_000_000;
-const BOB_ADDR: &str = "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty";
-const ALICE_ADDR: &str = "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY";
-const DAVE_ADDR: &str = "5DAAnrj7VHTznn2AWBemMuyBwZWs6FNFjdyVXUeYum3PTXFy";
-const EVE_ADDR: &str = "5HGjWAeFDfFCWPsjFQdVV2Msvz2XtMktvgocEZcCj68kUMaw";
+use crate::{balance::BalanceOf, mock_utils::*, *};
+
+const LIMIT: u128 = 60_000_000_000_000;
 
 benchmarks! {
     where_clause { where
         T: Config + SysConfig,
-        T::AccountId: From<Public>,
+        T::AccountId: Ss58Codec,
     }
 
     execute {
         let n in 0 .. 7;
 
-        let (bob_32, bob_mv) = account_address::<T>(BOB_ADDR);
-        let (alice_32, alice_mv) = account_address::<T>(ALICE_ADDR);
-        let (dave_32, dave_mv) = account_address::<T>(DAVE_ADDR);
-        let (eve_32, eve_mv) = account_address::<T>(EVE_ADDR);
+        let (bob_32, bob_mv) = account_n_address::<T>(BOB_ADDR);
+        let (alice_32, alice_mv) = account_n_address::<T>(ALICE_ADDR);
+        let (dave_32, dave_mv) = account_n_address::<T>(DAVE_ADDR);
+        let (eve_32, eve_mv) = account_n_address::<T>(EVE_ADDR);
 
         // Our benchmark plan (each is a test scenario with different parameters).
         let script_bcs = [
-            car_wash_initial_coin_miniting(&bob_mv),
-            multiple_signers_init_module(&bob_mv),
-            car_wash_register_new_user(&alice_mv),
-            car_wash_buy_coin(&alice_mv, 1),
-            car_wash_wash_car(&alice_mv),
-            multiple_signers_rent_apartment(&alice_mv, &dave_mv, &eve_mv, 1),
-            multiple_signers_rent_apartment(&alice_mv, &dave_mv, &eve_mv, 1),
-            multiple_signers_rent_apartment(&alice_mv, &dave_mv, &eve_mv, 1),
+            car_wash_initial_coin_miniting().to_vec(),
+            multiple_signers_init_module().to_vec(),
+            car_wash_register_new_user().to_vec(),
+            car_wash_buy_coin().to_vec(),
+            car_wash_wash_car().to_vec(),
+            multiple_signers_rent_apartment().to_vec(),
+            multiple_signers_rent_apartment().to_vec(),
+            multiple_signers_rent_apartment().to_vec(),
         ];
         // Sequence of account-IDs who will execute each extrinsic call.
         let accounts = [
@@ -60,12 +54,12 @@ benchmarks! {
         // Publish both modules always.
         Pallet::<T>::publish_module(
             RawOrigin::Signed(bob_32.clone()).into(),
-            car_wash_example_module(),
+            car_wash_example_module().to_vec(),
             MAX_GAS_AMOUNT
         ).unwrap();
         Pallet::<T>::publish_module(
             RawOrigin::Signed(bob_32.clone()).into(),
-            multiple_signers_module(),
+            multiple_signers_module().to_vec(),
             MAX_GAS_AMOUNT
         ).unwrap();
 
@@ -73,14 +67,14 @@ benchmarks! {
         if n > 1 && n < 5 {
             Pallet::<T>::execute(
                 RawOrigin::Signed(bob_32.clone()).into(),
-                car_wash_initial_coin_miniting(&bob_mv),
+                car_wash_initial_coin_miniting().to_vec(),
                 MAX_GAS_AMOUNT,
                 LIMIT.into()
             ).unwrap();
             if n > 2 {
                 Pallet::<T>::execute(
                     RawOrigin::Signed(alice_32.clone()).into(),
-                    car_wash_register_new_user(&alice_mv),
+                    car_wash_register_new_user().to_vec(),
                     MAX_GAS_AMOUNT,
                     LIMIT.into()
                 ).unwrap();
@@ -88,7 +82,7 @@ benchmarks! {
             if n > 3 {
                 Pallet::<T>::execute(
                     RawOrigin::Signed(alice_32.clone()).into(),
-                    car_wash_buy_coin(&alice_mv, 1),
+                    car_wash_buy_coin().to_vec(),
                     MAX_GAS_AMOUNT,
                     LIMIT.into()
                 ).unwrap();
@@ -97,7 +91,7 @@ benchmarks! {
         if n > 4 {
             Pallet::<T>::execute(
                 RawOrigin::Signed(bob_32.clone()).into(),
-                multiple_signers_init_module(&bob_mv),
+                multiple_signers_init_module().to_vec(),
                 MAX_GAS_AMOUNT,
                 LIMIT.into()
             ).unwrap();
@@ -108,14 +102,13 @@ benchmarks! {
     publish_module {
         let n in 0 .. 3;
 
-        let bob_32: T::AccountId = Public::from_ss58check(BOB_ADDR).unwrap().into();
-        let bob_mv = Pallet::<T>::to_move_address(&bob_32).unwrap();
+        let (bob_32, bob_mv) = account_n_address::<T>(BOB_ADDR);
 
         let module_bcs = [
-            move_basics_module(),
-            using_stdlib_natives_module(),
-            multiple_signers_module(),
-            car_wash_example_module(),
+            move_basics_module().to_vec(),
+            using_stdlib_natives_module().to_vec(),
+            multiple_signers_module().to_vec(),
+            car_wash_example_module().to_vec(),
 
         ];
         let gas = [11, 33, 67, 74];
@@ -123,7 +116,7 @@ benchmarks! {
     }: _(RawOrigin::Signed(bob_32), module_bcs[n as usize].clone(), gas[n as usize])
 
     publish_module_bundle {
-        let bob_32: T::AccountId = Public::from_ss58check(BOB_ADDR).unwrap().into();
+        let bob_32 = account::<T>(BOB_ADDR);
         let bundle = core::include_bytes!("assets/move-projects/using_stdlib_natives/build/using_stdlib_natives/bundles/using_stdlib_natives.mvb").to_vec();
     }: _(RawOrigin::Signed(bob_32), bundle, 1_500_000)
 
@@ -138,19 +131,19 @@ impl_benchmark_test_suite!(
     crate::mock::ExtBuilder::default()
         .with_balances(vec![
             (
-                crate::benchmarking::account::<crate::mock::Test>(crate::benchmarking::BOB_ADDR),
+                crate::mock_utils::account::<crate::mock::Test>(crate::mock_utils::BOB_ADDR),
                 u128::MAX
             ),
             (
-                crate::benchmarking::account::<crate::mock::Test>(crate::benchmarking::ALICE_ADDR),
+                crate::mock_utils::account::<crate::mock::Test>(crate::mock_utils::ALICE_ADDR),
                 u128::MAX
             ),
             (
-                crate::benchmarking::account::<crate::mock::Test>(crate::benchmarking::DAVE_ADDR),
+                crate::mock_utils::account::<crate::mock::Test>(crate::mock_utils::DAVE_ADDR),
                 u128::MAX
             ),
             (
-                crate::benchmarking::account::<crate::mock::Test>(crate::benchmarking::EVE_ADDR),
+                crate::mock_utils::account::<crate::mock::Test>(crate::mock_utils::EVE_ADDR),
                 u128::MAX
             ),
         ])
@@ -158,89 +151,60 @@ impl_benchmark_test_suite!(
     crate::mock::Test
 );
 
-#[cfg(test)]
-fn account<T: SysConfig + Config>(name: &str) -> T::AccountId
-where
-    T::AccountId: From<Public>,
-{
-    Public::from_ss58check(name).unwrap().into()
-}
+use benchmark_only::*;
 
-fn account_address<T: SysConfig + Config>(name: &str) -> (T::AccountId, AccountAddress)
-where
-    T::AccountId: From<Public>,
-{
-    let account: T::AccountId = Public::from_ss58check(name).unwrap().into();
-    let address = Pallet::<T>::to_move_address(&account).unwrap();
-    (account, address)
-}
+mod benchmark_only {
+    // Move Basics Example
+    pub fn move_basics_module() -> &'static [u8] {
+        core::include_bytes!(
+            "assets/move-projects/move-basics/build/move-basics/bytecode_modules/EmptyBob.mv"
+        )
+    }
 
-// Move Basics Example
-fn move_basics_module() -> Vec<u8> {
-    core::include_bytes!(
-        "assets/move-projects/move-basics/build/move-basics/bytecode_modules/EmptyBob.mv"
-    )
-    .to_vec()
-}
+    // Using Stdlib Natives Example
+    pub fn using_stdlib_natives_module() -> &'static [u8] {
+        core::include_bytes!("assets/move-projects/using_stdlib_natives/build/using_stdlib_natives/bytecode_modules/Vector.mv")
+    }
 
-// Using Stdlib Natives Example
-fn using_stdlib_natives_module() -> Vec<u8> {
-    core::include_bytes!("assets/move-projects/using_stdlib_natives/build/using_stdlib_natives/bytecode_modules/Vector.mv").to_vec()
-}
+    // Car Wash Example
+    pub fn car_wash_example_module() -> &'static [u8] {
+        core::include_bytes!(
+            "assets/move-projects/car-wash-example/build/car-wash-example/bytecode_modules/CarWash.mv"
+        )
+    }
 
-// Car Wash Example
-fn car_wash_example_module() -> Vec<u8> {
-    core::include_bytes!(
-        "assets/move-projects/car-wash-example/build/car-wash-example/bytecode_modules/CarWash.mv"
-    )
-    .to_vec()
-}
+    pub fn car_wash_initial_coin_miniting() -> &'static [u8] {
+        core::include_bytes!("assets/move-projects/car-wash-example/build/car-wash-example/script_transactions/initial_coin_minting.mvt")
+    }
 
-fn car_wash_initial_coin_miniting(addr: &AccountAddress) -> Vec<u8> {
-    let script = core::include_bytes!("assets/move-projects/car-wash-example/build/car-wash-example/bytecode_scripts/initial_coin_minting.mv").to_vec();
-    script_transaction!(script, no_type_args!(), addr)
-}
+    pub fn car_wash_register_new_user() -> &'static [u8] {
+        core::include_bytes!("assets/move-projects/car-wash-example/build/car-wash-example/script_transactions/register_new_user.mvt")
+    }
 
-fn car_wash_register_new_user(addr: &AccountAddress) -> Vec<u8> {
-    let script = core::include_bytes!("assets/move-projects/car-wash-example/build/car-wash-example/bytecode_scripts/register_new_user.mv").to_vec();
-    script_transaction!(script, no_type_args!(), addr)
-}
+    pub fn car_wash_buy_coin() -> &'static [u8] {
+        core::include_bytes!(
+            "assets/move-projects/car-wash-example/build/car-wash-example/script_transactions/buy_coin.mvt"
+        )
+    }
 
-fn car_wash_buy_coin(addr: &AccountAddress, cnt: u8) -> Vec<u8> {
-    let script = core::include_bytes!(
-        "assets/move-projects/car-wash-example/build/car-wash-example/bytecode_scripts/buy_coin.mv"
-    )
-    .to_vec();
-    script_transaction!(script, no_type_args!(), addr, &cnt)
-}
+    pub fn car_wash_wash_car() -> &'static [u8] {
+        core::include_bytes!(
+            "assets/move-projects/car-wash-example/build/car-wash-example/script_transactions/wash_car.mvt"
+        )
+    }
 
-fn car_wash_wash_car(addr: &AccountAddress) -> Vec<u8> {
-    let script = core::include_bytes!(
-        "assets/move-projects/car-wash-example/build/car-wash-example/bytecode_scripts/wash_car.mv"
-    )
-    .to_vec();
-    script_transaction!(script, no_type_args!(), addr)
-}
+    // Multiple Signers Example
+    pub fn multiple_signers_module() -> &'static [u8] {
+        core::include_bytes!(
+            "assets/move-projects/multiple-signers/build/multiple-signers/bytecode_modules/Dorm.mv"
+        )
+    }
 
-// Multiple Signers Example
-fn multiple_signers_module() -> Vec<u8> {
-    core::include_bytes!(
-        "assets/move-projects/multiple-signers/build/multiple-signers/bytecode_modules/Dorm.mv"
-    )
-    .to_vec()
-}
+    pub fn multiple_signers_init_module() -> &'static [u8] {
+        core::include_bytes!("assets/move-projects/multiple-signers/build/multiple-signers/script_transactions/init_module.mvt")
+    }
 
-fn multiple_signers_init_module(addr: &AccountAddress) -> Vec<u8> {
-    let script = core::include_bytes!("assets/move-projects/multiple-signers/build/multiple-signers/bytecode_scripts/init_module.mv").to_vec();
-    script_transaction!(script, no_type_args!(), addr)
-}
-
-fn multiple_signers_rent_apartment(
-    addr1: &AccountAddress,
-    addr2: &AccountAddress,
-    addr3: &AccountAddress,
-    cnt: u8,
-) -> Vec<u8> {
-    let script = core::include_bytes!("assets/move-projects/multiple-signers/build/multiple-signers/bytecode_scripts/rent_apartment.mv").to_vec();
-    script_transaction!(script, no_type_args!(), addr1, addr2, addr3, &cnt)
+    pub fn multiple_signers_rent_apartment() -> &'static [u8] {
+        core::include_bytes!("assets/move-projects/multiple-signers/build/multiple-signers/script_transactions/rent_apartment.mvt")
+    }
 }

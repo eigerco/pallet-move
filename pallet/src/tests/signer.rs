@@ -1,4 +1,6 @@
-use crate::{assets, mock::*, no_type_args, script_transaction, Error, Event, MultisigStorage};
+use crate::{
+    mock::*, mock_utils as utils, no_type_args, script_transaction, Error, Event, MultisigStorage,
+};
 
 use frame_support::{
     assert_err, assert_ok,
@@ -112,10 +114,10 @@ fn general_script_no_params_works() {
         // Roll to first block in case of block based event checkings and processes.
         roll_to(1);
 
-        let (bob_addr_32, _) = addrs_from_ss58(BOB_ADDR).unwrap();
+        let (bob_addr_32, _) = utils::account_n_address::<Test>(utils::BOB_ADDR);
 
         // no_param_at_all()
-        let script = assets::read_script_from_project("signer-scripts", "no_param_at_all");
+        let script = utils::read_script_from_project("signer-scripts", "no_param_at_all");
         let type_args: Vec<TypeTag> = vec![];
         let params: Vec<&[u8]> = vec![];
         assert_ok!(execute_script(&bob_addr_32, script, params, type_args));
@@ -136,10 +138,10 @@ fn general_script_no_signers_param_at_all_works() {
         roll_to(1);
 
         let mut pg = ParamGenerator::new();
-        let (bob_addr_32, _) = addrs_from_ss58(BOB_ADDR).unwrap();
+        let (bob_addr_32, _) = utils::account_n_address::<Test>(utils::BOB_ADDR);
 
         // no_signers_param_at_all(iterations: u64, _a: u32, _b: u8, _c: u256, _d: address, _e: vector<u32>, _f: bool)
-        let script = assets::read_script_from_project("signer-scripts", "no_signers_param_at_all");
+        let script = utils::read_script_from_project("signer-scripts", "no_signers_param_at_all");
         let type_args: Vec<TypeTag> = vec![];
 
         let iter = pg.rand::<u64>();
@@ -164,8 +166,8 @@ fn general_script_no_signers_param_at_all_works() {
 /// Script with a single signer fails if executed by the wrong user.
 #[test]
 fn script_with_single_signer_fails_if_executed_by_the_wrong_user() {
-    let (bob_addr_32, bob_addr_mv) = addrs_from_ss58(BOB_ADDR).unwrap();
-    let (eve_addr_32, _) = addrs_from_ss58(EVE_ADDR).unwrap();
+    let (bob_addr_32, bob_addr_mv) = utils::account_n_address::<Test>(utils::BOB_ADDR);
+    let (eve_addr_32, _) = utils::account_n_address::<Test>(utils::EVE_ADDR);
     const BALANCE_UNUSED: Balance = 0;
 
     ExtBuilder::default().build().execute_with(|| {
@@ -175,7 +177,7 @@ fn script_with_single_signer_fails_if_executed_by_the_wrong_user() {
         // We are using this script below here, but any script with a single signer could have been used here.
         // trying_with_signer_reference(_ref: &signer)
         let script =
-            assets::read_script_from_project("signer-scripts", "trying_with_signer_reference");
+            utils::read_script_from_project("signer-scripts", "trying_with_signer_reference");
         let transaction_bc = script_transaction!(script, no_type_args!(), &bob_addr_mv);
 
         // Eve cannot execute a script which requires signers, when Eve is not in the signer list.
@@ -206,7 +208,7 @@ fn script_with_single_signer_fails_if_executed_by_the_wrong_user() {
 /// Script with many signers parameters executes correctly when all signers are signed by one account.
 #[test]
 fn general_script_eight_normal_signers_works() {
-    let (bob_addr_32, bob_addr_mv) = addrs_from_ss58(BOB_ADDR).unwrap();
+    let (bob_addr_32, bob_addr_mv) = utils::account_n_address::<Test>(utils::BOB_ADDR);
 
     ExtBuilder::default()
         .with_balances(vec![(bob_addr_32.clone(), EXISTENTIAL_DEPOSIT)])
@@ -217,7 +219,7 @@ fn general_script_eight_normal_signers_works() {
 
             // eight_normal_signers(_s1: signer, _s2: signer, _s3: &signer, _s4: signer, _s5: &signer,
             // _s6: signer, _s7: &signer, _s8: &signer, _extra: u32)
-            let script = assets::read_script_from_project("signer-scripts", "eight_normal_signers");
+            let script = utils::read_script_from_project("signer-scripts", "eight_normal_signers");
             let type_args: Vec<TypeTag> = vec![];
 
             let mut pg = ParamGenerator::new();
@@ -249,12 +251,12 @@ fn eve_cant_execute_multisig_script_without_other_signers_works() {
 
         let mut pg = ParamGenerator::new();
         // Eve is basically Bob here, but since Bob is pretending to be bad, we'll rename him.
-        let (eve_addr_32, eve_addr_mv) = addrs_from_ss58(BOB_ADDR).unwrap();
-        let (alice_addr_32, alice_addr_mv) = addrs_from_ss58(ALICE_ADDR).unwrap();
+        let (eve_addr_32, eve_addr_mv) = utils::account_n_address::<Test>(utils::BOB_ADDR);
+        let (alice_addr_32, alice_addr_mv) = utils::account_n_address::<Test>(utils::ALICE_ADDR);
 
         // eight_normal_signers(_s1: signer, _s2: signer, _s3: &signer, _s4: signer, _s5: &signer,
         // _s6: signer, _s7: &signer, _s8: &signer, _extra: u32)
-        let script = assets::read_script_from_project("signer-scripts", "eight_normal_signers");
+        let script = utils::read_script_from_project("signer-scripts", "eight_normal_signers");
         let type_args: Vec<TypeTag> = vec![];
 
         let alice = pg.address(&alice_addr_mv);
@@ -309,15 +311,13 @@ fn signer_before_all_possible_vectors_works() {
         roll_to(1);
 
         let mut pg = ParamGenerator::new();
-        let (bob_addr_32, bob_addr_mv) = addrs_from_ss58(BOB_ADDR).unwrap();
+        let (bob_addr_32, bob_addr_mv) = utils::account_n_address::<Test>(utils::BOB_ADDR);
 
         // signer_before_all_possible_vectors(_s: signer, _a: vector<u8>, _b: vector<u16>, _c:
         // vector<u32>, _e: vector<u64>, _f: vector<u128>, _g: vector<u256>, _h: vector<address>,
         // _i: vector<bool>)
-        let script = assets::read_script_from_project(
-            "signer-scripts",
-            "signer_before_all_possible_vectors",
-        );
+        let script =
+            utils::read_script_from_project("signer-scripts", "signer_before_all_possible_vectors");
         let type_args: Vec<TypeTag> = vec![];
 
         let bob = pg.address(&bob_addr_mv);
@@ -348,13 +348,13 @@ fn signer_before_all_possible_vectors_works() {
 fn signer_after_all_possible_vectors_fails() {
     ExtBuilder::default().build().execute_with(|| {
         let mut pg = ParamGenerator::new();
-        let (bob_addr_32, bob_addr_mv) = addrs_from_ss58(BOB_ADDR).unwrap();
+        let (bob_addr_32, bob_addr_mv) = utils::account_n_address::<Test>(utils::BOB_ADDR);
 
         // signer_after_all_possible_vectors(_a: vector<u8>, _b: vector<u16>, _c: vector<u32>, _e:
         // vector<u64>, _f: vector<u128>, _g: vector<u256>, _h: vector<address>, _i: vector<bool>,
         // _s: &signer)
         let script =
-            assets::read_script_from_project("signer-scripts", "signer_after_all_possible_vectors");
+            utils::read_script_from_project("signer-scripts", "signer_after_all_possible_vectors");
         let type_args: Vec<TypeTag> = vec![];
 
         let v_u8 = pg.rand_vec_with_len::<u8>(1);
@@ -380,11 +380,11 @@ fn signer_after_all_possible_vectors_fails() {
 fn script_with_vector_containing_signer_fails() {
     ExtBuilder::default().build().execute_with(|| {
         let pg = ParamGenerator::new();
-        let (bob_addr_32, bob_addr_mv) = addrs_from_ss58(BOB_ADDR).unwrap();
+        let (bob_addr_32, bob_addr_mv) = utils::account_n_address::<Test>(utils::BOB_ADDR);
 
         // trying_vector_containing_signer(_v: vector<signer>)
         let script =
-            assets::read_script_from_project("signer-scripts", "trying_vector_containing_signer");
+            utils::read_script_from_project("signer-scripts", "trying_vector_containing_signer");
         let type_args: Vec<TypeTag> = vec![];
 
         let v_addr = pg.address_vec(vec![&bob_addr_mv]);
@@ -399,10 +399,10 @@ fn script_with_vector_containing_signer_fails() {
 fn multiple_signers_in_multisig_script_works() {
     const BALANCE: Balance = 80_000_000_000_000;
     const CHANGE: Balance = 20_000_000_000_000;
-    let (bob_addr_32, bob_addr_mv) = addrs_from_ss58(BOB_ADDR).unwrap();
-    let (alice_addr_32, alice_addr_mv) = addrs_from_ss58(ALICE_ADDR).unwrap();
-    let (dave_addr_32, dave_addr_mv) = addrs_from_ss58(DAVE_ADDR).unwrap();
-    let (eve_addr_32, eve_addr_mv) = addrs_from_ss58(EVE_ADDR).unwrap();
+    let (bob_addr_32, bob_addr_mv) = utils::account_n_address::<Test>(utils::BOB_ADDR);
+    let (alice_addr_32, alice_addr_mv) = utils::account_n_address::<Test>(utils::ALICE_ADDR);
+    let (dave_addr_32, dave_addr_mv) = utils::account_n_address::<Test>(utils::DAVE_ADDR);
+    let (eve_addr_32, eve_addr_mv) = utils::account_n_address::<Test>(utils::EVE_ADDR);
 
     ExtBuilder::default()
         .with_balances(vec![
@@ -418,7 +418,7 @@ fn multiple_signers_in_multisig_script_works() {
             roll_to(block_no_1);
 
             // Initialisation & Setup by developer Bob.
-            let module = assets::read_module_from_project("multiple-signers", "Dorm");
+            let module = utils::read_module_from_project("multiple-signers", "Dorm");
             assert_ok!(MoveModule::publish_module(
                 RuntimeOrigin::signed(bob_addr_32.clone()),
                 module,
@@ -431,7 +431,7 @@ fn multiple_signers_in_multisig_script_works() {
                 })
             );
 
-            let script = assets::read_script_from_project("multiple-signers", "init_module");
+            let script = utils::read_script_from_project("multiple-signers", "init_module");
             let transaction_bc = script_transaction!(script, no_type_args!(), &bob_addr_mv);
             assert_ok!(MoveModule::execute(
                 RuntimeOrigin::signed(bob_addr_32.clone()),
@@ -447,7 +447,7 @@ fn multiple_signers_in_multisig_script_works() {
             );
 
             // Now our three tenants want to rent the 3-room apartment.
-            let script = assets::read_script_from_project("multiple-signers", "rent_apartment");
+            let script = utils::read_script_from_project("multiple-signers", "rent_apartment");
             let transaction_bc = script_transaction!(
                 script,
                 no_type_args!(),
@@ -552,10 +552,10 @@ fn multiple_signers_in_multisig_script_works() {
 #[test]
 fn verify_old_multi_signer_requests_getting_removed() {
     const BALANCE: Balance = 80_000_000_000_000;
-    let (bob_addr_32, bob_addr_mv) = addrs_from_ss58(BOB_ADDR).unwrap();
-    let (alice_addr_32, alice_addr_mv) = addrs_from_ss58(ALICE_ADDR).unwrap();
-    let (dave_addr_32, dave_addr_mv) = addrs_from_ss58(DAVE_ADDR).unwrap();
-    let (eve_addr_32, eve_addr_mv) = addrs_from_ss58(EVE_ADDR).unwrap();
+    let (bob_addr_32, bob_addr_mv) = utils::account_n_address::<Test>(utils::BOB_ADDR);
+    let (alice_addr_32, alice_addr_mv) = utils::account_n_address::<Test>(utils::ALICE_ADDR);
+    let (dave_addr_32, dave_addr_mv) = utils::account_n_address::<Test>(utils::DAVE_ADDR);
+    let (eve_addr_32, eve_addr_mv) = utils::account_n_address::<Test>(utils::EVE_ADDR);
 
     ExtBuilder::default()
         .with_balances(vec![
@@ -570,13 +570,13 @@ fn verify_old_multi_signer_requests_getting_removed() {
             roll_to(1);
 
             // Initialisation & Setup by developer Bob.
-            let module = assets::read_module_from_project("multiple-signers", "Dorm");
+            let module = utils::read_module_from_project("multiple-signers", "Dorm");
             assert_ok!(MoveModule::publish_module(
                 RuntimeOrigin::signed(bob_addr_32.clone()),
                 module,
                 MAX_GAS_AMOUNT
             ));
-            let script = assets::read_script_from_project("multiple-signers", "init_module");
+            let script = utils::read_script_from_project("multiple-signers", "init_module");
             let transaction_bc = script_transaction!(script, no_type_args!(), &bob_addr_mv);
             assert_ok!(MoveModule::execute(
                 RuntimeOrigin::signed(bob_addr_32.clone()),
@@ -586,7 +586,7 @@ fn verify_old_multi_signer_requests_getting_removed() {
             ));
 
             // Now only 2 of 3 planned signers will sign the script execution.
-            let script = assets::read_script_from_project("multiple-signers", "rent_apartment");
+            let script = utils::read_script_from_project("multiple-signers", "rent_apartment");
             let transaction_bc = script_transaction!(
                 script,          // script bytecode
                 no_type_args!(), // no generic arguments
@@ -646,10 +646,10 @@ fn verify_old_multi_signer_requests_getting_removed() {
 #[test]
 fn insufficient_cheque_limit_aborts_the_multisig_script_works() {
     const BALANCE: Balance = 80_000_000_000_000;
-    let (bob_addr_32, bob_addr_mv) = addrs_from_ss58(BOB_ADDR).unwrap();
-    let (alice_addr_32, alice_addr_mv) = addrs_from_ss58(ALICE_ADDR).unwrap();
-    let (dave_addr_32, dave_addr_mv) = addrs_from_ss58(DAVE_ADDR).unwrap();
-    let (eve_addr_32, eve_addr_mv) = addrs_from_ss58(EVE_ADDR).unwrap();
+    let (bob_addr_32, bob_addr_mv) = utils::account_n_address::<Test>(utils::BOB_ADDR);
+    let (alice_addr_32, alice_addr_mv) = utils::account_n_address::<Test>(utils::ALICE_ADDR);
+    let (dave_addr_32, dave_addr_mv) = utils::account_n_address::<Test>(utils::DAVE_ADDR);
+    let (eve_addr_32, eve_addr_mv) = utils::account_n_address::<Test>(utils::EVE_ADDR);
 
     ExtBuilder::default()
         .with_balances(vec![
@@ -664,13 +664,13 @@ fn insufficient_cheque_limit_aborts_the_multisig_script_works() {
             roll_to(1);
 
             // Initialisation & Setup by developer Bob.
-            let module = assets::read_module_from_project("multiple-signers", "Dorm");
+            let module = utils::read_module_from_project("multiple-signers", "Dorm");
             assert_ok!(MoveModule::publish_module(
                 RuntimeOrigin::signed(bob_addr_32.clone()),
                 module,
                 MAX_GAS_AMOUNT
             ));
-            let script = assets::read_script_from_project("multiple-signers", "init_module");
+            let script = utils::read_script_from_project("multiple-signers", "init_module");
             let transaction_bc = script_transaction!(script, no_type_args!(), &bob_addr_mv);
             assert_ok!(MoveModule::execute(
                 RuntimeOrigin::signed(bob_addr_32.clone()),
@@ -680,7 +680,7 @@ fn insufficient_cheque_limit_aborts_the_multisig_script_works() {
             ));
 
             // Now only 2 of 3 planned signers will sign the script execution.
-            let script = assets::read_script_from_project("multiple-signers", "rent_apartment");
+            let script = utils::read_script_from_project("multiple-signers", "rent_apartment");
             let transaction_bc = script_transaction!(
                 script,          // script bytecode
                 no_type_args!(), // no generic arguments

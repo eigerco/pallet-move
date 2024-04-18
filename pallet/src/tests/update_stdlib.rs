@@ -1,22 +1,22 @@
 //! Integration tests related to extrinsic call `update_stdlib`.
 
-use crate::{assets, mock::*, no_type_args, script_transaction};
+use crate::{mock::*, mock_utils as utils, no_type_args, script_transaction};
 
 use frame_support::{assert_err, assert_ok, pallet_prelude::*};
 use move_stdlib::move_stdlib_bundle;
 use move_vm_backend::types::MAX_GAS_AMOUNT;
 
 fn mock_move_stdlib() -> Vec<u8> {
-    assets::read_bundle_from_project("testing-move-stdlib", "testing-move-stdlib")
+    utils::read_bundle_from_project("testing-move-stdlib", "testing-move-stdlib")
 }
 
 fn mock_substrate_stdlib() -> Vec<u8> {
-    assets::read_bundle_from_project("testing-substrate-stdlib", "testing-substrate-stdlib")
+    utils::read_bundle_from_project("testing-substrate-stdlib", "testing-substrate-stdlib")
 }
 
 #[test]
 fn regular_user_update_fail() {
-    let bob_addr_native = addr32_from_ss58(BOB_ADDR).unwrap();
+    let bob_addr_native = utils::account::<Test>(utils::BOB_ADDR);
 
     ExtBuilder::default().build().execute_with(|| {
         assert_err!(
@@ -62,11 +62,11 @@ fn change_stdlib_api_remove_param_fail() {
 
 #[test]
 fn add_new_methods_or_update_methods_works() {
-    let (bob_addr_native, bob_addr_move) = addrs_from_ss58(BOB_ADDR).unwrap();
+    let (bob_addr_native, bob_addr_move) = utils::account_n_address::<Test>(utils::BOB_ADDR);
 
     ExtBuilder::default().build().execute_with(|| {
         // Publish some module to fitting interface.
-        let car_wash_module = assets::read_module_from_project("car-wash-example", "CarWash");
+        let car_wash_module = utils::read_module_from_project("car-wash-example", "CarWash");
         assert_ok!(MoveModule::publish_module(
             RuntimeOrigin::signed(bob_addr_native.clone()),
             car_wash_module.clone(),
@@ -80,7 +80,7 @@ fn add_new_methods_or_update_methods_works() {
         ));
 
         // Test module is still working in its bounds.
-        let script = assets::read_script_from_project("car-wash-example", "initial_coin_minting");
+        let script = utils::read_script_from_project("car-wash-example", "initial_coin_minting");
         let transaction_bc = script_transaction!(script, no_type_args!(), &bob_addr_move);
         assert_ok!(MoveModule::execute(
             RuntimeOrigin::signed(bob_addr_native),
