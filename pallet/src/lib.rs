@@ -2,13 +2,13 @@
 #![recursion_limit = "256"]
 
 pub mod api;
-#[cfg(any(test, feature = "runtime-benchmarks"))]
-pub(crate) mod assets;
 pub mod balance;
 #[cfg(feature = "runtime-benchmarks")]
 pub mod benchmarking;
 #[cfg(test)]
 pub(crate) mod mock;
+#[cfg(any(test, feature = "runtime-benchmarks"))]
+pub(crate) mod mock_utils;
 mod result;
 mod signer;
 mod storage;

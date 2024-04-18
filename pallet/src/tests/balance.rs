@@ -1,8 +1,7 @@
 use crate::{
-    assets,
     balance::{BalanceAdapter, BalanceOf},
     mock::*,
-    no_type_args, script_transaction,
+    mock_utils as utils, no_type_args, script_transaction,
 };
 
 use frame_support::assert_ok;
@@ -12,7 +11,7 @@ use move_vm_backend::{balance::BalanceHandler, types::MAX_GAS_AMOUNT};
 fn verify_get_balance() {
     const AMOUNT: u128 = EXISTENTIAL_DEPOSIT + 100;
 
-    let (bob_addr_32, bob_addr_mv) = addrs_from_ss58(BOB_ADDR).unwrap();
+    let (bob_addr_32, bob_addr_mv) = utils::account_n_address::<Test>(utils::BOB_ADDR);
 
     ExtBuilder::default()
         .with_balances(vec![(bob_addr_32.clone(), AMOUNT)])
@@ -23,8 +22,7 @@ fn verify_get_balance() {
             assert_eq!(balance.total_amount(bob_addr_mv).unwrap(), AMOUNT);
 
             // Now check that it works from within the MoveVM.
-            let script =
-                assets::read_script_from_project("balance", "verify_preconfigured_balance");
+            let script = utils::read_script_from_project("balance", "verify_preconfigured_balance");
 
             let transaction_bc =
                 script_transaction!(script, no_type_args!(), &bob_addr_mv, &AMOUNT);
@@ -44,8 +42,8 @@ fn verify_get_balance() {
 fn verify_simple_transfer() {
     const AMOUNT: u128 = 100;
 
-    let (alice_addr_32, alice_addr_mv) = addrs_from_ss58(ALICE_ADDR).unwrap();
-    let (bob_addr_32, bob_addr_mv) = addrs_from_ss58(BOB_ADDR).unwrap();
+    let (alice_addr_32, alice_addr_mv) = utils::account_n_address::<Test>(utils::ALICE_ADDR);
+    let (bob_addr_32, bob_addr_mv) = utils::account_n_address::<Test>(utils::BOB_ADDR);
 
     ExtBuilder::default()
         .with_balances(vec![(alice_addr_32.clone(), 10_000)])
@@ -56,7 +54,7 @@ fn verify_simple_transfer() {
             let ini_blnc_bob = Balances::free_balance(&bob_addr_32);
 
             // Now check that it works from within the MoveVM.
-            let script = assets::read_script_from_project("balance", "single_transfer");
+            let script = utils::read_script_from_project("balance", "single_transfer");
 
             let transaction_bc = script_transaction!(
                 script,
@@ -84,9 +82,9 @@ fn verify_simple_transfer() {
 fn verify_multiple_transfers_different() {
     const AMOUNT: u128 = 100;
 
-    let (alice_addr_32, alice_addr_mv) = addrs_from_ss58(ALICE_ADDR).unwrap();
-    let (bob_addr_32, bob_addr_mv) = addrs_from_ss58(BOB_ADDR).unwrap();
-    let (dave_addr_32, dave_addr_mv) = addrs_from_ss58(DAVE_ADDR).unwrap();
+    let (alice_addr_32, alice_addr_mv) = utils::account_n_address::<Test>(utils::ALICE_ADDR);
+    let (bob_addr_32, bob_addr_mv) = utils::account_n_address::<Test>(utils::BOB_ADDR);
+    let (dave_addr_32, dave_addr_mv) = utils::account_n_address::<Test>(utils::DAVE_ADDR);
 
     ExtBuilder::default()
         .with_balances(vec![(alice_addr_32.clone(), 10_000)])
@@ -98,7 +96,7 @@ fn verify_multiple_transfers_different() {
             let ini_blnc_dave = Balances::free_balance(&dave_addr_32);
 
             // Now check that it works from within the MoveVM.
-            let script = assets::read_script_from_project("balance", "double_transfer");
+            let script = utils::read_script_from_project("balance", "double_transfer");
 
             let transaction_bc = script_transaction!(
                 script,
@@ -130,8 +128,8 @@ fn verify_multiple_transfers_different() {
 fn verify_multiple_transfers_same() {
     const AMOUNT: u128 = 100;
 
-    let (alice_addr_32, alice_addr_mv) = addrs_from_ss58(ALICE_ADDR).unwrap();
-    let (bob_addr_32, bob_addr_mv) = addrs_from_ss58(BOB_ADDR).unwrap();
+    let (alice_addr_32, alice_addr_mv) = utils::account_n_address::<Test>(utils::ALICE_ADDR);
+    let (bob_addr_32, bob_addr_mv) = utils::account_n_address::<Test>(utils::BOB_ADDR);
 
     ExtBuilder::default()
         .with_balances(vec![(alice_addr_32.clone(), 10_000)])
@@ -142,7 +140,7 @@ fn verify_multiple_transfers_same() {
             let ini_blnc_bob = Balances::free_balance(&bob_addr_32);
 
             // Now check that it works from within the MoveVM.
-            let script = assets::read_script_from_project("balance", "double_transfer");
+            let script = utils::read_script_from_project("balance", "double_transfer");
 
             let transaction_bc = script_transaction!(
                 script,
@@ -172,15 +170,15 @@ fn verify_multiple_transfers_same() {
 fn verify_balance_limit_too_low() {
     const AMOUNT: BalanceOf<Test> = 100;
 
-    let (alice_addr_32, alice_addr_mv) = addrs_from_ss58(ALICE_ADDR).unwrap();
-    let (_, bob_addr_mv) = addrs_from_ss58(BOB_ADDR).unwrap();
+    let (alice_addr_32, alice_addr_mv) = utils::account_n_address::<Test>(utils::ALICE_ADDR);
+    let (_, bob_addr_mv) = utils::account_n_address::<Test>(utils::BOB_ADDR);
 
     ExtBuilder::default()
         .with_balances(vec![(alice_addr_32.clone(), 10_000)])
         .build()
         .execute_with(|| {
             // Now check that it works from within the MoveVM.
-            let script = assets::read_script_from_project("balance", "single_transfer");
+            let script = utils::read_script_from_project("balance", "single_transfer");
 
             let transaction_bc = script_transaction!(
                 script,
@@ -204,11 +202,11 @@ fn verify_balance_limit_too_low() {
 fn verify_insufficient_balance() {
     const AMOUNT: BalanceOf<Test> = 100;
 
-    let (alice_addr_32, alice_addr_mv) = addrs_from_ss58(ALICE_ADDR).unwrap();
-    let (_, bob_addr_mv) = addrs_from_ss58(BOB_ADDR).unwrap();
+    let (alice_addr_32, alice_addr_mv) = utils::account_n_address::<Test>(utils::ALICE_ADDR);
+    let (_, bob_addr_mv) = utils::account_n_address::<Test>(utils::BOB_ADDR);
 
     ExtBuilder::default().build().execute_with(|| {
-        let script = assets::read_script_from_project("balance", "single_transfer");
+        let script = utils::read_script_from_project("balance", "single_transfer");
 
         let transaction_bc = script_transaction!(
             script,
@@ -233,8 +231,8 @@ fn verify_move_script_fails_after_successful_transfer() {
     const BALANCE: BalanceOf<Test> = 1000;
     const AMOUNT: BalanceOf<Test> = 100;
 
-    let (alice_addr_32, alice_addr_mv) = addrs_from_ss58(ALICE_ADDR).unwrap();
-    let (bob_addr_32, bob_addr_mv) = addrs_from_ss58(BOB_ADDR).unwrap();
+    let (alice_addr_32, alice_addr_mv) = utils::account_n_address::<Test>(utils::ALICE_ADDR);
+    let (bob_addr_32, bob_addr_mv) = utils::account_n_address::<Test>(utils::BOB_ADDR);
 
     ExtBuilder::default()
         .with_balances(vec![
@@ -244,7 +242,7 @@ fn verify_move_script_fails_after_successful_transfer() {
         .build()
         .execute_with(|| {
             // Execute script with a successful transfer but which fails after transfer.
-            let script = assets::read_script_from_project("balance", "fail_at_the_end");
+            let script = utils::read_script_from_project("balance", "fail_at_the_end");
 
             let transaction_bc = script_transaction!(
                 script,
@@ -275,13 +273,13 @@ fn verify_move_script_fails_after_successful_transfer() {
 fn verify_self_transfer() {
     const AMOUNT: BalanceOf<Test> = 100;
 
-    let (alice_addr_32, alice_addr_mv) = addrs_from_ss58(ALICE_ADDR).unwrap();
+    let (alice_addr_32, alice_addr_mv) = utils::account_n_address::<Test>(utils::ALICE_ADDR);
 
     ExtBuilder::default()
         .with_balances(vec![(alice_addr_32.clone(), AMOUNT * 2)])
         .build()
         .execute_with(|| {
-            let script = assets::read_script_from_project("balance", "single_transfer");
+            let script = utils::read_script_from_project("balance", "single_transfer");
 
             let transaction_bc = script_transaction!(
                 script,
@@ -308,13 +306,13 @@ fn verify_self_transfer_trying_to_cheat() {
     const AMOUNT: BalanceOf<Test> = 1000;
     const BALANCE: BalanceOf<Test> = 100;
 
-    let (alice_addr_32, alice_addr_mv) = addrs_from_ss58(ALICE_ADDR).unwrap();
+    let (alice_addr_32, alice_addr_mv) = utils::account_n_address::<Test>(utils::ALICE_ADDR);
 
     ExtBuilder::default()
         .with_balances(vec![(alice_addr_32.clone(), BALANCE)])
         .build()
         .execute_with(|| {
-            let script = assets::read_script_from_project("balance", "single_transfer");
+            let script = utils::read_script_from_project("balance", "single_transfer");
 
             let transaction_bc = script_transaction!(
                 script,
