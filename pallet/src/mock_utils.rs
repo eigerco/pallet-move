@@ -72,7 +72,10 @@ mod tests_only {
     use sp_std::vec::Vec;
 
     // Reusable constants for test accounts.
-    pub const CAFE_ADDR: &str = "5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSv4fmh4G"; // == 0xCAFE
+    // equivalent to 0xCAFE
+    pub const CAFE_ADDR: &str = "5C4hrfjw9DjXZTzV3MwzrrAr9P1MJhSrvWGWqi1eSv4fmh4G";
+    // equivalent to 0x1
+    pub const PROHIBITED_ADDR: &str = "gkKH52LJ2UumhVBim1n3mCsSj3ctj3GkV8JLVLdhJakxmEDcq";
 
     // Location of our assets folder.
     pub const MOVE_PROJECTS: &str = "src/assets/move-projects";

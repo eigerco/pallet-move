@@ -272,3 +272,42 @@ fn publish_bundle_will_fail_in_case_the_gas_limit_is_exceeded() {
         );
     });
 }
+
+/// Test that a module cannot be published in the protected memory address area (0x1).
+#[test]
+fn publish_module_will_fail_in_protected_memory() {
+    let bad_addr_native = utils::account::<Test>(utils::PROHIBITED_ADDR);
+
+    ExtBuilder::default().build().execute_with(|| {
+        let module = utils::read_module_from_project("move-basics", "Prohibited");
+
+        let result = MoveModule::publish_module(
+            RuntimeOrigin::signed(bad_addr_native),
+            module,
+            MAX_GAS_AMOUNT,
+        );
+        assert!(
+            result.is_err(),
+            "managed to publish a module in the protected memory area"
+        );
+    })
+}
+
+#[test]
+fn publish_bundle_will_fail_in_protected_memory() {
+    let bad_addr_native = utils::account::<Test>(utils::PROHIBITED_ADDR);
+
+    ExtBuilder::default().build().execute_with(|| {
+        let bundle = utils::read_bundle_from_project("prohibited-bundle", "prohibited-bundle");
+
+        let result = MoveModule::publish_module_bundle(
+            RuntimeOrigin::signed(bad_addr_native),
+            bundle,
+            MAX_GAS_AMOUNT,
+        );
+        assert!(
+            result.is_err(),
+            "managed to publish a bundle in the protected memory area"
+        );
+    })
+}

@@ -1,6 +1,6 @@
 //! Address conversion utilities based on the Pontem address solution.
 //! To properly handle Move VM addresses and Substrate addresses, we need to convert them to each other.
-use crate::mock::*;
+use crate::{mock::*, mock_utils as utils};
 
 use move_core_types::account_address::AccountAddress;
 use sp_core::{crypto::Ss58Codec, sr25519::Public};
@@ -76,8 +76,7 @@ fn check_protected_address_errors() {
     ExtBuilder::default().build().execute_with(|| {
         // Check the one protected and prohibited memory address for an error.
         // The ss58-address is equivalent to Move-address "0x1".
-        let prohibited = "gkKH52LJ2UumhVBim1n3mCsSj3ctj3GkV8JLVLdhJakxmEDcq";
-        let pk_expected = Public::from_ss58check_with_version(prohibited)
+        let pk_expected = Public::from_ss58check_with_version(utils::PROHIBITED_ADDR)
             .unwrap()
             .0
             .into();
