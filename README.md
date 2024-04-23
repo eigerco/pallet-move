@@ -99,6 +99,7 @@ _The first parachain adapters should do additional testing to ensure the robustn
 
 [MIT](LICENSE) License.
 
+<p align="center"><img src="doc/assets/web3 foundation_grants_badge_black.png" width="50%"/></p>
 
 [move-book]: https://move-language.github.io/move/introduction.html
 [substrate-move]: https://github.com/eigerco/substrate-move
