@@ -11,3 +11,6 @@ Cargo.lock
 
 # Move Build Output
 build/
+
+# Index files of MacOS
+.DS_Store
