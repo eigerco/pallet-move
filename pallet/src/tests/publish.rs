@@ -311,3 +311,15 @@ fn publish_bundle_will_fail_in_protected_memory() {
         );
     })
 }
+
+#[test]
+fn publish_module_with_base58_address() {
+    let bob_addr_32 = utils::account::<Test>(utils::BOB_ADDR);
+
+    ExtBuilder::default().build().execute_with(|| {
+        let module = utils::read_module_from_project("base58_smove_build", "BobBase58");
+
+        MoveModule::publish_module(RuntimeOrigin::signed(bob_addr_32), module, MAX_GAS_AMOUNT)
+            .unwrap();
+    })
+}

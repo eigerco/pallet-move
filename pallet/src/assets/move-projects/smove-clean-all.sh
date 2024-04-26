@@ -6,12 +6,14 @@ cd $(dirname $0)
 build_dir=(
     # Modules
     "balance"
+    "base58_smove_build"
     "car-wash-example"
     "get-resource"
     "move-basics"
     "multiple-signers"
     "signer-scripts"
     # Bundles
+    "prohibited-bundle"
     "testing-move-stdlib"
     "testing-substrate-stdlib"
     "using_stdlib_natives"
