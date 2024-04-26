@@ -5,6 +5,7 @@ cd $(dirname $0)
 
 build_dir=(
     "balance"
+    "base58_smove_build"
     "car-wash-example"
     "get-resource"
     "move-basics"
