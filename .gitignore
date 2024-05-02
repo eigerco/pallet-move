@@ -8,6 +8,7 @@
 .direnv/
 
 Cargo.lock
+gas_costs.txt
 
 # Move Build Output
 build/

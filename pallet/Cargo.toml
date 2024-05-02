@@ -75,3 +75,12 @@ try-runtime = [
 # The move projects in `tests/assets/move-projects/` are not built by default without this flag
 # since rebuilding those tests takes lots of time.
 build-move-projects-for-test = []
+
+# Run gas cost measurement when testing.
+#
+# On top of unit-tests a gas cost measurement in module 'tests/gas_costs.rs' will be executed.
+# Therefor the move project in 'asssets/move-project/gas-costs' needs to be build before. That can
+# be achieved by either compiling it manually by using 'smove', or by setting the flags during
+# compilaton. In case both flags 'build-move-projects-for-test' and 'gas-cost-measurement' are set,
+# the move project 'gas-costs' will also be buitd.
+gas-cost-measurement = []
