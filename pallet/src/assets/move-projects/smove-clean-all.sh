@@ -8,6 +8,7 @@ build_dir=(
     "balance"
     "base58_smove_build"
     "car-wash-example"
+    "gas-costs"
     "get-resource"
     "move-basics"
     "multiple-signers"

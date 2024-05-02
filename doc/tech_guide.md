@@ -96,7 +96,7 @@ impl pallet_move::Config for Test {
     // Runtime event of this blockchain.
     type RuntimeEvent = RuntimeEvent;
     // Weight info for this pallet.
-    type WeightInfo = (); // or use pallet_move::weights::SubstrateWeight<Test>;
+    type WeightInfo = (); // or use pallet_move::weights::SubstrateWeights<Test>;
 }
 ```
 

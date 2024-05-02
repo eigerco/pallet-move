@@ -98,7 +98,7 @@ impl pallet_move::Config for Test {
     type MultisigReqExpireTime = MultisigReqExpireTime;
     type MaxScriptSigners = MaxScriptSigners;
     type RuntimeEvent = RuntimeEvent;
-    type WeightInfo = ();
+    type WeightInfo = crate::weights::SubstrateWeight<Test>;
 }
 
 /// Test Externalities Builder for an easier test setup.
