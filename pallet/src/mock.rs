@@ -6,6 +6,7 @@ use frame_support::{
 use frame_support::{
     parameter_types,
     traits::{ConstU128, ConstU16, ConstU32, ConstU64},
+    weights::constants::RocksDbWeight,
 };
 use frame_system::pallet_prelude::BlockNumberFor;
 use sp_core::H256;
@@ -46,7 +47,7 @@ impl frame_system::Config for Test {
     type BaseCallFilter = frame_support::traits::Everything;
     type BlockWeights = ();
     type BlockLength = ();
-    type DbWeight = ();
+    type DbWeight = RocksDbWeight;
     type RuntimeOrigin = RuntimeOrigin;
     type RuntimeCall = RuntimeCall;
     type Nonce = u64;

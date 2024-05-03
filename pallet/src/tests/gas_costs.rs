@@ -22,7 +22,7 @@ fn pseudo_benchmark_gas_costs() {
         let script = utils::read_script_from_project("car-wash-example", "initial_coin_minting");
         let script_bc = script_transaction!(script, no_type_args!(), &bob_addr_move);
         MoveModule::execute(
-            RuntimeOrigin::signed(bob_addr_32),
+            RuntimeOrigin::signed(bob_addr_32.clone()),
             script_bc,
             MAX_GAS_AMOUNT,
             0,
@@ -37,6 +37,9 @@ fn pseudo_benchmark_gas_costs() {
             0,
         )
         .unwrap();
+        let module = utils::read_module_from_project("gas-costs", "TheModule");
+        MoveModule::publish_module(RuntimeOrigin::signed(bob_addr_32), module, MAX_GAS_AMOUNT)
+            .unwrap();
 
         // Short and cheap script.
         let script = utils::read_script_from_project("gas-costs", "short_cheap_script");
@@ -74,25 +77,73 @@ fn pseudo_benchmark_gas_costs() {
             .gas_used;
         let weight4: Weight = SubstrateWeight::<Test>::execute(gas4 as u32);
 
+        // Simple math script that doesn't use a module.
+        let script = utils::read_script_from_project("gas-costs", "uses_no_module");
+        let script_bc = script_transaction!(script, no_type_args!());
+        let gas5: u64 = MoveModule::rpc_estimate_gas_execute_script(script_bc)
+            .unwrap()
+            .gas_used;
+        let weight5: Weight = SubstrateWeight::<Test>::execute(gas5 as u32);
+
+        // Simple math script that uses a module to do the same.
+        let script = utils::read_script_from_project("gas-costs", "uses_module");
+        let script_bc = script_transaction!(script, no_type_args!());
+        let gas6: u64 = MoveModule::rpc_estimate_gas_execute_script(script_bc)
+            .unwrap()
+            .gas_used;
+        let weight6: Weight = SubstrateWeight::<Test>::execute(gas6 as u32);
+
         // Write all results to file "gas_costs.txt".
         let output = format!(
             "Short and cheap script:
-    gas:    {gas1:?}
-    weight: {weight1:?}
+    Gas:    {gas1:?}
+    {weight1:?}
 
 Small and expensive script:
-    gas:    {gas2:?}
-    weight: {weight2:?}
+    Gas:    {gas2:?}
+    {weight2:?}
 
 Long and cheap script:
-    gas:    {gas3:?}
-    weight: {weight3:?}
+    Gas:    {gas3:?}
+    {weight3:?}
 
 Long and expensive script:
-    gas:    {gas4:?}
-    weight: {weight4:?}
+    Gas:    {gas4:?}
+    {weight4:?}
+
+Simple math script, no module used:
+    Gas:    {gas5:?}
+    {weight5:?}
+
+Simple math script, module used:
+    Gas:    {gas6:?}
+    {weight6:?}
 ",
         );
         std::fs::write("./../gas_costs.txt", output).unwrap();
     })
+}
+
+#[test]
+fn verify_gas_calculation() {
+    let rock_db_weight = <mock::Test as frame_system::Config>::DbWeight::get();
+
+    assert_eq!(
+        Weight::from_parts(1_000, 0).saturating_add(Weight::from_parts(0, 1_000)),
+        Weight::from_parts(1_000, 1_000)
+    );
+
+    assert_eq!(
+        Weight::from_parts(1_010, 0)
+            .saturating_mul(4)
+            .saturating_add(Weight::from_parts(0, 1_010).saturating_mul(3)),
+        Weight::from_parts(4_040, 3_030)
+    );
+
+    assert_eq!(
+        Weight::from_parts(1_000, 1_000)
+            .saturating_add(rock_db_weight.reads(1))
+            .saturating_add(rock_db_weight.writes(1)),
+        Weight::from_parts(125_001_000, 1000)
+    );
 }
