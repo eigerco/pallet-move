@@ -23,6 +23,7 @@ log = { workspace = true }
 move-core-types = { workspace = true }
 move-vm-backend = { workspace = true }
 move-vm-backend-common = { workspace = true }
+pallet-balances = { workspace = true }
 scale-info = { workspace = true }
 serde = { workspace = true }
 sp-api = { workspace = true }
@@ -32,9 +33,9 @@ sp-std = { workspace = true }
 
 [dev-dependencies]
 hex = { workspace = true }
-pallet-balances = { workspace = true, default-features = true }
 rand = { workspace = true }
 move-stdlib = { workspace = true }
+pallet-balances = { workspace = true, default-features = true }
 sp-io = { workspace = true, default-features = true }
 
 [features]
