@@ -1,155 +1,216 @@
 //! Benchmarking setup for pallet-move.
 
-use frame_benchmarking::benchmarks;
-#[cfg(test)]
-use frame_benchmarking::impl_benchmark_test_suite;
+use frame_benchmarking::v2::*;
+// #[cfg(test)]
+// use frame_benchmarking::v2::test;
 use frame_system::{Config as SysConfig, RawOrigin};
 use move_vm_backend::types::MAX_GAS_AMOUNT;
+use pallet_balances::{Config as BalancesConfig, Pallet as Balances};
 use sp_core::crypto::Ss58Codec;
 
-use crate::{balance::BalanceOf, mock_utils::*, *};
+use crate::{mock_utils as utils, *};
 
 const LIMIT: u128 = 60_000_000_000_000;
 
-benchmarks! {
-    where_clause { where
-        T: Config + SysConfig,
+type SourceOf<T> = <<T as SysConfig>::Lookup as sp_runtime::traits::StaticLookup>::Source;
+
+#[benchmarks(
+    where
+        T: Config + SysConfig + BalancesConfig,
         T::AccountId: Ss58Codec,
-    }
+        T::Balance: From<u128>,
+        SourceOf<T>: From<T::AccountId>,
+)]
+mod benchmarks {
+    use super::*;
 
-    execute {
-        let n in 0 .. 7;
-
-        let (bob_32, bob_mv) = account_n_address::<T>(BOB_ADDR);
-        let (alice_32, alice_mv) = account_n_address::<T>(ALICE_ADDR);
-        let (dave_32, dave_mv) = account_n_address::<T>(DAVE_ADDR);
-        let (eve_32, eve_mv) = account_n_address::<T>(EVE_ADDR);
+    #[benchmark]
+    fn execute(n: Linear<0, 9>) {
+        let bob_32 = utils::account::<T>(utils::BOB_ADDR);
+        let alice_32 = utils::account::<T>(utils::ALICE_ADDR);
+        let dave_32 = utils::account::<T>(utils::DAVE_ADDR);
+        let eve_32 = utils::account::<T>(utils::EVE_ADDR);
 
         // Our benchmark plan (each is a test scenario with different parameters).
         let script_bcs = [
             car_wash_initial_coin_miniting().to_vec(),
-            multiple_signers_init_module().to_vec(),
             car_wash_register_new_user().to_vec(),
             car_wash_buy_coin().to_vec(),
             car_wash_wash_car().to_vec(),
-            multiple_signers_rent_apartment().to_vec(),
-            multiple_signers_rent_apartment().to_vec(),
+            gas_costs_short_cheap_script().to_vec(),
+            gas_costs_short_expensive_script().to_vec(),
+            gas_costs_long_cheap_script().to_vec(),
+            gas_costs_long_expensive_script().to_vec(),
+            multiple_signers_init_module().to_vec(),
             multiple_signers_rent_apartment().to_vec(),
         ];
         // Sequence of account-IDs who will execute each extrinsic call.
         let accounts = [
-            bob_32.clone(),
-            bob_32.clone(),
+            bob_32.clone(), // car-wash-example
             alice_32.clone(),
             alice_32.clone(),
             alice_32.clone(),
+            alice_32.clone(), // gas-costs
             alice_32.clone(),
-            dave_32,
+            alice_32.clone(),
+            alice_32.clone(),
+            bob_32.clone(), // multiple-signers
             eve_32,
         ];
         // Needed gas amounts for each script, estimated by smove.
-        let gas = [21, 21, 15, 31, 18, 66, 66, 66];
+        let gas = [343, 197, 795, 425, 1, 6166264, 8, 6058953, 308, 1377];
+        // Balance limit to be used.
+        let regular = [LIMIT; 4];
+        let max = [u128::MAX; 4];
+        let limit = [regular, max, regular].concat();
 
         // Now we have to prepare each script execution with a proper setup.
         // Publish both modules always.
         Pallet::<T>::publish_module(
             RawOrigin::Signed(bob_32.clone()).into(),
             car_wash_example_module().to_vec(),
-            MAX_GAS_AMOUNT
-        ).unwrap();
+            MAX_GAS_AMOUNT,
+        )
+        .unwrap();
         Pallet::<T>::publish_module(
             RawOrigin::Signed(bob_32.clone()).into(),
             multiple_signers_module().to_vec(),
-            MAX_GAS_AMOUNT
-        ).unwrap();
+            MAX_GAS_AMOUNT,
+        )
+        .unwrap();
 
         // Now prepare individual situations for proper script sequences.
-        if n > 1 && n < 5 {
+        if n > 0 && n < 8 {
             Pallet::<T>::execute(
                 RawOrigin::Signed(bob_32.clone()).into(),
                 car_wash_initial_coin_miniting().to_vec(),
                 MAX_GAS_AMOUNT,
-                LIMIT.into()
-            ).unwrap();
-            if n > 2 {
+                LIMIT.into(),
+            )
+            .unwrap();
+            if n > 1 {
                 Pallet::<T>::execute(
                     RawOrigin::Signed(alice_32.clone()).into(),
                     car_wash_register_new_user().to_vec(),
                     MAX_GAS_AMOUNT,
-                    LIMIT.into()
-                ).unwrap();
+                    LIMIT.into(),
+                )
+                .unwrap();
             }
-            if n > 3 {
+            if n > 2 && n < 4 {
                 Pallet::<T>::execute(
                     RawOrigin::Signed(alice_32.clone()).into(),
                     car_wash_buy_coin().to_vec(),
                     MAX_GAS_AMOUNT,
-                    LIMIT.into()
-                ).unwrap();
+                    LIMIT.into(),
+                )
+                .unwrap();
+            }
+            if n > 3 {
+                Balances::<T>::force_set_balance(
+                    RawOrigin::Root.into(),
+                    alice_32.clone().into(),
+                    u128::MAX.into(),
+                )
+                .unwrap();
             }
         }
-        if n > 4 {
+        if n > 8 {
             Pallet::<T>::execute(
                 RawOrigin::Signed(bob_32.clone()).into(),
                 multiple_signers_init_module().to_vec(),
                 MAX_GAS_AMOUNT,
-                LIMIT.into()
-            ).unwrap();
+                LIMIT.into(),
+            )
+            .unwrap();
+            Pallet::<T>::execute(
+                RawOrigin::Signed(alice_32.clone()).into(),
+                multiple_signers_rent_apartment().to_vec(),
+                MAX_GAS_AMOUNT,
+                LIMIT.into(),
+            )
+            .unwrap();
+            Pallet::<T>::execute(
+                RawOrigin::Signed(dave_32).into(),
+                multiple_signers_rent_apartment().to_vec(),
+                MAX_GAS_AMOUNT,
+                LIMIT.into(),
+            )
+            .unwrap();
         }
 
-    }: _(RawOrigin::Signed(accounts[n as usize].clone()), script_bcs[n as usize].clone(), gas[n as usize], BalanceOf::<T>::from(LIMIT))
+        #[extrinsic_call]
+        execute(
+            RawOrigin::Signed(accounts[n as usize].clone()),
+            script_bcs[n as usize].clone(),
+            gas[n as usize],
+            limit[n as usize].into(),
+        )
+    }
 
-    publish_module {
-        let n in 0 .. 3;
-
-        let (bob_32, bob_mv) = account_n_address::<T>(BOB_ADDR);
+    #[benchmark]
+    fn publish_module(n: Linear<0, 3>) {
+        let bob_32 = utils::account::<T>(utils::BOB_ADDR);
 
         let module_bcs = [
             move_basics_module().to_vec(),
             using_stdlib_natives_module().to_vec(),
             multiple_signers_module().to_vec(),
             car_wash_example_module().to_vec(),
-
         ];
-        let gas = [11, 33, 67, 74];
+        let gas = [101, 325, 661, 732];
 
-    }: _(RawOrigin::Signed(bob_32), module_bcs[n as usize].clone(), gas[n as usize])
+        #[extrinsic_call]
+        publish_module(
+            RawOrigin::Signed(bob_32),
+            module_bcs[n as usize].clone(),
+            gas[n as usize],
+        );
+    }
 
-    publish_module_bundle {
-        let bob_32 = account::<T>(BOB_ADDR);
+    #[benchmark]
+    fn publish_module_bundle() {
+        let bob_32 = utils::account::<T>(utils::BOB_ADDR);
         let bundle = core::include_bytes!("assets/move-projects/using_stdlib_natives/build/using_stdlib_natives/bundles/using_stdlib_natives.mvb").to_vec();
-    }: _(RawOrigin::Signed(bob_32), bundle, 1_500_000)
 
-    update_stdlib_bundle {
+        #[extrinsic_call]
+        publish_module_bundle(RawOrigin::Signed(bob_32), bundle, 1_500_000);
+    }
+
+    #[benchmark]
+    fn update_stdlib_bundle() {
         let stdlib = core::include_bytes!("assets/move-projects/testing-substrate-stdlib/build/testing-substrate-stdlib/bundles/testing-substrate-stdlib.mvb").to_vec();
-    }: _(RawOrigin::Root, stdlib)
-}
 
-#[cfg(test)]
-impl_benchmark_test_suite!(
-    Pallet,
-    crate::mock::ExtBuilder::default()
-        .with_balances(vec![
-            (
-                crate::mock_utils::account::<crate::mock::Test>(crate::mock_utils::BOB_ADDR),
-                u128::MAX
-            ),
-            (
-                crate::mock_utils::account::<crate::mock::Test>(crate::mock_utils::ALICE_ADDR),
-                u128::MAX
-            ),
-            (
-                crate::mock_utils::account::<crate::mock::Test>(crate::mock_utils::DAVE_ADDR),
-                u128::MAX
-            ),
-            (
-                crate::mock_utils::account::<crate::mock::Test>(crate::mock_utils::EVE_ADDR),
-                u128::MAX
-            ),
-        ])
-        .build(),
-    crate::mock::Test
-);
+        #[extrinsic_call]
+        update_stdlib_bundle(RawOrigin::Root, stdlib);
+    }
+
+    #[cfg(test)]
+    impl_benchmark_test_suite!(
+        Pallet,
+        crate::mock::ExtBuilder::default()
+            .with_balances(vec![
+                (
+                    crate::mock_utils::account::<crate::mock::Test>(crate::mock_utils::BOB_ADDR),
+                    u128::MAX
+                ),
+                (
+                    crate::mock_utils::account::<crate::mock::Test>(crate::mock_utils::ALICE_ADDR),
+                    u128::MAX
+                ),
+                (
+                    crate::mock_utils::account::<crate::mock::Test>(crate::mock_utils::DAVE_ADDR),
+                    u128::MAX
+                ),
+                (
+                    crate::mock_utils::account::<crate::mock::Test>(crate::mock_utils::EVE_ADDR),
+                    u128::MAX
+                ),
+            ])
+            .build(),
+        crate::mock::Test
+    );
+}
 
 use benchmark_only::*;
 
@@ -206,5 +267,21 @@ mod benchmark_only {
 
     pub fn multiple_signers_rent_apartment() -> &'static [u8] {
         core::include_bytes!("assets/move-projects/multiple-signers/build/multiple-signers/script_transactions/rent_apartment.mvt")
+    }
+
+    pub fn gas_costs_short_cheap_script() -> &'static [u8] {
+        core::include_bytes!("assets/move-projects/gas-costs/build/gas-costs/script_transactions/short_cheap_script.mvt")
+    }
+
+    pub fn gas_costs_short_expensive_script() -> &'static [u8] {
+        core::include_bytes!("assets/move-projects/gas-costs/build/gas-costs/script_transactions/short_expensive_script.mvt")
+    }
+
+    pub fn gas_costs_long_cheap_script() -> &'static [u8] {
+        core::include_bytes!("assets/move-projects/gas-costs/build/gas-costs/script_transactions/long_cheap_script.mvt")
+    }
+
+    pub fn gas_costs_long_expensive_script() -> &'static [u8] {
+        core::include_bytes!("assets/move-projects/gas-costs/build/gas-costs/script_transactions/long_expensive_script.mvt")
     }
 }

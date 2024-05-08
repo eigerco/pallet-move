@@ -11,9 +11,7 @@ mod always_used {
     use frame_system::Config as SysConfig;
     use sp_core::crypto::Ss58Codec;
 
-    pub use move_core_types::account_address::AccountAddress;
-
-    use crate::{Config, Pallet};
+    use crate::Config;
 
     // Reusable constants for test accounts.
     pub const BOB_ADDR: &str = "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty";
@@ -29,16 +27,6 @@ mod always_used {
         T::AccountId::from_ss58check_with_version(ss58addr)
             .unwrap()
             .0
-    }
-
-    /// Creates a native 32-byte address and it's Move memory address by given ss58 string.
-    pub fn account_n_address<T: SysConfig + Config>(ss58: &str) -> (T::AccountId, AccountAddress)
-    where
-        T::AccountId: Ss58Codec,
-    {
-        let addr_32 = account::<T>(ss58);
-        let addr_mv = Pallet::<T>::to_move_address(&addr_32).unwrap();
-        (addr_32, addr_mv)
     }
 
     #[macro_export]
@@ -69,7 +57,14 @@ mod tests_only {
     extern crate std;
 
     use alloc::format;
+    use frame_system::Config as SysConfig;
+    use sp_core::crypto::Ss58Codec;
     use sp_std::vec::Vec;
+
+    pub use move_core_types::account_address::AccountAddress;
+
+    use super::account;
+    use crate::{Config, Pallet};
 
     // Reusable constants for test accounts.
     // equivalent to 0xCAFE
@@ -105,5 +100,15 @@ mod tests_only {
     pub fn read_bundle_from_project(project: &str, bundle_name: &str) -> Vec<u8> {
         let path = format!("{MOVE_PROJECTS}/{project}/build/{project}/bundles/{bundle_name}.mvb");
         read_bytes(&path)
+    }
+
+    /// Creates a native 32-byte address and it's Move memory address by given ss58 string.
+    pub fn account_n_address<T: SysConfig + Config>(ss58: &str) -> (T::AccountId, AccountAddress)
+    where
+        T::AccountId: Ss58Codec,
+    {
+        let addr_32 = account::<T>(ss58);
+        let addr_mv = Pallet::<T>::to_move_address(&addr_32).unwrap();
+        (addr_32, addr_mv)
     }
 }
