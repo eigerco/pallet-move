@@ -7,97 +7,135 @@ use frame_system::{Config as SysConfig, RawOrigin};
 use move_vm_backend::types::MAX_GAS_AMOUNT;
 use sp_core::crypto::Ss58Codec;
 
+use pallet_balances::Pallet as Balances;
 use crate::{balance::BalanceOf, mock_utils::*, *};
 
 const LIMIT: u128 = 60_000_000_000_000;
 
+type SourceOf<T> = <<T as SysConfig>::Lookup as sp_runtime::traits::StaticLookup>::Source;
+
 benchmarks! {
     where_clause { where
-        T: Config + SysConfig,
+        T: Config + SysConfig + pallet_balances::Config,
         T::AccountId: Ss58Codec,
+        T::Balance: From<u128>,
+        SourceOf<T>: From<T::AccountId>,
     }
 
-    execute {
-        let n in 0 .. 7;
+    // execute {
+    //     let n in 0 .. 7;
 
+    //     let (bob_32, bob_mv) = account_n_address::<T>(BOB_ADDR);
+    //     let (alice_32, alice_mv) = account_n_address::<T>(ALICE_ADDR);
+    //     let (dave_32, dave_mv) = account_n_address::<T>(DAVE_ADDR);
+    //     let (eve_32, eve_mv) = account_n_address::<T>(EVE_ADDR);
+
+    //     // Our benchmark plan (each is a test scenario with different parameters).
+    //     let script_bcs = [
+    //         car_wash_initial_coin_miniting().to_vec(),
+    //         multiple_signers_init_module().to_vec(),
+    //         car_wash_register_new_user().to_vec(),
+    //         car_wash_buy_coin().to_vec(),
+    //         car_wash_wash_car().to_vec(),
+    //         multiple_signers_rent_apartment().to_vec(),
+    //         multiple_signers_rent_apartment().to_vec(),
+    //         multiple_signers_rent_apartment().to_vec(),
+    //     ];
+    //     // Sequence of account-IDs who will execute each extrinsic call.
+    //     let accounts = [
+    //         bob_32.clone(),
+    //         bob_32.clone(),
+    //         alice_32.clone(),
+    //         alice_32.clone(),
+    //         alice_32.clone(),
+    //         alice_32.clone(),
+    //         dave_32,
+    //         eve_32,
+    //     ];
+    //     // Needed gas amounts for each script, estimated by smove.
+    //     let gas = [21, 21, 15, 31, 18, 66, 66, 66];
+
+    //     // Now we have to prepare each script execution with a proper setup.
+    //     // Publish both modules always.
+    //     Pallet::<T>::publish_module(
+    //         RawOrigin::Signed(bob_32.clone()).into(),
+    //         car_wash_example_module().to_vec(),
+    //         MAX_GAS_AMOUNT
+    //     ).unwrap();
+    //     Pallet::<T>::publish_module(
+    //         RawOrigin::Signed(bob_32.clone()).into(),
+    //         multiple_signers_module().to_vec(),
+    //         MAX_GAS_AMOUNT
+    //     ).unwrap();
+
+    //     // Now prepare individual situations for proper script sequences.
+    //     if n > 1 && n < 5 {
+    //         Pallet::<T>::execute(
+    //             RawOrigin::Signed(bob_32.clone()).into(),
+    //             car_wash_initial_coin_miniting().to_vec(),
+    //             MAX_GAS_AMOUNT,
+    //             LIMIT.into()
+    //         ).unwrap();
+    //         if n > 2 {
+    //             Pallet::<T>::execute(
+    //                 RawOrigin::Signed(alice_32.clone()).into(),
+    //                 car_wash_register_new_user().to_vec(),
+    //                 MAX_GAS_AMOUNT,
+    //                 LIMIT.into()
+    //             ).unwrap();
+    //         }
+    //         if n > 3 {
+    //             Pallet::<T>::execute(
+    //                 RawOrigin::Signed(alice_32.clone()).into(),
+    //                 car_wash_buy_coin().to_vec(),
+    //                 MAX_GAS_AMOUNT,
+    //                 LIMIT.into()
+    //             ).unwrap();
+    //         }
+    //     }
+    //     if n > 4 {
+    //         Pallet::<T>::execute(
+    //             RawOrigin::Signed(bob_32.clone()).into(),
+    //             multiple_signers_init_module().to_vec(),
+    //             MAX_GAS_AMOUNT,
+    //             LIMIT.into()
+    //         ).unwrap();
+    //     }
+
+    // }: _(RawOrigin::Signed(accounts[n as usize].clone()), script_bcs[n as usize].clone(), gas[n as usize], BalanceOf::<T>::from(LIMIT))
+
+    execute {
         let (bob_32, bob_mv) = account_n_address::<T>(BOB_ADDR);
         let (alice_32, alice_mv) = account_n_address::<T>(ALICE_ADDR);
-        let (dave_32, dave_mv) = account_n_address::<T>(DAVE_ADDR);
-        let (eve_32, eve_mv) = account_n_address::<T>(EVE_ADDR);
 
-        // Our benchmark plan (each is a test scenario with different parameters).
-        let script_bcs = [
-            car_wash_initial_coin_miniting().to_vec(),
-            multiple_signers_init_module().to_vec(),
-            car_wash_register_new_user().to_vec(),
-            car_wash_buy_coin().to_vec(),
-            car_wash_wash_car().to_vec(),
-            multiple_signers_rent_apartment().to_vec(),
-            multiple_signers_rent_apartment().to_vec(),
-            multiple_signers_rent_apartment().to_vec(),
-        ];
-        // Sequence of account-IDs who will execute each extrinsic call.
-        let accounts = [
-            bob_32.clone(),
-            bob_32.clone(),
-            alice_32.clone(),
-            alice_32.clone(),
-            alice_32.clone(),
-            alice_32.clone(),
-            dave_32,
-            eve_32,
-        ];
-        // Needed gas amounts for each script, estimated by smove.
-        let gas = [21, 21, 15, 31, 18, 66, 66, 66];
-
-        // Now we have to prepare each script execution with a proper setup.
-        // Publish both modules always.
+        Balances::<T>::force_set_balance(RawOrigin::Root.into(), bob_32.clone().into(), u128::MAX.into())
+            .unwrap();
+        Balances::<T>::force_set_balance(RawOrigin::Root.into(), alice_32.clone().into(), u128::MAX.into())
+            .unwrap();
         Pallet::<T>::publish_module(
             RawOrigin::Signed(bob_32.clone()).into(),
             car_wash_example_module().to_vec(),
             MAX_GAS_AMOUNT
         ).unwrap();
-        Pallet::<T>::publish_module(
+        Pallet::<T>::execute(
             RawOrigin::Signed(bob_32.clone()).into(),
-            multiple_signers_module().to_vec(),
-            MAX_GAS_AMOUNT
+            car_wash_initial_coin_miniting().to_vec(),
+            MAX_GAS_AMOUNT,
+            LIMIT.into()
+        ).unwrap();
+        Pallet::<T>::execute(
+            RawOrigin::Signed(alice_32.clone()).into(),
+            car_wash_register_new_user().to_vec(),
+            MAX_GAS_AMOUNT,
+            LIMIT.into()
         ).unwrap();
 
-        // Now prepare individual situations for proper script sequences.
-        if n > 1 && n < 5 {
-            Pallet::<T>::execute(
-                RawOrigin::Signed(bob_32.clone()).into(),
-                car_wash_initial_coin_miniting().to_vec(),
-                MAX_GAS_AMOUNT,
-                LIMIT.into()
-            ).unwrap();
-            if n > 2 {
-                Pallet::<T>::execute(
-                    RawOrigin::Signed(alice_32.clone()).into(),
-                    car_wash_register_new_user().to_vec(),
-                    MAX_GAS_AMOUNT,
-                    LIMIT.into()
-                ).unwrap();
-            }
-            if n > 3 {
-                Pallet::<T>::execute(
-                    RawOrigin::Signed(alice_32.clone()).into(),
-                    car_wash_buy_coin().to_vec(),
-                    MAX_GAS_AMOUNT,
-                    LIMIT.into()
-                ).unwrap();
-            }
-        }
-        if n > 4 {
-            Pallet::<T>::execute(
-                RawOrigin::Signed(bob_32.clone()).into(),
-                multiple_signers_init_module().to_vec(),
-                MAX_GAS_AMOUNT,
-                LIMIT.into()
-            ).unwrap();
-        }
-
-    }: _(RawOrigin::Signed(accounts[n as usize].clone()), script_bcs[n as usize].clone(), gas[n as usize], BalanceOf::<T>::from(LIMIT))
+        Balances::<T>::force_set_balance(RawOrigin::Root.into(), alice_32.clone().into(), u128::MAX.into())
+            .unwrap();
+        let script = core::include_bytes!(
+            "assets/move-projects/gas-costs/build/gas-costs/script_transactions/long_expensive_script.mvt"
+        ).to_vec();
+    }: _(RawOrigin::Signed(alice_32), script, MAX_GAS_AMOUNT, 5_000_000_000_000_000_000u128.into())
 
     publish_module {
         let n in 0 .. 3;

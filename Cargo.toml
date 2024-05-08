@@ -38,7 +38,11 @@ sp-runtime = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = 
 sp-std = { git = "https://github.com/paritytech/polkadot-sdk.git", branch = "release-polkadot-v1.4.0", default-features = false }
 
 # Eiger crates
-move-core-types = { git = "https://github.com/eigerco/substrate-move.git", branch = "main", features = ["address32"], default-features = false }
-move-stdlib = { git = "https://github.com/eigerco/substrate-move.git", branch = "main", features = ["stdlib-bytecode"], default-features = false }
-move-vm-backend = { git = "https://github.com/eigerco/substrate-move.git", branch = "main", default-features = false }
-move-vm-backend-common = { git = "https://github.com/eigerco/substrate-move.git", branch = "main", default-features = false }
+# move-core-types = { git = "https://github.com/eigerco/substrate-move.git", branch = "main", features = ["address32"], default-features = false }
+# move-stdlib = { git = "https://github.com/eigerco/substrate-move.git", branch = "main", features = ["stdlib-bytecode"], default-features = false }
+# move-vm-backend = { git = "https://github.com/eigerco/substrate-move.git", branch = "main", default-features = false }
+# move-vm-backend-common = { git = "https://github.com/eigerco/substrate-move.git", branch = "main", default-features = false }
+move-core-types = { path = "../substrate-move/language/move-core/types/", features = ["address32"], default-features = false }
+move-stdlib = { path = "../substrate-move/language/move-stdlib", features = ["stdlib-bytecode"], default-features = false }
+move-vm-backend = { path = "../substrate-move/move-vm-backend", default-features = false }
+move-vm-backend-common = { path = "../substrate-move/move-vm-backend-common", default-features = false }
