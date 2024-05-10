@@ -33,17 +33,6 @@ fn build_move_projects() -> Result<(), Box<dyn Error>> {
     // Rerun in case Move source files are changed.
     println!("cargo:rerun-if-changed=tests/assets/move-projects");
 
-    // Compile additionally move-project for gas cost pseudo-benchmark.
-    if cfg!(feature = "gas-cost-measurement") {
-        let smove_run = Command::new("bash")
-            .args(["src/assets/move-projects/gas-costs/build.sh"])
-            .output()
-            .expect("failed to execute script which builds necessary move modules");
-        eval_smove_run(smove_run)?;
-
-        println!("cargo:warning=Move project 'gas-costs' built successfully");
-    }
-
     Ok(())
 }
 
