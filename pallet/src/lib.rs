@@ -646,16 +646,6 @@ pub mod pallet {
 
     // RPC method implementation for simple node integration.
     impl<T: Config> Pallet<T> {
-        pub fn rpc_gas_to_weight(_gas_limit: u64) -> Weight {
-            // TODO (eiger): implement in M3
-            Weight::from_parts(1_123_123, 0) // Hardcoded for testing
-        }
-
-        pub fn rpc_weight_to_gas(_weight: Weight) -> u64 {
-            // TODO (eiger): implement in M3
-            100
-        }
-
         pub fn rpc_estimate_gas_publish_module(
             account: &T::AccountId,
             bytecode: Vec<u8>,
@@ -666,6 +656,9 @@ pub mod pallet {
             Ok(MoveApiEstimation {
                 vm_status_code: vm_result.status_code.into(),
                 gas_used: vm_result.gas_used,
+                total_weight_including_gas_used: T::WeightInfo::publish_module(
+                    vm_result.gas_used as u32,
+                ),
             })
         }
 
@@ -679,6 +672,7 @@ pub mod pallet {
             Ok(MoveApiEstimation {
                 vm_status_code: vm_result.status_code.into(),
                 gas_used: vm_result.gas_used,
+                total_weight_including_gas_used: T::WeightInfo::publish_module_bundle(),
             })
         }
 
@@ -713,6 +707,7 @@ pub mod pallet {
             Ok(MoveApiEstimation {
                 vm_status_code: vm_result.status_code.into(),
                 gas_used: vm_result.gas_used,
+                total_weight_including_gas_used: T::WeightInfo::execute(vm_result.gas_used as u32),
             })
         }
 

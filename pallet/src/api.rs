@@ -14,6 +14,9 @@ pub struct MoveApiEstimation {
     pub gas_used: u64,
     /// Status code for the MoveVM execution.
     pub vm_status_code: u64,
+    /// Substrate weight required for the complete extrinsic cost combined with the variable gas
+    /// indicated in the `Estimaton` struct.
+    pub total_weight_including_gas_used: Weight,
 }
 
 // Here we declare the runtime API. It is implemented it the `impl` block in
@@ -22,12 +25,6 @@ sp_api::decl_runtime_apis! {
     pub trait MoveApi<AccountId> where      // AccountID is already here for the next API calls.
         AccountId: codec::Codec,
     {
-        // Convert Weight to Gas.
-        fn gas_to_weight(gas_limit: u64) -> Weight;
-
-        // Convert Gas to Weight.
-        fn weight_to_gas(weight: Weight) -> u64;
-
         // Estimate gas for publishing a module.
         fn estimate_gas_publish_module(account: AccountId, bytecode: Vec<u8>) -> Result<MoveApiEstimation, DispatchError>;
 

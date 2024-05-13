@@ -1,7 +1,6 @@
 use std::sync::Arc;
 
 use codec::Codec;
-use frame_support::weights::Weight;
 use jsonrpsee::{
     core::{Error as JsonRpseeError, RpcResult},
     proc_macros::rpc,
@@ -34,14 +33,6 @@ impl From<MoveApiEstimation> for Estimation {
 /// Public RPC API of the Move pallet.
 #[rpc(server)]
 pub trait MoveApi<BlockHash, AccountId> {
-    /// Convert gas to weight.
-    #[method(name = "mvm_gasToWeight")]
-    fn gas_to_weight(&self, gas: u64, at: Option<BlockHash>) -> RpcResult<Weight>;
-
-    /// Convert weight to gas.
-    #[method(name = "mvm_weightToGas")]
-    fn weight_to_gas(&self, weight: Weight, at: Option<BlockHash>) -> RpcResult<u64>;
-
     /// Estimate gas for publishing module.
     #[method(name = "mvm_estimateGasPublishModule")]
     fn estimate_gas_publish_module(
@@ -119,20 +110,6 @@ where
     C: Send + Sync + 'static + ProvideRuntimeApi<Block> + HeaderBackend<Block>,
     C::Api: MoveRuntimeApi<Block, AccountId>,
 {
-    fn gas_to_weight(&self, gas: u64, at: Option<<Block as BlockT>::Hash>) -> RpcResult<Weight> {
-        let api = self.client.runtime_api();
-        let res = api.gas_to_weight(at.unwrap_or_else(|| self.client.info().best_hash), gas);
-
-        res.map_err(runtime_error_into_rpc_err)
-    }
-
-    fn weight_to_gas(&self, weight: Weight, at: Option<<Block as BlockT>::Hash>) -> RpcResult<u64> {
-        let api = self.client.runtime_api();
-        let res = api.weight_to_gas(at.unwrap_or_else(|| self.client.info().best_hash), weight);
-
-        res.map_err(runtime_error_into_rpc_err)
-    }
-
     fn estimate_gas_publish_module(
         &self,
         account: AccountId,
