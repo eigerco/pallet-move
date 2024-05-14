@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use codec::Codec;
+use frame_support::weights::Weight;
 use jsonrpsee::{
     core::{Error as JsonRpseeError, RpcResult},
     proc_macros::rpc,
@@ -19,6 +20,9 @@ pub struct Estimation {
     pub gas_used: u64,
     /// Status code for the MoveVM execution.
     pub vm_status_code: u64,
+    /// Substrate weight required for the complete extrinsic cost combined with the variable
+    /// used gas indicated in the [`Estimation`] struct.
+    pub total_weight_including_gas_used: Weight,
 }
 
 impl From<MoveApiEstimation> for Estimation {
@@ -26,6 +30,7 @@ impl From<MoveApiEstimation> for Estimation {
         Self {
             gas_used: estimate.gas_used,
             vm_status_code: estimate.vm_status_code,
+            total_weight_including_gas_used: estimate.total_weight_including_gas_used,
         }
     }
 }
