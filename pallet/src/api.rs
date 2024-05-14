@@ -15,7 +15,7 @@ pub struct MoveApiEstimation {
     /// Status code for the MoveVM execution.
     pub vm_status_code: u64,
     /// Substrate weight required for the complete extrinsic cost combined with the variable gas
-    /// indicated in the `Estimaton` struct.
+    /// indicated in the [`Estimation`] struct.
     pub total_weight_including_gas_used: Weight,
 }
 
