@@ -3,9 +3,9 @@ use std::sync::Arc;
 use codec::Codec;
 use frame_support::weights::Weight;
 use jsonrpsee::{
-    core::{Error as JsonRpseeError, RpcResult},
+    core::RpcResult,
     proc_macros::rpc,
-    types::error::{CallError, ErrorObject},
+    types::{error::ErrorCode, ErrorObjectOwned},
 };
 pub use pallet_move::api::{ModuleAbi, MoveApi as MoveRuntimeApi, MoveApiEstimation};
 use serde::{Deserialize, Serialize};
@@ -14,7 +14,7 @@ use sp_blockchain::HeaderBackend;
 use sp_runtime::traits::Block as BlockT;
 
 /// Gas estimation information.
-#[derive(Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct Estimation {
     /// Gas used.
     pub gas_used: u64,
@@ -36,7 +36,7 @@ impl From<MoveApiEstimation> for Estimation {
 }
 
 /// Public RPC API of the Move pallet.
-#[rpc(server)]
+#[rpc(client, server)]
 pub trait MoveApi<BlockHash, AccountId> {
     /// Estimate gas for publishing module.
     #[method(name = "mvm_estimateGasPublishModule")]
@@ -225,49 +225,7 @@ where
     }
 }
 
-const RUNTIME_ERROR: i32 = 1;
-
 /// Converts a runtime trap into an RPC error.
-fn runtime_error_into_rpc_err(err: impl std::fmt::Debug) -> JsonRpseeError {
-    CallError::Custom(ErrorObject::owned(
-        RUNTIME_ERROR,
-        "Runtime error",
-        Some(format!("{:?}", err)),
-    ))
-    .into()
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn runtime_error_into_rpc_err_test_str() {
-        let err_str = "test";
-        let err_str_tst = "\"\\\"test\\\"\"";
-        let res = runtime_error_into_rpc_err(err_str);
-        match res {
-            JsonRpseeError::Call(CallError::Custom(err)) => {
-                assert_eq!(err.code(), RUNTIME_ERROR);
-                assert_eq!(err.message(), "Runtime error");
-                assert_eq!(err.data().unwrap().get(), err_str_tst);
-            }
-            _ => panic!("Wrong error type"),
-        }
-    }
-
-    #[test]
-    fn runtime_error_into_rpc_err_empty_str() {
-        let err_str = "";
-        let err_str_tst = "\"\\\"\\\"\"";
-        let res = runtime_error_into_rpc_err(err_str);
-        match res {
-            JsonRpseeError::Call(CallError::Custom(err)) => {
-                assert_eq!(err.code(), RUNTIME_ERROR);
-                assert_eq!(err.message(), "Runtime error");
-                assert_eq!(err.data().unwrap().get(), err_str_tst);
-            }
-            _ => panic!("Wrong error type"),
-        }
-    }
+fn runtime_error_into_rpc_err(_: impl std::fmt::Debug) -> ErrorObjectOwned {
+    ErrorCode::InternalError.into()
 }
