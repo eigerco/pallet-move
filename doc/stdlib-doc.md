@@ -18,7 +18,7 @@ Before we delve into the next two chapters, we should mention the special kind o
 These functions don’t have a regular function body specified in Move source files like normal functions have, but instead, their implementation is integrated within the MoveVM itself.
 Native functions are only allowed in standard libraries, as updating them requires updating the MoveVM source code itself.
 
-## Updates containing Move source code
+## Updates adding new Move source code modules
 
 Adding new modules to the standard library is pretty simple.
 Add a module in the wanted repository and then build it as a bundle with `smove bundle` and also generate doc files with `smove docgen`.
@@ -28,7 +28,7 @@ Note: This extrinsic can be used only by the root user.
 
 A simple example can be found in this [pull request](https://github.com/eigerco/move-stdlib/pull/5).
 
-## Updates containing adding or changing native functions
+## Updates that add native functions
 
 Adding new native functions to the standard library requires the implementation of a function body in Rust within the MoveVM code.
 

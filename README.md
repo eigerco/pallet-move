@@ -82,19 +82,6 @@ _The MoveVM is taken from the Move language repository - any possible safety iss
 _Therefore, the Substrate MoveVM fork ([substrate-move][substrate-move]) should get all upstream changes from that repository._
 _The first parachain adapters should do additional testing to ensure the robustness of the solution._
 
-
-## Open / Planned Points
-
-- Completely define/refine gas tuning and gas-weight logic
-- Update to the latest Polkadot-SDK version in template node / pallet-move
-- Add more pallet tests
-- Develop full benchmarks
-- Multi-signature support!
-- Protection mechanism for Move address 0x1
-- Move `Move-stdlib` repository location
-- Add an extrinsic for updating `Move-stdlib` with special root account
-- Implement RPC commands for gas-weight calculation.
-
 ## License
 
 [MIT](LICENSE) License.
