@@ -43,29 +43,35 @@ frame_support::construct_runtime!(
 );
 
 impl frame_system::Config for Test {
+    type AccountData = pallet_balances::AccountData<Balance>;
+    type AccountId = AccountId32;
     type BaseCallFilter = frame_support::traits::Everything;
-    type BlockWeights = ();
+    type Block = Block;
+    type BlockHashCount = ConstU64<250>;
     type BlockLength = ();
+    type BlockWeights = ();
     type DbWeight = ();
-    type RuntimeOrigin = RuntimeOrigin;
-    type RuntimeCall = RuntimeCall;
-    type Nonce = u64;
     type Hash = H256;
     type Hashing = BlakeTwo256;
-    type AccountId = AccountId32;
     type Lookup = IdentityLookup<Self::AccountId>;
-    type Block = Block;
-    type RuntimeEvent = RuntimeEvent;
-    type BlockHashCount = ConstU64<250>;
-    type Version = ();
-    type PalletInfo = PalletInfo;
-    type AccountData = pallet_balances::AccountData<Balance>;
+    type MaxConsumers = frame_support::traits::ConstU32<16>;
+    type MultiBlockMigrator = ();
+    type Nonce = u64;
     type OnNewAccount = ();
     type OnKilledAccount = ();
-    type SystemWeightInfo = ();
-    type SS58Prefix = ConstU16<42>;
     type OnSetCode = ();
-    type MaxConsumers = frame_support::traits::ConstU32<16>;
+    type PalletInfo = PalletInfo;
+    type PreInherents = ();
+    type PostInherents = ();
+    type PostTransactions = ();
+    type RuntimeCall = RuntimeCall;
+    type RuntimeEvent = RuntimeEvent;
+    type RuntimeOrigin = RuntimeOrigin;
+    type RuntimeTask = RuntimeTask;
+    type SingleBlockMigrations = ();
+    type SS58Prefix = ConstU16<42>;
+    type SystemWeightInfo = ();
+    type Version = ();
 }
 
 impl pallet_balances::Config for Test {
@@ -83,7 +89,6 @@ impl pallet_balances::Config for Test {
     type FreezeIdentifier = ();
     type MaxFreezes = ();
     type RuntimeHoldReason = ();
-    type MaxHolds = ();
     type RuntimeFreezeReason = ();
 }
 
