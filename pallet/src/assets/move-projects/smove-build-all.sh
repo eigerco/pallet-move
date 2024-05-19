@@ -14,6 +14,7 @@ build_dir=(
     "signer-scripts"
 )
 bundle_dir=(
+    "developer-bundle",
     "prohibited-bundle"
     "testing-move-stdlib"
     "testing-substrate-stdlib"

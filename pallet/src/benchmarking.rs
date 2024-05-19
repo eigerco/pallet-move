@@ -1,8 +1,6 @@
 //! Benchmarking setup for pallet-move.
 
 use frame_benchmarking::v2::*;
-// #[cfg(test)]
-// use frame_benchmarking::v2::test;
 use frame_system::{Config as SysConfig, RawOrigin};
 use move_vm_backend::types::MAX_GAS_AMOUNT;
 use pallet_balances::{Config as BalancesConfig, Pallet as Balances};
@@ -169,12 +167,22 @@ mod benchmarks {
     }
 
     #[benchmark]
-    fn publish_module_bundle() {
+    fn publish_module_bundle(n: Linear<0, 1>) {
         let bob_32 = utils::account::<T>(utils::BOB_ADDR);
-        let bundle = core::include_bytes!("assets/move-projects/using_stdlib_natives/build/using_stdlib_natives/bundles/using_stdlib_natives.mvb").to_vec();
+
+        let bundles = [
+            core::include_bytes!("assets/move-projects/using_stdlib_natives/build/using_stdlib_natives/bundles/using_stdlib_natives.mvb").to_vec(),
+            core::include_bytes!("assets/move-projects/developer-bundle/build/developer-bundle/bundles/developer-bundle.mvb").to_vec(),
+        ];
+
+        let gas = [528, 1500];
 
         #[extrinsic_call]
-        publish_module_bundle(RawOrigin::Signed(bob_32), bundle, 1_500_000);
+        publish_module_bundle(
+            RawOrigin::Signed(bob_32),
+            bundles[n as usize].clone(),
+            gas[n as usize],
+        );
     }
 
     #[benchmark]
