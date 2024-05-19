@@ -35,7 +35,7 @@ pub mod weight_info {
     pub trait WeightInfo {
         fn execute(gas: u32) -> Weight;
         fn publish_module(gas: u32) -> Weight;
-        fn publish_module_bundle() -> Weight;
+        fn publish_module_bundle(gas: u32) -> Weight;
         fn update_stdlib_bundle() -> Weight;
     }
 }
@@ -383,7 +383,7 @@ pub mod pallet {
         /// Bundle is just a set of multiple modules.
         // TODO(eiger) in M3: ensure the weight depends on basic extrinsic cost + gas_limit
         #[pallet::call_index(2)]
-        #[pallet::weight(T::WeightInfo::publish_module_bundle())]
+        #[pallet::weight(T::WeightInfo::publish_module_bundle(*gas_limit as u32))]
         pub fn publish_module_bundle(
             origin: OriginFor<T>,
             bundle: Vec<u8>,
@@ -672,7 +672,9 @@ pub mod pallet {
             Ok(MoveApiEstimation {
                 vm_status_code: vm_result.status_code.into(),
                 gas_used: vm_result.gas_used,
-                total_weight_including_gas_used: T::WeightInfo::publish_module_bundle(),
+                total_weight_including_gas_used: T::WeightInfo::publish_module_bundle(
+                    vm_result.gas_used as u32,
+                ),
             })
         }
 
