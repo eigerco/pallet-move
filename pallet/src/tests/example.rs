@@ -1,7 +1,6 @@
 use crate::{mock::*, mock_utils as utils, no_type_args, script_transaction};
 
 use frame_support::assert_ok;
-use move_vm_backend::types::MAX_GAS_AMOUNT;
 
 const PROJECT: &str = "car-wash-example";
 

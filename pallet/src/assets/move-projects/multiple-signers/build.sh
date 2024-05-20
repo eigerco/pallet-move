@@ -6,7 +6,7 @@ ALICE=5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY
 DAVE=5DAAnrj7VHTznn2AWBemMuyBwZWs6FNFjdyVXUeYum3PTXFy
 EVE=5HGjWAeFDfFCWPsjFQdVV2Msvz2XtMktvgocEZcCj68kUMaw
 # Build the Move sources.
-smove build
+smove bundle
 # Generate script-transactions.
 # 1. init_module(Bob)
 smove create-transaction --compiled-script-path build/multiple-signers/bytecode_scripts/init_module.mv --args signer:$BOB

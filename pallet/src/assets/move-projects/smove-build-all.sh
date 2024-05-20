@@ -14,12 +14,20 @@ build_dir=(
     "signer-scripts"
 )
 bundle_dir=(
-    "developer-bundle",
     "prohibited-bundle"
     "testing-move-stdlib"
     "testing-substrate-stdlib"
     "using_stdlib_natives"
+
+    "car-wash-example"
+    "multiple-signers"
+    "base58_smove_build"
+    "basic_coin"
 )
+
+
+# Info for the below actions:
+# If the script needs to be bundled, it should be done in build.sh script if one exists.
 
 # Build simple packages
 for dir in "${build_dir[@]}"; do
@@ -36,5 +44,11 @@ done
 # Build bundles
 for dir in "${bundle_dir[@]}"; do
     echo $dir
-    smove bundle -p $dir
+    build_script=$dir"/build.sh"
+    if [ -f "$build_script" ];
+    then
+        sh $build_script
+    else
+        smove bundle -p $dir
+    fi
 done

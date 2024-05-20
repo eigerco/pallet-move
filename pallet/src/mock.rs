@@ -18,6 +18,9 @@ pub use move_core_types::account_address::AccountAddress;
 pub use move_vm_backend_common::types::ScriptTransaction;
 pub use sp_runtime::AccountId32;
 
+// Internally, within move-vm-backend, the gas is of type u64 and the maximum value is even greater.
+pub const MAX_GAS_AMOUNT: u32 = u32::MAX;
+
 // Primitive type definitions for this mockup.
 pub type Balance = u128;
 pub type Block = frame_system::mocking::MockBlock<Test>;

@@ -2,7 +2,6 @@ use crate::{mock::*, mock_utils as utils};
 
 use frame_support::assert_ok;
 use move_core_types::{identifier::Identifier, language_storage::StructTag};
-use move_vm_backend::types::MAX_GAS_AMOUNT;
 
 /// Test getting a module.
 #[test]

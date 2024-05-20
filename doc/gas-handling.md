@@ -1,11 +1,11 @@
-# Gas Handling And Weight Costs In Pallet-Move
+# Gas Handling and Weight Costs in Pallet-Move
 
 The gas unit is an internal processing fee for publishing modules and executing scripts within the MoveVM.
 
 In Substrate-based blockchains, another unit, `Weight`, measures and manages the time it takes to validate a block.
 Substrate defines one unit of weight as one picosecond of execution time on reference hardware.
 
-## Gas handling in Move layer
+## Gas Handling in Move Layer
 
 From within the MoveVM, there are two different sources for gas costs:
 - Cost for script execution,
@@ -24,11 +24,11 @@ This value was selected during the testing and benchmarks and it is an arbitrary
 
 All internal MoveVM gas handling costs are defined in the same [gas schedule module](https://github.com/eigerco/substrate-move/blob/main/move-vm-backend-common/src/gas_schedule.rs) so that tweaking any gas-related factor can be done from within that module.
 
-## Extrinsic Weight Cost in Pallet layer
+## Extrinsic Weight Cost in Pallet Layer
 
 Three main extrinsics interact with MoveVM, which stores its state within the Substrate storage:
 - `publish_module`
-- `publish_bundle`
+- `publish_module_bundle`
 - `execute`
 
 All above extrinsics have a `gas_limit` argument which is used as an input to the `MoveVM`.
