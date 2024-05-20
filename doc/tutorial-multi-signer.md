@@ -18,12 +18,16 @@ Again, developer Bob initialises his module by executing the script transaction 
 |:--:|
 | _Bob initialises his module using [polkadot.js][polkadotjs]_ |
 
-The student Alice is the first one and executes the script transaction `rent_apartment.mvt`, which is already prepared for the student group Alice, Dave and Eve and with two months of rental.
+The student Alice is the first one and executes the script transaction `rent_apartment.mvt`, which is already prepared for the student group Alice, Dave and Eve and with two months of rental. Alice can set her gas limit to 0 because the script will only be executed after everyone has signed.
 | ![polkadot.js_multisign_alice_initiates.png](assets/polkadot.js_multisign_alice_initiates.png) |
 |:--:|
 | _Alice initiates the multi signer execution request using [polkadot.js][polkadotjs]_ |
 
-Now same script transaction must be executed by Dave and Eve as well.
+Now same script transaction must be executed by Dave and Eve as well where Dave sets his gas limit also to 0. Eve has estimated the needed gas for the script execution to 1377 and now enters that value because he is the final signer and the script will be executed now.
+| ![polkadot.js_multisign_eve_finalises.png](assets/polkadot.js_multisign_eve_finalises.png) |
+|:--:|
+| _Eve finalises the multi signer execution request using [polkadot.js][polkadotjs]_ |
+
 After all three students have executed that script transaction you should see, that the amounts of tokens have be withdrawn from their accounts.
 
 Because every student has to sign the extrinsic call and execute the script execution, the execution request will be stored in the pallet's storage until every student has signed.

@@ -98,7 +98,7 @@ smove node rpc estimate-gas-publish-module --account-id 5FHneW46xGXgs5mUiveU4sbT
 
 The successful result will look like:
 ```sh
-Estimated gas: Estimate (gas_used: 74, vm_status_code: EXECUTED)
+Estimated gas: Estimate (gas_used: 732, vm_status_code: EXECUTED)
 ```
 
 ### Publication
@@ -159,7 +159,7 @@ smove node rpc estimate-gas-execute-script -s build/car-wash-example/script_tran
 ```
 with response:
 ```sh
-Estimated gas: Estimate (gas_used: 21, vm_status_code: EXECUTED)
+Estimated gas: Estimate (gas_used: 343, vm_status_code: EXECUTED)
 ```
 
 ### Execution
@@ -179,7 +179,7 @@ Parameters are:
 
 You have successfully published a Move module on your Polkadot blockchain and executed a Move script successfully.
 
-| ![js_buy_coin_balances_after.png](assets/polkadot.js_buy_coin_balances_before.png) |
+| ![js_buy_coin_balances_before.png](assets/polkadot.js_buy_coin_balances_before.png) |
 |:--:|
 | _Observe the balance before we execute some new scripts which will charge the user_ |
 
