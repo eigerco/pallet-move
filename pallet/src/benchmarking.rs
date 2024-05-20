@@ -2,13 +2,14 @@
 
 use frame_benchmarking::v2::*;
 use frame_system::{Config as SysConfig, RawOrigin};
-use move_vm_backend::types::MAX_GAS_AMOUNT;
 use pallet_balances::{Config as BalancesConfig, Pallet as Balances};
 use sp_core::crypto::Ss58Codec;
 
 use crate::{mock_utils as utils, *};
 
 const LIMIT: u128 = 60_000_000_000_000;
+
+const MAX_GAS_AMOUNT: u32 = u32::MAX;
 
 type SourceOf<T> = <<T as SysConfig>::Lookup as sp_runtime::traits::StaticLookup>::Source;
 
@@ -147,16 +148,16 @@ mod benchmarks {
     }
 
     #[benchmark]
-    fn publish_module(n: Linear<0, 3>) {
+    fn publish_module(n: Linear<0, 2>) {
         let bob_32 = utils::account::<T>(utils::BOB_ADDR);
 
         let module_bcs = [
-            move_basics_module().to_vec(),
-            using_stdlib_natives_module().to_vec(),
             multiple_signers_module().to_vec(),
             car_wash_example_module().to_vec(),
+            base58_smove_build_module().to_vec(),
+            basic_coin_module().to_vec(),
         ];
-        let gas = [101, 325, 661, 732];
+        let gas = [661, 732, 100, 576];
 
         #[extrinsic_call]
         publish_module(
@@ -167,15 +168,16 @@ mod benchmarks {
     }
 
     #[benchmark]
-    fn publish_module_bundle(n: Linear<0, 1>) {
+    fn publish_module_bundle(n: Linear<0, 2>) {
         let bob_32 = utils::account::<T>(utils::BOB_ADDR);
 
         let bundles = [
-            core::include_bytes!("assets/move-projects/using_stdlib_natives/build/using_stdlib_natives/bundles/using_stdlib_natives.mvb").to_vec(),
-            core::include_bytes!("assets/move-projects/developer-bundle/build/developer-bundle/bundles/developer-bundle.mvb").to_vec(),
+            multiple_signers_module_as_bundle().to_vec(),
+            car_wash_example_module_as_bundle().to_vec(),
+            base58_smove_build_module_as_bundle().to_vec(),
+            basic_coin_module_as_bundle().to_vec(),
         ];
-
-        let gas = [528, 1500];
+        let gas = [664, 735, 102, 579];
 
         #[extrinsic_call]
         publish_module_bundle(
@@ -223,22 +225,39 @@ mod benchmarks {
 use benchmark_only::*;
 
 mod benchmark_only {
-    // Move Basics Example
-    pub fn move_basics_module() -> &'static [u8] {
+    // Base58 build example
+    pub fn base58_smove_build_module() -> &'static [u8] {
         core::include_bytes!(
-            "assets/move-projects/move-basics/build/move-basics/bytecode_modules/EmptyBob.mv"
+            "assets/move-projects/base58_smove_build/build/base58_smove_build/bytecode_modules/BobBase58.mv"
+        )
+    }
+    pub fn base58_smove_build_module_as_bundle() -> &'static [u8] {
+        core::include_bytes!(
+            "assets/move-projects/base58_smove_build/build/base58_smove_build/bundles/base58_smove_build.mvb"
         )
     }
 
-    // Using Stdlib Natives Example
-    pub fn using_stdlib_natives_module() -> &'static [u8] {
-        core::include_bytes!("assets/move-projects/using_stdlib_natives/build/using_stdlib_natives/bytecode_modules/Vector.mv")
+    // basic_coin example
+    pub fn basic_coin_module() -> &'static [u8] {
+        core::include_bytes!(
+            "assets/move-projects/basic_coin/build/basic_coin/bytecode_modules/BasicCoin.mv"
+        )
+    }
+    pub fn basic_coin_module_as_bundle() -> &'static [u8] {
+        core::include_bytes!(
+            "assets/move-projects/basic_coin/build/basic_coin/bundles/basic_coin.mvb"
+        )
     }
 
     // Car Wash Example
     pub fn car_wash_example_module() -> &'static [u8] {
         core::include_bytes!(
             "assets/move-projects/car-wash-example/build/car-wash-example/bytecode_modules/CarWash.mv"
+        )
+    }
+    pub fn car_wash_example_module_as_bundle() -> &'static [u8] {
+        core::include_bytes!(
+            "assets/move-projects/car-wash-example/build/car-wash-example/bundles/car-wash-example.mvb"
         )
     }
 
@@ -266,6 +285,11 @@ mod benchmark_only {
     pub fn multiple_signers_module() -> &'static [u8] {
         core::include_bytes!(
             "assets/move-projects/multiple-signers/build/multiple-signers/bytecode_modules/Dorm.mv"
+        )
+    }
+    pub fn multiple_signers_module_as_bundle() -> &'static [u8] {
+        core::include_bytes!(
+            "assets/move-projects/multiple-signers/build/multiple-signers/bundles/multiple-signers.mvb"
         )
     }
 

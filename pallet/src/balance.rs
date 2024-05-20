@@ -1,4 +1,9 @@
-//! TODO Short introduction of this module
+//! Module for handling balance functionality related to the MoveVM balance module.
+//!
+//! Using the MoveVM it's possible to execute balance changes, but only if the execution script
+//! succeeds.
+//! The possible balance changes are capped with each user's `cheque_limit` value.
+
 use core::{cmp::Ordering, marker::PhantomData};
 
 use codec::{Decode, Encode};

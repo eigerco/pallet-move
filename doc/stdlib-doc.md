@@ -38,7 +38,7 @@ You can use these PRs as an example of how that can be done:
 
 Whenever native functions are added, [smove](smove) needs to update dependencies so it fetches the latest MoveVM changes and then a new version of `smove` should be published.
 
-Hopefully, pallet users won't need to add new native functions after the genesis block, otherwise the node's runtime will require and update containing the new version of the MoveVM instance with the latest code that includes added native functions.
+Hopefully, pallet users won't need to add new native functions after the genesis block, otherwise the node's runtime will require an update containing the new version of the MoveVM instance with the latest code that includes added native functions.
 
 [move-stdlib]: https://github.com/eigerco/substrate-move/tree/main/language/move-stdlib
 [substrate-move]: https://github.com/eigerco/substrate-move

@@ -3,7 +3,6 @@
 
 use crate::{mock::*, mock_utils as utils, weight_info::WeightInfo, weights::SubstrateWeight, *};
 use frame_support::weights::Weight;
-use move_vm_backend::types::MAX_GAS_AMOUNT;
 
 #[test]
 fn pseudo_benchmark_gas_costs() {

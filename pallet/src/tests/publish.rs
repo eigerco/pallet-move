@@ -1,7 +1,6 @@
 use crate::{mock::*, mock_utils as utils, GasStrategy};
 
 use frame_support::assert_ok;
-use move_vm_backend::types::MAX_GAS_AMOUNT;
 
 /// Test that the module is published correctly.
 #[test]
@@ -176,7 +175,7 @@ fn raw_publish_module_dry_run() {
         let estimation =
             MoveModule::raw_publish_module(&bob_addr_move, module.clone(), GasStrategy::DryRun)
                 .expect("failed to publish a module")
-                .gas_used;
+                .gas_used as u32;
 
         let insufficient_gas = estimation - 1;
         let invalid_publish = MoveModule::publish_module(
@@ -207,7 +206,7 @@ fn raw_publish_bundle_dry_run() {
         let estimation =
             MoveModule::raw_publish_bundle(&bob_addr_move, bundle.clone(), GasStrategy::DryRun)
                 .expect("failed to publish a bundle")
-                .gas_used;
+                .gas_used as u32;
 
         let insufficient_gas = estimation - 1;
         let invalid_publish = MoveModule::publish_module(
@@ -227,49 +226,6 @@ fn raw_publish_bundle_dry_run() {
             estimation,
         )
         .expect("failed to publish a bundle");
-    });
-}
-
-/// Test that the module publishing fails when gas is exceeded.
-#[test]
-fn publish_module_will_fail_in_case_the_gas_limit_is_exceeded() {
-    let bob_addr_native = utils::account::<Test>(utils::BOB_ADDR);
-
-    ExtBuilder::default().build().execute_with(|| {
-        let module = utils::read_module_from_project("using_stdlib_natives", "Vector");
-
-        // Exceed the maximum gas limit by one.
-        let result = MoveModule::publish_module(
-            RuntimeOrigin::signed(bob_addr_native),
-            module,
-            MAX_GAS_AMOUNT + 1,
-        );
-        assert!(
-            result.is_err(),
-            "managed to publish a module with insufficient gas"
-        );
-    });
-}
-
-/// Test that the bundle publishing fails when gas is exceeded.
-#[test]
-fn publish_bundle_will_fail_in_case_the_gas_limit_is_exceeded() {
-    let bob_addr_native = utils::account::<Test>(utils::BOB_ADDR);
-
-    ExtBuilder::default().build().execute_with(|| {
-        let bundle =
-            utils::read_bundle_from_project("using_stdlib_natives", "using_stdlib_natives");
-
-        // Exceed the maximum gas limit by one.
-        let result = MoveModule::publish_module_bundle(
-            RuntimeOrigin::signed(bob_addr_native),
-            bundle,
-            MAX_GAS_AMOUNT + 1,
-        );
-        assert!(
-            result.is_err(),
-            "managed to publish a bundle with insufficient gas"
-        );
     });
 }
 

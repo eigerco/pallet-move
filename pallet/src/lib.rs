@@ -239,21 +239,20 @@ pub mod pallet {
     #[pallet::call]
     impl<T: Config> Pallet<T> {
         /// Execute Move script transaction sent by the user.
-        // TODO(eiger) in M3: ensure the weight depends on basic extrinsic cost + gas_limit + size of the
-        // transaction_bc.
         #[pallet::call_index(0)]
-        #[pallet::weight(T::WeightInfo::execute(*gas_limit as u32))]
+        #[pallet::weight(T::WeightInfo::execute(*gas_limit))]
         pub fn execute(
             origin: OriginFor<T>,
             transaction_bc: Vec<u8>,
-            gas_limit: u64,
+            gas_limit: u32,
             cheque_limit: BalanceOf<T>,
         ) -> DispatchResultWithPostInfo {
             // A signer for the extrinsic and a signer for the Move script.
             let who = ensure_signed(origin)?;
 
             // We use gas in order to prevent infinite scripts from breaking the MoveVM.
-            let gas_amount = GasAmount::new(gas_limit).map_err(|_| Error::<T>::GasLimitExceeded)?;
+            let gas_amount =
+                GasAmount::new(gas_limit.into()).map_err(|_| Error::<T>::GasLimitExceeded)?;
             let gas = GasStrategy::Metered(gas_amount);
 
             // Main input for the VM are these script parameters.
@@ -320,8 +319,6 @@ pub mod pallet {
 
             // If we have multiple signers and they all have signed, we have to remove the multi-signer request from the MultisigStorage.
             if let Some(script_hash) = contains_multisig {
-                // TODO: Consider remove the entry from the ChoreOnIdleStorage in the future. Not
-                // cleaning it shall cause no harm.
                 MultisigStorage::<T>::remove(script_hash);
             }
 
@@ -352,19 +349,19 @@ pub mod pallet {
 
         /// Publish a Move module sent by the user.
         /// Module is published under its sender's address.
-        // TODO(eiger) in M3: ensure the weight depends on basic extrinsic cost + gas_limit
         #[pallet::call_index(1)]
-        #[pallet::weight(T::WeightInfo::publish_module(*gas_limit as u32))]
+        #[pallet::weight(T::WeightInfo::publish_module(*gas_limit))]
         pub fn publish_module(
             origin: OriginFor<T>,
             bytecode: Vec<u8>,
-            gas_limit: u64,
+            gas_limit: u32,
         ) -> DispatchResultWithPostInfo {
             // Allow only signed calls.
             let who = ensure_signed(origin)?;
             let address = Self::to_move_address(&who)?;
 
-            let gas_amount = GasAmount::new(gas_limit).map_err(|_| Error::<T>::GasLimitExceeded)?;
+            let gas_amount =
+                GasAmount::new(gas_limit.into()).map_err(|_| Error::<T>::GasLimitExceeded)?;
             let gas = GasStrategy::Metered(gas_amount);
 
             let vm_result = Self::raw_publish_module(&address, bytecode, gas)?;
@@ -381,18 +378,18 @@ pub mod pallet {
         /// Publish a Move bundle sent by the user.
         ///
         /// Bundle is just a set of multiple modules.
-        // TODO(eiger) in M3: ensure the weight depends on basic extrinsic cost + gas_limit
         #[pallet::call_index(2)]
-        #[pallet::weight(T::WeightInfo::publish_module_bundle(*gas_limit as u32))]
+        #[pallet::weight(T::WeightInfo::publish_module_bundle(*gas_limit))]
         pub fn publish_module_bundle(
             origin: OriginFor<T>,
             bundle: Vec<u8>,
-            gas_limit: u64,
+            gas_limit: u32,
         ) -> DispatchResultWithPostInfo {
             let who = ensure_signed(origin)?;
             let address = Self::to_move_address(&who)?;
 
-            let gas_amount = GasAmount::new(gas_limit).map_err(|_| Error::<T>::GasLimitExceeded)?;
+            let gas_amount =
+                GasAmount::new(gas_limit.into()).map_err(|_| Error::<T>::GasLimitExceeded)?;
             let gas = GasStrategy::Metered(gas_amount);
 
             let vm_result = Self::raw_publish_bundle(&address, bundle, gas)?;
@@ -522,7 +519,6 @@ pub mod pallet {
         ) -> Result<Option<ModuleAbi>, Vec<u8>> {
             let vm = Self::move_vm()?;
 
-            // TODO: Return a normal message to the RPC caller
             let address = Self::to_move_address(address).map_err(|_| vec![])?;
 
             vm.get_module_abi(address, name)
@@ -532,7 +528,6 @@ pub mod pallet {
         pub fn get_module(address: &T::AccountId, name: &str) -> Result<Option<Vec<u8>>, Vec<u8>> {
             let vm = Self::move_vm()?;
 
-            // TODO: Return a normal message to the RPC caller
             let address = Self::to_move_address(address).map_err(|_| vec![])?;
 
             vm.get_module(address, name)
@@ -544,7 +539,6 @@ pub mod pallet {
             tag: &[u8],
         ) -> Result<Option<Vec<u8>>, Vec<u8>> {
             let vm = Self::move_vm()?;
-            // TODO: Return a normal message to the RPC caller
             let address = Self::to_move_address(account).map_err(|_| vec![])?;
 
             vm.get_resource(&address, tag)

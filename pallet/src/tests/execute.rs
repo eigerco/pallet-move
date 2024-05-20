@@ -2,7 +2,6 @@ use crate::{mock::*, mock_utils as utils, no_type_args, script_transaction, Erro
 
 use frame_support::{assert_err, assert_ok};
 use move_core_types::{identifier::Identifier, language_storage::StructTag};
-use move_vm_backend::types::MAX_GAS_AMOUNT;
 
 fn get_vm_resource(
     module_owner: &AccountAddress,

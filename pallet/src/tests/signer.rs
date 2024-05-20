@@ -8,7 +8,6 @@ use frame_support::{
     traits::{tokens::WithdrawReasons, Currency},
 };
 use move_core_types::{language_storage::TypeTag, u256::U256};
-use move_vm_backend::types::MAX_GAS_AMOUNT;
 use rand::{distributions::Standard, prelude::Distribution, rngs::ThreadRng, Rng};
 use serde::Serialize;
 

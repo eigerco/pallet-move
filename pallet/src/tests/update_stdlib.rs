@@ -4,7 +4,6 @@ use crate::{mock::*, mock_utils as utils, no_type_args, script_transaction};
 
 use frame_support::{assert_err, assert_ok, pallet_prelude::*};
 use move_stdlib::move_stdlib_bundle;
-use move_vm_backend::types::MAX_GAS_AMOUNT;
 
 fn mock_move_stdlib() -> Vec<u8> {
     utils::read_bundle_from_project("testing-move-stdlib", "testing-move-stdlib")

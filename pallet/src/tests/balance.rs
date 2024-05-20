@@ -5,7 +5,7 @@ use crate::{
 };
 
 use frame_support::assert_ok;
-use move_vm_backend::{balance::BalanceHandler, types::MAX_GAS_AMOUNT};
+use move_vm_backend::balance::BalanceHandler;
 
 #[test]
 fn verify_get_balance() {
