@@ -21,11 +21,11 @@ Scripts and modules have limited access to the balance transfer functionality vi
 ```rust
     /// Execute Move script transaction sent by the user.
     #[pallet::call_index(0)]
-    #[pallet::weight(T::WeightInfo::execute())]
+    #[pallet::weight(T::WeightInfo::execute(*gas_limit))]
     pub fn execute(
         origin: OriginFor<T>,
         transaction_bc: Vec<u8>,
-        gas_limit: u64,
+        gas_limit: u32,
         cheque_limit: BalanceOf<T>,
     ) -> DispatchResultWithPostInfo;
 ```
@@ -34,31 +34,33 @@ Scripts and modules have limited access to the balance transfer functionality vi
     /// Publish a Move module sent by the user.
     /// Module is published under its sender's address.
     #[pallet::call_index(1)]
-    #[pallet::weight(T::WeightInfo::publish_module())]
+    #[pallet::weight(T::WeightInfo::publish_module(*gas_limit))]
     pub fn publish_module(
         origin: OriginFor<T>,
         bytecode: Vec<u8>,
-        gas_limit: u64,
+        gas_limit: u32,
     ) -> DispatchResultWithPostInfo;
 ```
 
 ```rust
     /// Publish a Move bundle sent by the user.
+    ///
+    /// Bundle is just a set of multiple modules.
     #[pallet::call_index(2)]
-    #[pallet::weight(T::WeightInfo::publish_module_bundle())]
+    #[pallet::weight(T::WeightInfo::publish_module_bundle(*gas_limit))]
     pub fn publish_module_bundle(
         origin: OriginFor<T>,
         bundle: Vec<u8>,
-        gas_limit: u64,
+        gas_limit: u32,
     ) -> DispatchResultWithPostInfo;
 ```
 
 ```rust
     /// Publish a standard library bundle, e.g. Move-Stdlib or Substrate-Stdlib. Sudo user only.
     ///
-    /// It should be used carefully - and should not introduce backward, incompatible changes.
+    /// All standard libraries are published at their default address 0x1.
     #[pallet::call_index(3)]
-    #[pallet::weight(T::WeightInfo::update_stdlib())]
+    #[pallet::weight(T::WeightInfo::update_stdlib_bundle())]
     pub fn update_stdlib_bundle(
         origin: OriginFor<T>,
         stdlib: Vec<u8>,
@@ -67,30 +69,8 @@ Scripts and modules have limited access to the balance transfer functionality vi
 
 ## RPC
 
-### Method `mvm_gasToWeight`
-Convert gas to weight.
-
-**Parameters**
-
-`gas: u64` - Amount of gas.
-
-`at: Option<BlockHash>` - Optional block.
-
-----------------------------------------------------------------
-
-### Method `mvm_weightToGas`
-Convert weight to gas.
-
-**Parameters**
-
-`weight: Weight` - Amount of weigth.
-
-`at: Option<BlockHash>` - Optional block.
-
-----------------------------------------------------------------
-
 ### Method `mvm_estimateGasPublishModule`
-Estimate gas for publishing a module.
+Estimate gas and weight cost for publishing a module.
 
 **Parameters**
 
@@ -103,7 +83,7 @@ Estimate gas for publishing a module.
 ----------------------------------------------------------------
 
 ### Method `mvm_estimateGasPublishBundle`
-Estimate gas for publishing a bundle.
+Estimate gas and weight cost for publishing a bundle.
 
 **Parameters**
 
@@ -116,7 +96,7 @@ Estimate gas for publishing a bundle.
 ----------------------------------------------------------------
 
 ### Method `mvm_estimateGasExecuteScript`
-Estimate gas for executing a Move script.
+Estimate gas and weight cost for executing a Move script.
 
 **Parameters**
 
