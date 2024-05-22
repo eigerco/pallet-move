@@ -38,16 +38,10 @@ For that reason, it is recommended to use `smove node rpc` estimation RPC comman
 - the minimum required `gas_limit` to execute/publish a given script/module,
 - an estimated weight cost for the extrinsic call for the given `gas_limit`.
 
-Previously executed Substrate benchmarks define conversion between gas limit and weight and can be found in the auto-generated file here.
+Previously executed Substrate benchmarks define conversion between gas limit and weight and can be found in the auto-generated file [here](../pallet/src/weights.rs).
 To better understand the costs, it's best to use the estimation RPC methods.
 
 > [!NOTE]
 > The same amount of `gas_limit` between different extrinsic doesn't necessarily add the equal weight cost.
 
 Future pallet users should monitor and observe gas handling costs once the pallet gets integrated into the actual blockchain and then recalibrate it according to their needs, if necessary, according to the info above.
-
-[move-stdlib]: https://github.com/eigerco/substrate-move/tree/main/language/move-stdlib
-[substrate-move]: https://github.com/eigerco/substrate-move
-[substrate-stdlib]: https://github.com/eigerco/substrate-stdlib
-[native-fn]: https://move-language.github.io/move/functions.html?highlight=native#native-functions
-[smove]: https://github.com/eigerco/smove

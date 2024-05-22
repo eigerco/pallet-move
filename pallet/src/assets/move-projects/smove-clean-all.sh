@@ -4,7 +4,6 @@
 cd $(dirname $0)
 
 build_dir=(
-    # Modules
     "balance"
     "base58_smove_build"
     "car-wash-example"
@@ -13,7 +12,7 @@ build_dir=(
     "move-basics"
     "multiple-signers"
     "signer-scripts"
-    # Bundles
+    "basic_coin"
     "prohibited-bundle"
     "testing-move-stdlib"
     "testing-substrate-stdlib"

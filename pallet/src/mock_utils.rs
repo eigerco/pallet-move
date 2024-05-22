@@ -79,7 +79,7 @@ mod tests_only {
     /// Can panic if the file doesn't exist.
     pub fn read_bytes(file_path: &str) -> Vec<u8> {
         std::fs::read(file_path)
-            .unwrap_or_else(|e| panic!("Can't read {file_path}: {e} - make sure you run pallet-move/tests/assets/move-projects/smove-build-all.sh"))
+            .unwrap_or_else(|e| panic!("Can't read {file_path}: {e} - make sure you run pallet-move/pallet/src/assets/move-projects/smove-build-all.sh"))
     }
 
     /// Reads a precompiled Move scripts from our assets directory.
