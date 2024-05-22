@@ -234,7 +234,7 @@ impl<T: Config + SysConfig> ScriptSignatureHandler<T> {
         Ok(balances)
     }
 
-    /// Consumes [`ScriptSignatureHandler`] and returns innner `SigData`.
+    /// Consumes [`ScriptSignatureHandler`] and returns inner `SigData`.
     pub(crate) fn into_inner(self) -> SigDataOf<T> {
         self.sig_info
     }

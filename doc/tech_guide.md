@@ -102,7 +102,7 @@ impl pallet_move::Config for Test {
 
 The pallet provides three extrinsic calls. To find about those check the [design document](final-design.md).
 
-Have a look at the [mockup implementation](https://github.com/eigerco/pallet-move/blob/main/tests/mock.rs) for further coding details, or check the crate's Rust documentation:
+Have a look at the [mockup implementation](https://github.com/eigerco/pallet-move/blob/main/pallet/src/mock.rs) for further coding details, or check the crate's Rust documentation:
 ```bash
 cargo doc --open
 ```
@@ -166,14 +166,14 @@ All available options are in the [node template](https://docs.substrate.io/refer
 ## Update Standard Libraries
 
 Two standard libraries are provided for pallet-move at the genesis block creation:
-- [`move-stdlib`](move-stdlib) - the normal Move standard library inherited from the Move repo.
-- [`substrate-stdlib`](substrate-stdlib) - an extension of the standard library with additional modules - where some of those modules are also substrate-specific modules.
+- [`move-stdlib`][move-stdlib] - the normal Move standard library inherited from the Move repo.
+- [`substrate-stdlib`][substrate-stdlib] - an extension of the standard library with additional modules - where some of those modules are also substrate-specific modules.
 
 On rare occasions, those libraries can be updated after the genesis block creation by the root account. **WARNING: THIS CAN BREAK THE MOVE-VM ON-CHAIN STORAGE IF IT INTRODUCES BACKWARD INCOMPATIBLE CHANGES - BE CAREFUL WITH THIS OPERATION**
 
 After edits are prepared to the standard library Move packages, compile both bundles using `smove`:
 ```bash
-smove bundle -p substrate-move/language/move-stdlib
+smove bundle -p move-stdlib
 smove bundle -p substrate-stdlib
 ```
 The two generated bundles will be located in the subfolders:
@@ -183,7 +183,8 @@ The two generated bundles will be located in the subfolders:
 Use the extrinsic call `update_stdlib_bundle` as the sudo user to update both of them.
 ![Update Stdlib](assets/polkadot.js_update_stdlib.png)
 
+For more info about the standard library, check the documentation [here](./stdlib-doc.md).
 
-[move-stdlib]: https://github.com/eigerco/substrate-move/tree/main/language/move-stdlib
+[move-stdlib]: https://github.com/eigerco/move-stdlib
 [substrate-move]: https://github.com/eigerco/substrate-move
 [substrate-stdlib]: https://github.com/eigerco/substrate-stdlib

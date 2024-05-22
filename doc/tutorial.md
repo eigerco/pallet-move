@@ -39,11 +39,11 @@ Prerequisites:
 - [Install smove](https://github.com/eigerco/smove).
 - Setup our template node with pallet-move integrated and run it in the background - the instructions can be found in our [tech guide](./tech_guide.md).
   - Either use [polkadot.js][polkadotjs] or run a local frontend for the node running in the background.
-- Switch the current working directory to the code example directory in `pallet-move/tests/assets/move-projects/car-wash-example`.
+- Switch the current working directory to the code example directory in `pallet-move/pallet/src/assets/move-projects/car-wash-example`.
 
 In our example, a simple car wash is modelized, where washing coins are used to control the usage of the car wash.
 Users can register, buy washing coins and use them to start the car wash.
-For the sake of simplicity, we show here only the function headers of the Move module, the full module can be seen [here](https://github.com/eigerco/pallet-move/blob/main/tests/assets/move-projects/car-wash-example/sources/CarWash.move).
+For the sake of simplicity, we show here only the function headers of the Move module, the full module can be seen [here](https://github.com/eigerco/pallet-move/blob/main/pallet/src/assets/move-projects/car-wash-example/sources/CarWash.move).
 
 ```move
 module DeveloperBob::CarWash {
@@ -98,7 +98,11 @@ smove node rpc estimate-gas-publish-module --account-id 5FHneW46xGXgs5mUiveU4sbT
 
 The successful result will look like:
 ```sh
-Estimated gas: Estimate (gas_used: 732, vm_status_code: EXECUTED)
+Gas estimation:
+    used gas: 732
+    total extrinsic weight cost with the above gas:
+        Weight { ref_time: 20205232845, proof_size: 3576 }
+    vm_status_code: EXECUTED
 ```
 
 ### Publication
@@ -159,7 +163,11 @@ smove node rpc estimate-gas-execute-script -s build/car-wash-example/script_tran
 ```
 with response:
 ```sh
-Estimated gas: Estimate (gas_used: 343, vm_status_code: EXECUTED)
+Gas estimation:
+    used gas: 343
+    total extrinsic weight cost with the above gas:
+        Weight { ref_time: 2829763107, proof_size: 17037 }
+    vm_status_code: EXECUTED
 ```
 
 ### Execution
@@ -214,7 +222,7 @@ Now, let's execute the following actions:
     smove create-transaction --compiled-script-path build/car-wash-example/bytecode_scripts/buy_coin.mv --args signer:5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY u8:1
 
     # Now let's estimate gas for this transaction-script.
-    # `cheque_limit` also needs to be specified here, the RPC command will just if the use has enough funds, if not, it will report an error:
+    # `cheque_limit` isn't used in the RPC command for gas estimation, the RPC command assume the user has enough funds:
     smove node rpc estimate-gas-execute-script -s build/car-wash-example/script_transactions/buy_coin.mvt
     ```
     
@@ -229,7 +237,7 @@ Now, let's execute the following actions:
     <summary>Click here to unlock the hidden command for the above action.</summary>
   
     ```
-    # The check_limit isn't required here (so it should be set to zero for safety reasons) since Alice will burn the MoveVM spend token in order to wash her car.
+    # The check_limit isn't required here (so it should be set to zero for safety reasons) since Alice will burn the car wash coin in order to wash her car.
     smove create-transaction --compiled-script-path build/car-wash-example/bytecode_scripts/wash_car.mv --args signer:5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY
 
     # Now let's estimate gas for this transaction-script:

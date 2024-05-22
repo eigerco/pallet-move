@@ -14,7 +14,7 @@ This article discusses the pallet-move functionality.
 MoveVM scripts and modules are not allowed to run forever - therefore, the `gas` value is used for that purpose. The provided `gas` gets converted to `Weight`, a mechanism that prevents extriniscs from running forever.
 The script execution is an atomic operation - if the provided gas is insufficient, the MoveVM within the pallet will reject the script, and no changes shall occur - but the user will pay for the used weight anyway. So, using the gas estimation RPC method is well recommended.
 
-Scripts and modules have limited access to the balance transfer functionality via the `cheque_amount` parameter - the maximum amount of balance the account scripts can transfer from the signer of the extrinsic.
+Scripts and modules have limited access to the balance transfer functionality via the `cheque_limit` parameter - the maximum amount of balance the account scripts can transfer from the signer of the extrinsic.
 
 ## Extrinsics
 
@@ -68,6 +68,8 @@ Scripts and modules have limited access to the balance transfer functionality vi
 ```
 
 ## RPC
+
+To quickly access these RPC methods above, it is recommended to use `smove node rpc` set of subcommands.
 
 ### Method `mvm_estimateGasPublishModule`
 Estimate gas and weight cost for publishing a module.
@@ -145,7 +147,7 @@ Get module binary using account address.
 
 ----------------------------------------------------------------
 
-# Design architecture
+# Design Architecture
 
 The main parts are:
 - A pallet hosting the MoveVM _(this repo)_.
@@ -172,14 +174,16 @@ Each following signer will execute the same script transaction with its individu
 Pallet move will store the state of each signature and each cheque limit and keep track if all users have signed or not.
 After each signer has signed by calling the exact same extrinsic call with the same script transaction, the Move pallet will execute the script.
 
-**Differences to single signer:**
+**Differences to single signer scripts:**
 - The cheque limit (tokens) of each signer will be locked on their accounts until the request gets finally executed or deleted.
 - Except for the final signer, the event `SignedMultisigScript` will be emitted instead of `ExecuteCalled`.
 - When all signers have signed, the script will be executed, the tokens be unlocked, and balances applied according to the Move script.
 - Every user needs to sign the script within a certain time limit; otherwise, the request will expire, which means it will be removed automatically after a certain amount of time (as defined by the blockchain developer).
 - If a multi-signature request expires, then all previous signatures are dropped in vain. If some user then reinitiates the request, all signers need to provide their signature again.
 - The point of time of the first signature defines the expiration timeout for that multi-signature script. New signatures for that multi-signer script cannot extend the time limit.
-- If all signatures are collected and then the script execution fails (e.g. because of insufficient cheque amount), no change will take place in the MoveVM storage / balance. The only way to re-execute the script is to restart the request and try to collect all signatures once again.
+- If all signatures are collected and then the script execution fails (e.g. because of insufficient cheque amount), no change will take place in the MoveVM storage / balance, nor the previous signatures will be dropped. The only way to re-execute the script successfully is to find a signer who provided insufficient `cheque_limit` and ask that user to re-sign the script. Only then the final signer can execute the script successfully.
 - The signer order doesn't matter (it is independent of the order of the script function arguments).
 - If the script function argument list has a signer in multiple places in the argument list, this signer (user) has to sign the script only once.
-- _TODO (Eiger): Add information about gas usage._
+- Only the last signer must provide the `gas_limit` value necessary for execution within the MoveVM. All previous signers can set the `gas_limit` value to zero since the script won't start\the execution until all signatures are collected.
+
+We recommend you review our quick multi-signer [tutorial](tutorial-multi-signer.md) for more practical info.
