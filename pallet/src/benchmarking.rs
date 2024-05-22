@@ -24,7 +24,7 @@ mod benchmarks {
     use super::*;
 
     #[benchmark]
-    fn execute(n: Linear<0, 9>) {
+    fn execute(n: Linear<0, 7>) {
         let bob_32 = utils::account::<T>(utils::BOB_ADDR);
         let alice_32 = utils::account::<T>(utils::ALICE_ADDR);
         let dave_32 = utils::account::<T>(utils::DAVE_ADDR);
@@ -37,9 +37,7 @@ mod benchmarks {
             car_wash_buy_coin().to_vec(),
             car_wash_wash_car().to_vec(),
             gas_costs_short_cheap_script().to_vec(),
-            gas_costs_short_expensive_script().to_vec(),
             gas_costs_long_cheap_script().to_vec(),
-            gas_costs_long_expensive_script().to_vec(),
             multiple_signers_init_module().to_vec(),
             multiple_signers_rent_apartment().to_vec(),
         ];
@@ -51,17 +49,15 @@ mod benchmarks {
             alice_32.clone(),
             alice_32.clone(), // gas-costs
             alice_32.clone(),
-            alice_32.clone(),
-            alice_32.clone(),
             bob_32.clone(), // multiple-signers
             eve_32,
         ];
         // Needed gas amounts for each script, estimated by smove.
-        let gas = [343, 197, 795, 425, 1, 6166264, 8, 6058953, 308, 1377];
+        let gas = [343, 197, 795, 425, 1, 8, 308, 1377];
         // Balance limit to be used.
-        let regular = [LIMIT; 4];
-        let max = [u128::MAX; 4];
-        let limit = [regular, max, regular].concat();
+        let regular = [LIMIT; 2];
+        let max = [u128::MAX; 2];
+        let limit = [regular, regular, max, regular].concat();
 
         // Now we have to prepare each script execution with a proper setup.
         // Publish both modules always.
@@ -79,7 +75,7 @@ mod benchmarks {
         .unwrap();
 
         // Now prepare individual situations for proper script sequences.
-        if n > 0 && n < 8 {
+        if n > 0 && n < 6 {
             Pallet::<T>::execute(
                 RawOrigin::Signed(bob_32.clone()).into(),
                 car_wash_initial_coin_miniting().to_vec(),
@@ -114,7 +110,7 @@ mod benchmarks {
                 .unwrap();
             }
         }
-        if n > 8 {
+        if n > 6 {
             Pallet::<T>::execute(
                 RawOrigin::Signed(bob_32.clone()).into(),
                 multiple_signers_init_module().to_vec(),
@@ -155,9 +151,8 @@ mod benchmarks {
             multiple_signers_module().to_vec(),
             car_wash_example_module().to_vec(),
             base58_smove_build_module().to_vec(),
-            basic_coin_module().to_vec(),
         ];
-        let gas = [661, 732, 100, 576];
+        let gas = [661, 732, 100];
 
         #[extrinsic_call]
         publish_module(
@@ -175,9 +170,8 @@ mod benchmarks {
             multiple_signers_module_as_bundle().to_vec(),
             car_wash_example_module_as_bundle().to_vec(),
             base58_smove_build_module_as_bundle().to_vec(),
-            basic_coin_module_as_bundle().to_vec(),
         ];
-        let gas = [664, 735, 102, 579];
+        let gas = [664, 735, 102];
 
         #[extrinsic_call]
         publish_module_bundle(
@@ -237,18 +231,6 @@ mod benchmark_only {
         )
     }
 
-    // basic_coin example
-    pub fn basic_coin_module() -> &'static [u8] {
-        core::include_bytes!(
-            "assets/move-projects/basic_coin/build/basic_coin/bytecode_modules/BasicCoin.mv"
-        )
-    }
-    pub fn basic_coin_module_as_bundle() -> &'static [u8] {
-        core::include_bytes!(
-            "assets/move-projects/basic_coin/build/basic_coin/bundles/basic_coin.mvb"
-        )
-    }
-
     // Car Wash Example
     pub fn car_wash_example_module() -> &'static [u8] {
         core::include_bytes!(
@@ -305,15 +287,7 @@ mod benchmark_only {
         core::include_bytes!("assets/move-projects/gas-costs/build/gas-costs/script_transactions/short_cheap_script.mvt")
     }
 
-    pub fn gas_costs_short_expensive_script() -> &'static [u8] {
-        core::include_bytes!("assets/move-projects/gas-costs/build/gas-costs/script_transactions/short_expensive_script.mvt")
-    }
-
     pub fn gas_costs_long_cheap_script() -> &'static [u8] {
         core::include_bytes!("assets/move-projects/gas-costs/build/gas-costs/script_transactions/long_cheap_script.mvt")
-    }
-
-    pub fn gas_costs_long_expensive_script() -> &'static [u8] {
-        core::include_bytes!("assets/move-projects/gas-costs/build/gas-costs/script_transactions/long_expensive_script.mvt")
     }
 }
