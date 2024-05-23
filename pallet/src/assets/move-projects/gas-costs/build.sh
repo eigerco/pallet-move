@@ -1,9 +1,9 @@
 #!/bin/sh
 cd $(dirname $0)
 ALICE=5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY
-sh ./gen_cal_scripts.sh
 # Build the project
 smove build
+sh ./gen_cal_scripts.sh
 # Create all Script-Transactions
 smove create-transaction --compiled-script-path build/gas-costs/bytecode_scripts/short_cheap_script.mv
 smove create-transaction --compiled-script-path build/gas-costs/bytecode_scripts/short_expensive_script.mv --args signer:$ALICE

@@ -8,6 +8,8 @@ use crate::{mock_utils as utils, *};
 
 type SourceOf<T> = <<T as SysConfig>::Lookup as sp_runtime::traits::StaticLookup>::Source;
 
+const MAX_GAS_AMOUNT: u32 = u32::MAX;
+
 macro_rules! impl_gas_costs_cal_fns {
     ($name:tt) => {
         pub fn $name() -> &'static [u8] {
@@ -30,47 +32,63 @@ mod benchmarks {
     use super::*;
 
     /// Because it is challenging to determine a reliable and fixed relation between gas costs and
-    /// Substrate weights, we created Move scripts with known gas costs and increasing steps of 20.
-    /// Twenty-five scripts with rising gas costs of about 20 for each iteration step were used as
-    /// input for this benchmark. Therefore, the original output was divided by 20 afterwards.
+    /// Substrate weights, we created Move scripts with known gas costs and increasing steps of 403.
+    /// Twenty-five scripts with rising gas costs of about 403 for each iteration step were used as
+    /// input for this benchmark.
     #[benchmark]
     fn execute(n: Linear<0, 24>) {
         let alice_32 = utils::account::<T>(utils::ALICE_ADDR);
+        let bob_32 = utils::account::<T>(utils::BOB_ADDR);
 
         // Our benchmark plan (each is a test scenario with different parameters).
         let script_bcs = [
-            cal_gas_cost_0().to_vec(),
-            cal_gas_cost_1().to_vec(),
-            cal_gas_cost_2().to_vec(),
-            cal_gas_cost_3().to_vec(),
-            cal_gas_cost_4().to_vec(),
-            cal_gas_cost_5().to_vec(),
-            cal_gas_cost_6().to_vec(),
-            cal_gas_cost_7().to_vec(),
-            cal_gas_cost_8().to_vec(),
-            cal_gas_cost_9().to_vec(),
-            cal_gas_cost_10().to_vec(),
-            cal_gas_cost_11().to_vec(),
-            cal_gas_cost_12().to_vec(),
-            cal_gas_cost_13().to_vec(),
-            cal_gas_cost_14().to_vec(),
-            cal_gas_cost_15().to_vec(),
-            cal_gas_cost_16().to_vec(),
-            cal_gas_cost_17().to_vec(),
-            cal_gas_cost_18().to_vec(),
-            cal_gas_cost_19().to_vec(),
-            cal_gas_cost_20().to_vec(),
-            cal_gas_cost_21().to_vec(),
-            cal_gas_cost_22().to_vec(),
-            cal_gas_cost_23().to_vec(),
-            cal_gas_cost_24().to_vec(),
+            mint_1().to_vec(),
+            mint_2().to_vec(),
+            mint_3().to_vec(),
+            mint_4().to_vec(),
+            mint_5().to_vec(),
+            mint_6().to_vec(),
+            mint_7().to_vec(),
+            mint_8().to_vec(),
+            mint_9().to_vec(),
+            mint_10().to_vec(),
+            mint_11().to_vec(),
+            mint_12().to_vec(),
+            mint_13().to_vec(),
+            mint_14().to_vec(),
+            mint_15().to_vec(),
+            mint_16().to_vec(),
+            mint_17().to_vec(),
+            mint_18().to_vec(),
+            mint_19().to_vec(),
+            mint_20().to_vec(),
+            mint_21().to_vec(),
+            mint_22().to_vec(),
+            mint_23().to_vec(),
+            mint_24().to_vec(),
+            mint_25().to_vec(),
         ];
+
+        Pallet::<T>::publish_module(
+            RawOrigin::Signed(bob_32.clone()).into(),
+            publish_basic_coin().to_vec(),
+            MAX_GAS_AMOUNT,
+        )
+        .unwrap();
+
+        Pallet::<T>::execute(
+            RawOrigin::Signed(alice_32.clone()).into(),
+            publish_basic_balance().to_vec(),
+            MAX_GAS_AMOUNT,
+            0u128.into(),
+        )
+        .unwrap();
 
         #[extrinsic_call]
         execute(
-            RawOrigin::Signed(alice_32),
+            RawOrigin::Signed(bob_32),
             script_bcs[n as usize].clone(),
-            (n + 1) * 20,
+            19 + (n + 1) * 403,
             0u128.into(),
         )
     }
@@ -187,29 +205,42 @@ mod benchmark_only {
         )
     }
 
-    impl_gas_costs_cal_fns!(cal_gas_cost_0);
-    impl_gas_costs_cal_fns!(cal_gas_cost_1);
-    impl_gas_costs_cal_fns!(cal_gas_cost_2);
-    impl_gas_costs_cal_fns!(cal_gas_cost_3);
-    impl_gas_costs_cal_fns!(cal_gas_cost_4);
-    impl_gas_costs_cal_fns!(cal_gas_cost_5);
-    impl_gas_costs_cal_fns!(cal_gas_cost_6);
-    impl_gas_costs_cal_fns!(cal_gas_cost_7);
-    impl_gas_costs_cal_fns!(cal_gas_cost_8);
-    impl_gas_costs_cal_fns!(cal_gas_cost_9);
-    impl_gas_costs_cal_fns!(cal_gas_cost_10);
-    impl_gas_costs_cal_fns!(cal_gas_cost_11);
-    impl_gas_costs_cal_fns!(cal_gas_cost_12);
-    impl_gas_costs_cal_fns!(cal_gas_cost_13);
-    impl_gas_costs_cal_fns!(cal_gas_cost_14);
-    impl_gas_costs_cal_fns!(cal_gas_cost_15);
-    impl_gas_costs_cal_fns!(cal_gas_cost_16);
-    impl_gas_costs_cal_fns!(cal_gas_cost_17);
-    impl_gas_costs_cal_fns!(cal_gas_cost_18);
-    impl_gas_costs_cal_fns!(cal_gas_cost_19);
-    impl_gas_costs_cal_fns!(cal_gas_cost_20);
-    impl_gas_costs_cal_fns!(cal_gas_cost_21);
-    impl_gas_costs_cal_fns!(cal_gas_cost_22);
-    impl_gas_costs_cal_fns!(cal_gas_cost_23);
-    impl_gas_costs_cal_fns!(cal_gas_cost_24);
+    // Basic Coin Example
+    pub fn publish_basic_coin() -> &'static [u8] {
+        core::include_bytes!(
+            "assets/move-projects/gas-costs/build/gas-costs/bytecode_modules/dependencies/basic_coin/BasicCoin.mv"
+        )
+    }
+
+    pub fn publish_basic_balance() -> &'static [u8] {
+        core::include_bytes!(
+            "assets/move-projects/gas-costs/build/gas-costs/script_transactions/publish_basic_balance.mvt"
+        )
+    }
+
+    impl_gas_costs_cal_fns!(mint_1);
+    impl_gas_costs_cal_fns!(mint_2);
+    impl_gas_costs_cal_fns!(mint_3);
+    impl_gas_costs_cal_fns!(mint_4);
+    impl_gas_costs_cal_fns!(mint_5);
+    impl_gas_costs_cal_fns!(mint_6);
+    impl_gas_costs_cal_fns!(mint_7);
+    impl_gas_costs_cal_fns!(mint_8);
+    impl_gas_costs_cal_fns!(mint_9);
+    impl_gas_costs_cal_fns!(mint_10);
+    impl_gas_costs_cal_fns!(mint_11);
+    impl_gas_costs_cal_fns!(mint_12);
+    impl_gas_costs_cal_fns!(mint_13);
+    impl_gas_costs_cal_fns!(mint_14);
+    impl_gas_costs_cal_fns!(mint_15);
+    impl_gas_costs_cal_fns!(mint_16);
+    impl_gas_costs_cal_fns!(mint_17);
+    impl_gas_costs_cal_fns!(mint_18);
+    impl_gas_costs_cal_fns!(mint_19);
+    impl_gas_costs_cal_fns!(mint_20);
+    impl_gas_costs_cal_fns!(mint_21);
+    impl_gas_costs_cal_fns!(mint_22);
+    impl_gas_costs_cal_fns!(mint_23);
+    impl_gas_costs_cal_fns!(mint_24);
+    impl_gas_costs_cal_fns!(mint_25);
 }
