@@ -1,6 +1,7 @@
 #!/bin/sh
 cd $(dirname $0)
 ALICE=5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY
+sh ./gen_cal_scripts.sh
 # Build the project
 smove build
 # Create all Script-Transactions
@@ -10,3 +11,4 @@ smove create-transaction --compiled-script-path build/gas-costs/bytecode_scripts
 mv build/gas-costs/script_transactions/long_script.mvt build/gas-costs/script_transactions/long_cheap_script.mvt
 smove create-transaction --compiled-script-path build/gas-costs/bytecode_scripts/long_script.mv --args signer:$ALICE bool:false
 mv build/gas-costs/script_transactions/long_script.mvt build/gas-costs/script_transactions/long_expensive_script.mvt
+sh ./gen_smove_instr.sh
