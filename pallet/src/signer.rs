@@ -44,7 +44,6 @@ pub enum SigDataError {
     MaxSignersExceeded,
     ScriptSignatureFailure,
     UnableToDeserializeAccount,
-    UserHasAlreadySigned,
 }
 
 impl<T> From<SigDataError> for Error<T> {
@@ -53,7 +52,6 @@ impl<T> From<SigDataError> for Error<T> {
             SigDataError::MaxSignersExceeded => Error::<T>::MaxSignersExceeded,
             SigDataError::ScriptSignatureFailure => Error::<T>::ScriptSignatureFailure,
             SigDataError::UnableToDeserializeAccount => Error::<T>::UnableToDeserializeAccount,
-            SigDataError::UserHasAlreadySigned => Error::<T>::UserHasAlreadySigned,
         }
     }
 }
@@ -203,9 +201,9 @@ impl<T: Config + SysConfig> ScriptSignatureHandler<T> {
             return Err(Error::<T>::UnexpectedUserSignature);
         };
 
-        // User can sign only once.
+        // Signing again will update the setup parameters.
         if matches!(ms_data.signature, Signature::Approved) {
-            return Err(Error::<T>::UserHasAlreadySigned);
+            T::Currency::remove_lock(ms_data.lock_id, account);
         }
 
         ms_data.signature = Signature::Approved;
