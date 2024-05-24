@@ -34,8 +34,11 @@ pub mod weight_info {
     /// Weight functions needed for pallet_move.
     pub trait WeightInfo {
         fn execute(gas: u32) -> Weight;
-        fn publish_module(gas: u32) -> Weight;
-        fn publish_module_bundle(gas: u32) -> Weight;
+        // Both `publish_module` and `publish_module_bundle` share the same weight cost calculation
+        // since both functions are almost identical and should cost the same. More info:
+        // `publish_module` internally just invokes `publish_module_bundle` with a single-module
+        // bundle.
+        fn publish_module_generic(gas: u32) -> Weight;
         fn update_stdlib_bundle() -> Weight;
     }
 }
@@ -350,7 +353,7 @@ pub mod pallet {
         /// Publish a Move module sent by the user.
         /// Module is published under its sender's address.
         #[pallet::call_index(1)]
-        #[pallet::weight(T::WeightInfo::publish_module(*gas_limit))]
+        #[pallet::weight(T::WeightInfo::publish_module_generic(*gas_limit))]
         pub fn publish_module(
             origin: OriginFor<T>,
             bytecode: Vec<u8>,
@@ -379,7 +382,7 @@ pub mod pallet {
         ///
         /// Bundle is just a set of multiple modules.
         #[pallet::call_index(2)]
-        #[pallet::weight(T::WeightInfo::publish_module_bundle(*gas_limit))]
+        #[pallet::weight(T::WeightInfo::publish_module_generic(*gas_limit))]
         pub fn publish_module_bundle(
             origin: OriginFor<T>,
             bundle: Vec<u8>,
@@ -650,7 +653,7 @@ pub mod pallet {
             Ok(MoveApiEstimation {
                 vm_status_code: vm_result.status_code.into(),
                 gas_used: vm_result.gas_used,
-                total_weight_including_gas_used: T::WeightInfo::publish_module(
+                total_weight_including_gas_used: T::WeightInfo::publish_module_generic(
                     vm_result.gas_used as u32,
                 ),
             })
@@ -666,7 +669,7 @@ pub mod pallet {
             Ok(MoveApiEstimation {
                 vm_status_code: vm_result.status_code.into(),
                 gas_used: vm_result.gas_used,
-                total_weight_including_gas_used: T::WeightInfo::publish_module_bundle(
+                total_weight_including_gas_used: T::WeightInfo::publish_module_generic(
                     vm_result.gas_used as u32,
                 ),
             })
