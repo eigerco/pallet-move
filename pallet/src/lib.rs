@@ -755,8 +755,6 @@ pub mod pallet {
         InvalidScriptTransaction,
         /// User tried to publish module in a protected memory area.
         StdlibAddressNotAllowed,
-        /// Error about signing multi-signature execution request twice.
-        UserHasAlreadySigned,
         /// Script contains more signers than allowed maximum number of signers.
         MaxSignersExceeded,
         /// No space left in the ChoreOnIdleStorage during this block.

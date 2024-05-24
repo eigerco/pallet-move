@@ -277,14 +277,13 @@ fn eve_cant_execute_multisig_script_without_other_signers_works() {
             })
         );
 
-        // Executing twice will result in an error.
-        let result = execute_script(
+        // Executing twice will update the signing data.
+        assert_ok!(execute_script(
             &eve_addr_32,
             script.clone(),
             params.clone(),
             type_args.clone(),
-        );
-        assert_err!(result, Error::<Test>::UserHasAlreadySigned);
+        ));
 
         // With both signatures, we can expect the `ExecuteCalled` event.
         assert_ok!(execute_script(
@@ -688,12 +687,15 @@ fn insufficient_cheque_limit_aborts_the_multisig_script_works() {
                 &eve_addr_mv,
                 &2u8 // number of months
             );
+            let call_hash = MoveModule::transaction_bc_call_hash(&transaction_bc[..]);
             assert_ok!(MoveModule::execute(
                 RuntimeOrigin::signed(dave_addr_32.clone()),
                 transaction_bc.clone(),
                 MAX_GAS_AMOUNT,
                 BALANCE,
             ));
+            // Check that execution request is in storage.
+            let _request = MultisigStorage::<Test>::try_get(call_hash).unwrap();
             assert_ok!(MoveModule::execute(
                 RuntimeOrigin::signed(eve_addr_32.clone()),
                 transaction_bc.clone(),
@@ -713,5 +715,14 @@ fn insufficient_cheque_limit_aborts_the_multisig_script_works() {
             // Verify that the execution will be aborted since on of the signers has a too low
             // cheque-limit to pay his part of the bill.
             assert!(verify_module_error_with_msg(res, "Aborted").unwrap());
+
+            // Alice just re-signs again with sufficient balance, her data will be updated and the
+            // execution request finally executed.
+            assert_ok!(MoveModule::execute(
+                RuntimeOrigin::signed(alice_addr_32.clone()),
+                transaction_bc.clone(),
+                MAX_GAS_AMOUNT,
+                BALANCE,
+            ));
         })
 }
