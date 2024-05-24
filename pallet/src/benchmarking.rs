@@ -22,6 +22,22 @@ macro_rules! impl_gas_costs_cal_fns {
     };
 }
 
+macro_rules! impl_gas_costs_cal_bundles {
+    ($name:tt) => {
+        pub fn $name() -> &'static [u8] {
+            core::include_bytes!(concat!(
+                "assets/move-projects/gas-costs-bundles/",
+                stringify!($name),
+                "/build/",
+                stringify!($name),
+                "/bundles/",
+                stringify!($name),
+                ".mvb"
+            ))
+        }
+    };
+}
+
 #[benchmarks(
     where
         T: Config + SysConfig,
@@ -94,40 +110,42 @@ mod benchmarks {
     }
 
     #[benchmark]
-    fn publish_module(n: Linear<0, 2>) {
-        let bob_32 = utils::account::<T>(utils::BOB_ADDR);
-
-        let module_bcs = [
-            multiple_signers_module().to_vec(),
-            car_wash_example_module().to_vec(),
-            base58_smove_build_module().to_vec(),
-        ];
-        let gas = [661, 732, 100];
-
-        #[extrinsic_call]
-        publish_module(
-            RawOrigin::Signed(bob_32),
-            module_bcs[n as usize].clone(),
-            gas[n as usize],
-        );
-    }
-
-    #[benchmark]
-    fn publish_module_bundle(n: Linear<0, 2>) {
+    fn publish_module_generic(n: Linear<0, 24>) {
         let bob_32 = utils::account::<T>(utils::BOB_ADDR);
 
         let bundles = [
-            multiple_signers_module_as_bundle().to_vec(),
-            car_wash_example_module_as_bundle().to_vec(),
-            base58_smove_build_module_as_bundle().to_vec(),
+            bundle1().to_vec(),
+            bundle2().to_vec(),
+            bundle3().to_vec(),
+            bundle4().to_vec(),
+            bundle5().to_vec(),
+            bundle6().to_vec(),
+            bundle7().to_vec(),
+            bundle8().to_vec(),
+            bundle9().to_vec(),
+            bundle10().to_vec(),
+            bundle11().to_vec(),
+            bundle12().to_vec(),
+            bundle13().to_vec(),
+            bundle14().to_vec(),
+            bundle15().to_vec(),
+            bundle16().to_vec(),
+            bundle17().to_vec(),
+            bundle18().to_vec(),
+            bundle19().to_vec(),
+            bundle20().to_vec(),
+            bundle21().to_vec(),
+            bundle22().to_vec(),
+            bundle23().to_vec(),
+            bundle24().to_vec(),
+            bundle25().to_vec(),
         ];
-        let gas = [664, 735, 102];
 
         #[extrinsic_call]
         publish_module_bundle(
             RawOrigin::Signed(bob_32),
             bundles[n as usize].clone(),
-            gas[n as usize],
+            (n + 1) * 114,
         );
     }
 
@@ -169,42 +187,6 @@ mod benchmarks {
 use benchmark_only::*;
 
 mod benchmark_only {
-    // Base58 build example
-    pub fn base58_smove_build_module() -> &'static [u8] {
-        core::include_bytes!(
-            "assets/move-projects/base58_smove_build/build/base58_smove_build/bytecode_modules/BobBase58.mv"
-        )
-    }
-    pub fn base58_smove_build_module_as_bundle() -> &'static [u8] {
-        core::include_bytes!(
-            "assets/move-projects/base58_smove_build/build/base58_smove_build/bundles/base58_smove_build.mvb"
-        )
-    }
-
-    // Car Wash Example
-    pub fn car_wash_example_module() -> &'static [u8] {
-        core::include_bytes!(
-            "assets/move-projects/car-wash-example/build/car-wash-example/bytecode_modules/CarWash.mv"
-        )
-    }
-    pub fn car_wash_example_module_as_bundle() -> &'static [u8] {
-        core::include_bytes!(
-            "assets/move-projects/car-wash-example/build/car-wash-example/bundles/car-wash-example.mvb"
-        )
-    }
-
-    // Multiple Signers Example
-    pub fn multiple_signers_module() -> &'static [u8] {
-        core::include_bytes!(
-            "assets/move-projects/multiple-signers/build/multiple-signers/bytecode_modules/Dorm.mv"
-        )
-    }
-    pub fn multiple_signers_module_as_bundle() -> &'static [u8] {
-        core::include_bytes!(
-            "assets/move-projects/multiple-signers/build/multiple-signers/bundles/multiple-signers.mvb"
-        )
-    }
-
     // Basic Coin Example
     pub fn publish_basic_coin() -> &'static [u8] {
         core::include_bytes!(
@@ -243,4 +225,30 @@ mod benchmark_only {
     impl_gas_costs_cal_fns!(mint_23);
     impl_gas_costs_cal_fns!(mint_24);
     impl_gas_costs_cal_fns!(mint_25);
+
+    impl_gas_costs_cal_bundles!(bundle1);
+    impl_gas_costs_cal_bundles!(bundle2);
+    impl_gas_costs_cal_bundles!(bundle3);
+    impl_gas_costs_cal_bundles!(bundle4);
+    impl_gas_costs_cal_bundles!(bundle5);
+    impl_gas_costs_cal_bundles!(bundle6);
+    impl_gas_costs_cal_bundles!(bundle7);
+    impl_gas_costs_cal_bundles!(bundle8);
+    impl_gas_costs_cal_bundles!(bundle9);
+    impl_gas_costs_cal_bundles!(bundle10);
+    impl_gas_costs_cal_bundles!(bundle11);
+    impl_gas_costs_cal_bundles!(bundle12);
+    impl_gas_costs_cal_bundles!(bundle13);
+    impl_gas_costs_cal_bundles!(bundle14);
+    impl_gas_costs_cal_bundles!(bundle15);
+    impl_gas_costs_cal_bundles!(bundle16);
+    impl_gas_costs_cal_bundles!(bundle17);
+    impl_gas_costs_cal_bundles!(bundle18);
+    impl_gas_costs_cal_bundles!(bundle19);
+    impl_gas_costs_cal_bundles!(bundle20);
+    impl_gas_costs_cal_bundles!(bundle21);
+    impl_gas_costs_cal_bundles!(bundle22);
+    impl_gas_costs_cal_bundles!(bundle23);
+    impl_gas_costs_cal_bundles!(bundle24);
+    impl_gas_costs_cal_bundles!(bundle25);
 }
