@@ -25,7 +25,7 @@ function create_move_project() {
     smove bundle -p $NAME
 }
 
-rm -rf bundle*
+sh ./clean.sh
 for i in $(seq 1 $ITERATIONS)
 do
     create_move_project $i

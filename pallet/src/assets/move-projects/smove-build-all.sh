@@ -14,15 +14,15 @@ build_dir=(
     "signer-scripts"
 )
 bundle_dir=(
+    "base58_smove_build"
+    "basic_coin"
+    "car-wash-example"
+    "gas-costs-bundles"
+    "multiple-signers"
     "prohibited-bundle"
     "testing-move-stdlib"
     "testing-substrate-stdlib"
     "using_stdlib_natives"
-
-    "car-wash-example"
-    "multiple-signers"
-    "base58_smove_build"
-    "basic_coin"
 )
 
 
