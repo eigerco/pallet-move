@@ -49,8 +49,12 @@ fn pseudo_benchmark_gas_costs() {
         let weight1: Weight = SubstrateWeight::<Test>::execute(gas1 as u32);
 
         // Short and expensive script.
-        Balances::force_set_balance(RuntimeOrigin::root(), alice_addr_32.clone(), u128::MAX)
-            .unwrap();
+        Balances::force_set_balance(
+            RuntimeOrigin::root(),
+            alice_addr_32.clone(),
+            u64::MAX.into(),
+        )
+        .unwrap();
         let script = utils::read_script_from_project("gas-costs", "short_expensive_script");
         let script_bc = script_transaction!(script, no_type_args!(), &alice_addr_move);
         let gas2: u64 = MoveModule::rpc_estimate_gas_execute_script(script_bc)
@@ -67,8 +71,12 @@ fn pseudo_benchmark_gas_costs() {
         let weight3: Weight = SubstrateWeight::<Test>::execute(gas3 as u32);
 
         // Long and expensive script.
-        Balances::force_set_balance(RuntimeOrigin::root(), alice_addr_32.clone(), u128::MAX)
-            .unwrap();
+        Balances::force_set_balance(
+            RuntimeOrigin::root(),
+            alice_addr_32.clone(),
+            u64::MAX.into(),
+        )
+        .unwrap();
         let script = utils::read_script_from_project("gas-costs", "long_script");
         let script_bc = script_transaction!(script, no_type_args!(), &alice_addr_move, &false);
         let gas4: u64 = MoveModule::rpc_estimate_gas_execute_script(script_bc)
