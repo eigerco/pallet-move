@@ -164,19 +164,19 @@ mod benchmarks {
             .with_balances(vec![
                 (
                     crate::mock_utils::account::<crate::mock::Test>(crate::mock_utils::BOB_ADDR),
-                    u128::MAX
+                    u64::MAX.into()
                 ),
                 (
                     crate::mock_utils::account::<crate::mock::Test>(crate::mock_utils::ALICE_ADDR),
-                    u128::MAX
+                    u64::MAX.into()
                 ),
                 (
                     crate::mock_utils::account::<crate::mock::Test>(crate::mock_utils::DAVE_ADDR),
-                    u128::MAX
+                    u64::MAX.into()
                 ),
                 (
                     crate::mock_utils::account::<crate::mock::Test>(crate::mock_utils::EVE_ADDR),
-                    u128::MAX
+                    u64::MAX.into()
                 ),
             ])
             .build(),
