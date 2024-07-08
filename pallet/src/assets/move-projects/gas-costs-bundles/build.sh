@@ -3,7 +3,7 @@ cd $(dirname $0)
 
 ITERATIONS=25
 
-function write_module() {
+write_module() {
     printf "module AiBob::CalMod$2 {\n" >> $1
     printf "    fun fun_fun(a: u8) {\n" >> $1
     printf "        assert!(a == 0, 0);\n" >> $1
@@ -11,7 +11,7 @@ function write_module() {
     printf "}\n" >> $1
 }
 
-function create_move_project() {
+create_move_project() {
     NAME=bundle$1
     smove new $NAME
     TOML=$NAME/Move.toml

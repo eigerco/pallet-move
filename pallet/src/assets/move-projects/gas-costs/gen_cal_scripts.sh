@@ -6,7 +6,7 @@ ITERATIONS=25
 ALICE=5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY
 BOB=5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty
 
-function write_smove_cmd() {
+write_smove_cmd() {
     cp build/gas-costs/bytecode_scripts/mint.mv build/gas-costs/bytecode_scripts/mint_$1.mv
     printf "\nsmove create-transaction -c build/gas-costs/bytecode_scripts/mint_$1.mv --args signer:$BOB address:$ALICE u64:$1" >> $BASH_SH
 }
