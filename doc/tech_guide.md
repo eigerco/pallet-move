@@ -133,6 +133,8 @@ when being in the substrate-based node directory root (template-node).
 The assumption is made that the pallet is located under the `../pallet-move` directory. 
 The template for the weights is located under the `./.maintain/frame-weight-template.hbs` directory and can be obtained from the Substrate repository.
 
+Note: When the node gets compiled with the feature `runtime-benchmarks` enabled, running in operational mode is impossible.
+If you want to run the template-node for any test/tutorial purposes, recompile it without the `runtime-benchmarks` feature.
 
 ## Docker
 
@@ -161,6 +163,8 @@ It will start the `node-template` within a local Docker container. In dependency
 It will start the `node-template` on the local interface. 
 You can change the default behavior by passing your command when running the docker image. 
 All available options are in the [node template](https://docs.substrate.io/reference/command-line-tools/node-template/) documentation.
+
+The node gets compiled without any additional features set in this docker image.
 
 
 ## Update Standard Libraries
