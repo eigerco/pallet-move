@@ -4,7 +4,6 @@ A pallet for substrate based blockchains to enable the usage of smart contracts 
 
 ![Pallet Move connects the Move language with Substrate](doc/assets/pallet-move_substrate_move.png)
 
-
 ## Overview
 
 Smart contracts can directly be implemented and executed as Move scripts or modularized in Move modules. Therefor, the pallet supports publishing of Move modules and the execution of Move scripts to achieve this functionality. In the case of larger projects, the pallet provides the publishing of a bundle (multiple Move modules).
@@ -81,6 +80,14 @@ _The current solution is general and parachain-agnostic._
 _The MoveVM is taken from the Move language repository - any possible safety issues are inherited from that repo._
 _Therefore, the Substrate MoveVM fork ([substrate-move][substrate-move]) should get all upstream changes from that repository._
 _The first parachain adapters should do additional testing to ensure the robustness of the solution._
+
+
+## See also
+
+- [move-stdlib](https://github.com/eigerco/move-stdlib) - Provides elementary Move functions in Move smart contracts. 
+- [substrate-move](https://github.com/eigerco/substrate-move) - A modified MoveVM fork for the use of MoveVM in the pallet-move repo.
+- [smove](https://github.com/eigerco/smove) - Handles the gas estimation, the serialization of script and module transactions, and the inspection of the module's ABIs.
+- [substrate-stdlib](https://github.com/eigerco/substrate-stdlib) - Provides elementary Substrate functions in Move smart contracts.
 
 ## License
 
