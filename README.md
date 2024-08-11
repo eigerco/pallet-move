@@ -92,3 +92,10 @@ _The first parachain adapters should do additional testing to ensure the robustn
 [substrate-move]: https://github.com/eigerco/substrate-move
 [smove]: https://github.com/eigerco/smove
 [tutorial]: doc/tutorial.md
+
+## About [Eiger](https://www.eiger.co)
+
+We are engineers. We contribute to various ecosystems by building low level implementations and core components. We believe in Move and in Polkadot and wanted to bring them together. Read more about this project on [our blog](https://www.eiger.co/blog/eiger-brings-move-to-polkadot).
+
+Contact us at hello@eiger.co
+Follow us on [X/Twitter](https://x.com/eiger_co)
