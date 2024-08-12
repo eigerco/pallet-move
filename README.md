@@ -13,8 +13,8 @@ For the execution of Move scripts and the publication of Move modules, the Move 
 ### Requirements
 
 - [Substrate developer environment][substrate-dev-env]
-- [smove][smove] is a package manager for Move language in Substrate. Follow the instructions in its repo to install it.
-- [cargo][cargo]
+- [smove] is a package manager for Move language in Substrate. Follow the instructions in its repo to install it.
+- [cargo]
 - Docker (not mandatory)
 
 
@@ -31,7 +31,7 @@ module DeveloperBob::CarWash {
 }
 ```
 
-More details about the module above in [our tutorial][tutorial]. For this example, the module got published and the following script only needs to be executed.
+More details about the module above in our [tutorial]. For this example, the module got published and the following script only needs to be executed.
 
 ```move
 script {
@@ -53,7 +53,7 @@ To dive quickly into the topic, explore our [simple tutorial][tutorial].
 
 ## Tech Guide
 
-There is a [tech-guide][tech-guide] available, where you can find advanced topics like pallet configuration, Docker, and benchmarking.
+There is a [tech-guide] available, where you can find advanced topics like pallet configuration, Docker, and benchmarking.
 
 Read the [design document][design-document] to learn more about the pallet API and how it works.
 
@@ -68,7 +68,7 @@ Verify that everything works fine by running the pallet's unit tests with all fe
 cargo test --verbose --features build-move-projects-for-test
 ```
 
-You can find further details about testing possibilities [in the tech-guide][tech-guide].
+You can find further details about testing possibilities in the [tech-guide].
 
 
 ## Important Note
@@ -78,16 +78,16 @@ _There are more potential improvements to be made._
 _Still, those are yet to be defined and properly implemented within a future parachain project - since it's hard to predict what exactly the parachain might need or not need._
 _The current solution is general and parachain-agnostic._
 _The MoveVM is taken from the Move language repository - any possible safety issues are inherited from that repo._
-_Therefore, the Substrate MoveVM fork ([substrate-move][substrate-move]) should get all upstream changes from that repository._
+_Therefore, the Substrate MoveVM fork ([substrate-move]) should get all upstream changes from that repository._
 _The first parachain adapters should do additional testing to ensure the robustness of the solution._
 
 
 ## See also
 
-- [move-stdlib][move-stdlib] - Provides elementary Move functions in Move smart contracts. 
-- [substrate-move][substrate-move] - A modified MoveVM fork for the use of MoveVM in the pallet-move repo.
-- [smove][smove] - Handles the gas estimation, the serialization of script and module transactions, and the inspection of the module's ABIs.
-- [substrate-stdlib][substrate-stdlib]- Provides elementary Substrate functions in Move smart contracts.
+- [move-stdlib] - Provides elementary Move functions in Move smart contracts. 
+- [substrate-move] - A modified MoveVM fork for the use of MoveVM in the pallet-move repo.
+- [smove] - Handles the gas estimation, the serialization of script and module transactions, and the inspection of the module's ABIs.
+- [substrate-stdlib]- Provides elementary Substrate functions in Move smart contracts.
 
 ## License
 
