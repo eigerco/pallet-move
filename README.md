@@ -86,7 +86,7 @@ _The first parachain adapters should do additional testing to ensure the robustn
 
 - [move-stdlib](https://github.com/eigerco/move-stdlib) - Provides elementary Move functions in Move smart contracts. 
 - [substrate-move][substrate-move] - A modified MoveVM fork for the use of MoveVM in the pallet-move repo.
-- [smove](https://github.com/eigerco/smove) - Handles the gas estimation, the serialization of script and module transactions, and the inspection of the module's ABIs.
+- [smove][smove] - Handles the gas estimation, the serialization of script and module transactions, and the inspection of the module's ABIs.
 - [substrate-stdlib](https://github.com/eigerco/substrate-stdlib) - Provides elementary Substrate functions in Move smart contracts.
 
 ## License
