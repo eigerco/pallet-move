@@ -13,9 +13,8 @@ In this tech guide, you will find instructions and details on:
 
 Compile the template-node and launch locally by:
 
-1. Clone Move pallet and node-template (make sure they are in the same directory):
+1. Clone the node-template:
    ```bash
-   git clone https://github.com/eigerco/pallet-move.git
    git clone https://github.com/eigerco/substrate-node-template-move-vm-test --branch pallet-move
    ```
 
